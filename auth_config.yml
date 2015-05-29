@@ -1,0 +1,68 @@
+# This is an example configuration file.
+#
+# To configure Docker Registry to talk to this server, put the following in the registry config file:
+#
+#  auth:
+#    token:
+#      realm: "https://127.0.0.1:5001/auth"
+#      service: "Docker registry"
+#      issuer: "Acme auth server"
+#      rootcertbundle: "/path/to/server.pem"
+#
+
+server:  # Server settings.
+  # Address to listen on.
+  addr: ":5001"
+  # TLS certificate and key.
+  certificate: "/path/to/server.pem"
+  key: "/path/to/server.key"
+
+token:  # Settings for the tokens.
+  issuer: "Acme auth server"  # Must match issuer in the Registry config.
+  expiration: 900
+  # It is possible configure a different certificate for tokens.
+  # If not specified, server certificate is used.
+  # certificate: "..."
+  # key: "..."
+
+# User map. 
+users:
+  # Password is specified as a BCrypt hash. Use htpasswd -B to generate.
+  "admin":
+    password: "$2y$05$SirvKgES6jlgIKDqElQgAu6.3d.czANNYnyPe6SJy4exvAW0cpUjW"
+  "test":
+    password: "$2y$05$RkZWQNIY8j87k1Wn4MwprOYteXizIRjpTDs6TgeSPlQh045SYybvS"
+  "": {}  # Allow anonymous (no "docker login") access.
+
+# ACL specifies who can do what. If the match section of an entry matches the
+# request, the set of actions will be compared and token will be issued if
+# all the requested actions are allowed by the entry.
+#  * It is possible to match on user's name ("account"), subject type ("type")
+#    and name ("name"; for type=repository which, at the timeof writing, is the
+#    only known subject type, this is the image name).
+#  * Matches are evaluated as shell file name patterns ("globs") by default,
+#    so "foobar", "f??bar", "f*bar" are all valid. For even more flexibility
+#    match patterns can be evaluated as regexes by enclosing them in //, e.g.
+#    "/(foo|bar)/".
+#  * ACL is evaluated in the order it is defined until a match is found.
+#  * Empty match clause matches anything, it only makes sense at the end of the
+#    list and can be used as a way of specifying default permissions.
+#  * Empty actions set means "deny everything", special set consisting of a
+#    single "*" action means "allow everything".
+#  * If no match is found the default is to deny the request.
+acl:
+  # Admin has full access to everything.
+  - match: {account: "admin"}
+    actions: ["*"]
+  # User "test" has full access to test-* images but nothing else.
+  - match: {account: "test", name: "test-*"}
+    actions: ["*"]
+  - match: {account: "test"}
+    actions: []
+  # All logged in users can pull all images.
+  - match: {account: "/.+/"}
+    actions: ["pull"]
+  # Anonymous users can pull "hello-world".
+  - match: {account: "", name: "hello-world"}
+    actions: ["pull"]
+  # Access is denied by default.

@@ -29,7 +29,6 @@ import (
 
 	"github.com/docker/distribution/registry/auth/token"
 	"github.com/golang/glog"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthRequest struct {
@@ -57,12 +56,30 @@ func (ps PasswordString) String() string {
 	return "***"
 }
 
-type AuthServer struct {
-	config *Config
+type Authenticator interface {
+	Authenticate(user string, password PasswordString) error
 }
 
-func NewAuthServer(c *Config) *AuthServer {
-	return &AuthServer{config: c}
+type AuthServer struct {
+	config         *Config
+	authenticators []Authenticator
+	ga             *GoogleAuth
+}
+
+func NewAuthServer(c *Config) (*AuthServer, error) {
+	as := &AuthServer{config: c}
+	if c.Users != nil {
+		as.authenticators = append(as.authenticators, &StaticUsersAuth{c.Users})
+	}
+	if c.GoogleAuth != nil {
+		ga, err := NewGoogleAuth(c.GoogleAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, ga)
+		as.ga = ga
+	}
+	return as, nil
 }
 
 func (as *AuthServer) ParseRequest(req *http.Request) (*AuthRequest, error) {
@@ -75,6 +92,8 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*AuthRequest, error) {
 	ar.Account = req.FormValue("account")
 	if ar.Account == "" {
 		ar.Account = ar.User
+	} else if haveBasicAuth && ar.Account != ar.User {
+		return nil, fmt.Errorf("user and account are not the same (%q vs %q)", ar.User, ar.Account)
 	}
 	ar.Service = req.FormValue("service")
 	scope := req.FormValue("scope")
@@ -92,16 +111,14 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*AuthRequest, error) {
 }
 
 func (as *AuthServer) Authenticate(ar *AuthRequest) error {
-	reqs := as.config.Users[ar.Account]
-	if reqs == nil {
-		return errors.New("unknown user")
-	}
-	if reqs.Password != nil {
-		if bcrypt.CompareHashAndPassword([]byte(*reqs.Password), []byte(ar.Password)) != nil {
-			return errors.New("wrong password")
+	for i, a := range as.authenticators {
+		err := a.Authenticate(ar.Account, ar.Password)
+		glog.V(2).Infof("auth %d %s -> %s", i, ar.Account, err)
+		if err == nil {
+			return nil
 		}
 	}
-	return nil
+	return errors.New("auth failed")
 }
 
 func (as *AuthServer) Authorize(ar *AuthRequest) (bool, error) {
@@ -179,12 +196,37 @@ func (as *AuthServer) CreateToken(ar *AuthRequest) (string, error) {
 }
 
 func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	glog.V(2).Infof("Request: %+v", req)
-	ar, err := as.ParseRequest(req)
-	if err != nil {
-		http.Error(rw, fmt.Sprintf("Bad request %s", err), http.StatusBadRequest)
+	glog.V(3).Infof("Request: %+v", req)
+	switch {
+	case req.URL.Path == "/":
+		as.doIndex(rw, req)
+	case req.URL.Path == "/auth":
+		as.doAuth(rw, req)
+	case req.URL.Path == "/google_auth" && as.ga != nil:
+		as.ga.doGoogleAuth(rw, req)
+	default:
+		http.Error(rw, "Not found", http.StatusNotFound)
 		return
 	}
+}
+
+// https://developers.google.com/identity/sign-in/web/server-side-flow
+func (as *AuthServer) doIndex(rw http.ResponseWriter, req *http.Request) {
+	rw.Header().Set("Content-Type", "text-html; charset=utf-8")
+	rw.Write([]byte(fmt.Sprintf("<h1>%s</h1>\n", as.config.Token.Issuer)))
+	if as.ga != nil {
+		rw.Write([]byte(`<a href="/google_auth">Login with Google account</a>`))
+	}
+}
+
+func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
+	ar, err := as.ParseRequest(req)
+	if err != nil {
+		glog.Warningf("Bad request: %s", err)
+		http.Error(rw, fmt.Sprintf("Bad request: %s", err), http.StatusBadRequest)
+		return
+	}
+	glog.V(2).Infof("Auth request: %+v", ar)
 	if err = as.Authenticate(ar); err != nil {
 		http.Error(rw, err.Error(), http.StatusUnauthorized)
 		glog.Errorf("%s: %s", ar, err)
@@ -208,7 +250,6 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	result, _ := json.Marshal(&map[string]string{"token": token})
 	glog.V(2).Infof("%s", result)
 	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusOK)
 	rw.Write([]byte(result))
 }
 

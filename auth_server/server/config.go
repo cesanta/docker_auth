@@ -34,29 +34,38 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig             `yaml:"server"`
-	Token  TokenConfig              `yaml:"token"`
-	Users  map[string]*Requirements `yaml:"users"`
-	ACL    []*ACLEntry              `yaml:"acl"`
+	Server     ServerConfig             `yaml:"server"`
+	Token      TokenConfig              `yaml:"token"`
+	Users      map[string]*Requirements `yaml:"users,omitempty"`
+	GoogleAuth *GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	ACL        []*ACLEntry              `yaml:"acl"`
 }
 
 type ServerConfig struct {
-	ListenAddress string `yaml:"addr"`
-	CertFile      string `yaml:"certificate"`
-	KeyFile       string `yaml:"key"`
+	ListenAddress string `yaml:"addr,omitempty"`
+	CertFile      string `yaml:"certificate,omitempty"`
+	KeyFile       string `yaml:"key,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
 }
 
 type TokenConfig struct {
-	Issuer     string `yaml:"issuer"`
-	CertFile   string `yaml:"certificate"`
-	KeyFile    string `yaml:"key"`
-	Expiration int64  `yaml:"expiration"`
+	Issuer     string `yaml:"issuer,omitempty"`
+	CertFile   string `yaml:"certificate,omitempty"`
+	KeyFile    string `yaml:"key,omitempty"`
+	Expiration int64  `yaml:"expiration,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
+}
+
+type GoogleAuthConfig struct {
+	Domain       string `yaml:"domain,omitempty"`
+	ClientId     string `yaml:"client_id,omitempty"`
+	ClientSecret string `yaml:"client_secret,omitempty"`
+	TokenDB      string `yaml:"token_db,omitempty"`
+	HTTPTimeout  int    `yaml:"http_timeout,omitempty"`
 }
 
 type ACLEntry struct {
@@ -156,8 +165,16 @@ func validate(c *Config) error {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
 
-	if c.Users == nil {
-		return errors.New("no users are configured, this is probably a mistake. Use an empty map if you really want to deny everyone.")
+	if c.Users == nil && c.GoogleAuth == nil {
+		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
+	}
+	if gac := c.GoogleAuth; gac != nil {
+		if gac.ClientId == "" || gac.ClientSecret == "" || gac.TokenDB == "" {
+			return errors.New("google_auth.{client_id,client_secret,token_db} are required.")
+		}
+		if gac.HTTPTimeout <= 0 {
+			gac.HTTPTimeout = 10
+		}
 	}
 	if c.ACL == nil {
 		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions.")

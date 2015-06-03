@@ -1,4 +1,4 @@
-# This is an example configuration file.
+# This config lists all the possible config options.
 #
 # To configure Docker Registry to talk to this server, put the following in the registry config file:
 #
@@ -8,7 +8,6 @@
 #      service: "Docker registry"
 #      issuer: "Acme auth server"
 #      rootcertbundle: "/path/to/server.pem"
-#
 
 server:  # Server settings.
   # Address to listen on.
@@ -25,7 +24,10 @@ token:  # Settings for the tokens.
   # certificate: "..."
   # key: "..."
 
-# User map. 
+# Authentication methods. All are tried, any one returning success is sufficient.
+# At least one must be configured.
+
+# Static user map. 
 users:
   # Password is specified as a BCrypt hash. Use htpasswd -B to generate.
   "admin":
@@ -33,6 +35,23 @@ users:
   "test":
     password: "$2y$05$RkZWQNIY8j87k1Wn4MwprOYteXizIRjpTDs6TgeSPlQh045SYybvS"
   "": {}  # Allow anonymous (no "docker login") access.
+
+# Google authentication.
+# ==! NB: DO NOT ENTER YOUR GOOGLE PASSWORD AT "docker login". IT WILL NOT WORK.
+# Instead, Auth server maintains a database of Google authentication tokens.
+# Go to the server's port with you browser and follow the "Login with Google account" link.
+# Once signed in, you will get a throw-away password which you can use for Docker login.
+google_auth:
+  domain: "example.com"  # Optional. If set, only logins fromt his domain are accepted.
+  # client_id and client_secret for API access. Required.
+  # Follow instructions here: https://developers.google.com/identity/sign-in/web/devconsole-project
+  # NB: Make sure JavaScript origins are configured correcly.
+  client_id: "1223123456-somethingsomething.apps.googleusercontent.com"
+  client_secret: "verysecret"
+  # Where to store server tokens. Required.
+  token_db: "/somewhere/to/put/google_tokens.ldb"
+  # How long to wait when talking to Google servers. Optional.
+  http_timeout: 10
 
 # ACL specifies who can do what. If the match section of an entry matches the
 # request, the set of actions will be compared and token will be issued if

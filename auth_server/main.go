@@ -40,7 +40,10 @@ func main() {
 	}
 	glog.Infof("Config from %s (%d users, %d ACL entries)", configFile, len(config.Users), len(config.ACL))
 
-	s := server.NewAuthServer(config)
+	s, err := server.NewAuthServer(config)
+	if err != nil {
+		glog.Exitf("Failed to create auth server: %s", err)
+	}
 
 	sc := &config.Server
 	glog.Infof("Listening on %s", sc.ListenAddress)

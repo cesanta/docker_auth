@@ -61,11 +61,12 @@ type TokenConfig struct {
 }
 
 type GoogleAuthConfig struct {
-	Domain       string `yaml:"domain,omitempty"`
-	ClientId     string `yaml:"client_id,omitempty"`
-	ClientSecret string `yaml:"client_secret,omitempty"`
-	TokenDB      string `yaml:"token_db,omitempty"`
-	HTTPTimeout  int    `yaml:"http_timeout,omitempty"`
+	Domain           string `yaml:"domain,omitempty"`
+	ClientId         string `yaml:"client_id,omitempty"`
+	ClientSecret     string `yaml:"client_secret,omitempty"`
+	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
+	TokenDB          string `yaml:"token_db,omitempty"`
+	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
 }
 
 type ACLEntry struct {
@@ -169,6 +170,13 @@ func validate(c *Config) error {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if gac := c.GoogleAuth; gac != nil {
+		if gac.ClientSecretFile != "" {
+			contents, err := ioutil.ReadFile(gac.ClientSecretFile)
+			if err != nil {
+				return fmt.Errorf("could not read %s: %s", gac.ClientSecretFile, err)
+			}
+			gac.ClientSecret = strings.TrimSpace(string(contents))
+		}
 		if gac.ClientId == "" || gac.ClientSecret == "" || gac.TokenDB == "" {
 			return errors.New("google_auth.{client_id,client_secret,token_db} are required.")
 		}

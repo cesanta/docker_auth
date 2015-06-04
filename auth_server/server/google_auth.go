@@ -354,12 +354,15 @@ func (ga *GoogleAuth) getIDTokenInfo(token string) (*GoogleTokenInfo, error) {
 	if ti.Error != "" || ti.ErrorDescription != "" {
 		return nil, fmt.Errorf("bad token %q: %s %s", token, ti.Error, ti.ErrorDescription)
 	}
+	if ti.ExpiresIn <= 0 {
+		return nil, errors.New("expired token")
+	}
 	me := ga.config.ClientId
 	if ti.Audience != me {
 		return nil, fmt.Errorf("token intended for %s, not %s", ti.Audience, me)
 	}
 	if ti.Email == "" || !ti.VerifiedEmail {
-		return nil, fmt.Errorf("no verified email in token")
+		return nil, errors.New("no verified email in token")
 	}
 	err = ga.checkDomain(ti.Email)
 	if err != nil {

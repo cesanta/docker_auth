@@ -3,9 +3,10 @@
 all: docker-build
 
 update-deps:
-	go get -u -f
+	go get -v -u -f github.com/jteeuwen/go-bindata/... .
 
 build:
+	go generate ./...
 	go build
 
 docker-build: update-deps build

@@ -466,3 +466,8 @@ func (ga *GoogleAuth) Authenticate(user string, password PasswordString) error {
 	}
 	return nil
 }
+
+func (ga *GoogleAuth) Stop() {
+	ga.db.Close()
+	glog.Info("Token DB closed")
+}

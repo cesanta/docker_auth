@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -132,6 +133,7 @@ type GoogleAuth struct {
 	config *GoogleAuthConfig
 	db     *leveldb.DB
 	client *http.Client
+	tmpl   *template.Template
 }
 
 func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
@@ -144,6 +146,7 @@ func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
 		config: c,
 		db:     db,
 		client: &http.Client{Timeout: 10 * time.Second},
+		tmpl:   template.Must(template.New("google_auth").Parse(string(MustAsset("data/google_auth.tmpl")))),
 	}, nil
 }
 
@@ -173,7 +176,9 @@ func (ga *GoogleAuth) doGoogleAuth(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (ga *GoogleAuth) doGoogleAuthPage(rw http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(rw, string(MustAsset("data/google_auth.tmpl")), ga.config.ClientId)
+	if err := ga.tmpl.Execute(rw, struct{ ClientId string }{ClientId: ga.config.ClientId}); err != nil {
+		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
+	}
 }
 
 // https://developers.google.com/identity/protocols/OAuth2WebServer#handlingtheresponse

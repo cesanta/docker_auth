@@ -27,7 +27,7 @@
 		}
     function start() {
       gapi.load('auth2', function() {
-				gapi.auth2.init({client_id: '%s'}).then(checkLogin);
+				gapi.auth2.init({client_id: '{{.ClientId}}'}).then(checkLogin);
 			});
     }
   </script>

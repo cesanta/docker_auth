@@ -84,7 +84,7 @@ func dataGoogle_authTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "data/google_auth.tmpl", size: 2796, mode: os.FileMode(436), modTime: time.Unix(1433497505, 0)}
+	info := bindataFileInfo{name: "data/google_auth.tmpl", size: 2796, mode: os.FileMode(436), modTime: time.Unix(1433527401, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }

@@ -58,6 +58,7 @@ func (ps PasswordString) String() string {
 
 type Authenticator interface {
 	Authenticate(user string, password PasswordString) error
+	Stop()
 }
 
 type AuthServer struct {
@@ -251,6 +252,13 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 	glog.V(2).Infof("%s", result)
 	rw.Header().Set("Content-Type", "application/json")
 	rw.Write(result)
+}
+
+func (as *AuthServer) Stop() {
+	for _, a := range as.authenticators {
+		a.Stop()
+	}
+	glog.Infof("Server stopped")
 }
 
 // Copy-pasted from libtrust where it is private.

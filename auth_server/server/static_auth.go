@@ -37,3 +37,6 @@ func (sua *StaticUsersAuth) Authenticate(user string, password PasswordString) e
 	}
 	return nil
 }
+
+func (sua *StaticUsersAuth) Stop() {
+}

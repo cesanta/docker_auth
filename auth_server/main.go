@@ -17,38 +17,140 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"math/rand"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/cesanta/docker_auth/auth_server/server"
+	"github.com/facebookgo/httpdown"
 	"github.com/golang/glog"
+	fsnotify "gopkg.in/fsnotify.v1"
 )
 
-func main() {
-	flag.Parse()
-	rand.Seed(time.Now().UnixNano())
+type RestartableServer struct {
+	configFile string
+	config     *server.Config
+	authServer *server.AuthServer
+	hd         *httpdown.HTTP
+	hs         httpdown.Server
+}
 
-	configFile := flag.Arg(0)
-	if configFile == "" {
-		glog.Exitf("Config file not specified")
-	}
-	config, err := server.LoadConfig(configFile)
-	if err != nil {
-		glog.Exitf("Failed to load config: %s", err)
-	}
-	glog.Infof("Config from %s (%d users, %d ACL entries)", configFile, len(config.Users), len(config.ACL))
-
-	s, err := server.NewAuthServer(config)
+func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServer, httpdown.Server) {
+	glog.Infof("Config from %s (%d users, %d ACL entries)", cf, len(c.Users), len(c.ACL))
+	as, err := server.NewAuthServer(c)
 	if err != nil {
 		glog.Exitf("Failed to create auth server: %s", err)
 	}
 
-	sc := &config.Server
-	glog.Infof("Listening on %s", sc.ListenAddress)
-	err = http.ListenAndServeTLS(sc.ListenAddress, sc.CertFile, sc.KeyFile, s)
-	if err != nil {
-		glog.Exitf("Failed to set up server: %s", err)
+	hs := &http.Server{
+		Addr:    c.Server.ListenAddress,
+		Handler: as,
+		TLSConfig: &tls.Config{
+			NextProtos:   []string{"http/1.1"},
+			Certificates: make([]tls.Certificate, 1),
+		},
 	}
+
+	glog.Infof("Cert file: %s", c.Server.CertFile)
+	glog.Infof("Key file : %s", c.Server.KeyFile)
+	hs.TLSConfig.Certificates[0], err = tls.LoadX509KeyPair(c.Server.CertFile, c.Server.KeyFile)
+	if err != nil {
+		glog.Exitf("Failed to load certificate and key: %s", err)
+	}
+
+	s, err := hd.ListenAndServe(hs)
+	if err != nil {
+		glog.Exitf("Failed to set up listener: %s", err)
+	}
+	glog.Infof("Serving")
+	return as, s
+}
+
+func (rs *RestartableServer) Serve() {
+	rs.authServer, rs.hs = ServeOnce(rs.config, rs.configFile, rs.hd)
+	rs.WatchConfig()
+}
+
+func (rs *RestartableServer) WatchConfig() {
+	w, err := fsnotify.NewWatcher()
+	if err != nil {
+		glog.Fatalf("Failed to create watcher: %s", err)
+	}
+
+	stopSignals := make(chan os.Signal, 1)
+	signal.Notify(stopSignals, syscall.SIGTERM, syscall.SIGINT)
+
+	err = w.Add(rs.configFile)
+	watching, needRestart := (err == nil), false
+	for {
+		select {
+		case <-time.After(1 * time.Second):
+			if !watching {
+				err = w.Add(rs.configFile)
+				if err != nil {
+					glog.Errorf("Failed to set up config watcher: %s", err)
+				} else {
+					watching, needRestart = true, true
+				}
+			} else if needRestart {
+				rs.MaybeRestart()
+				needRestart = false
+			}
+		case ev := <-w.Events:
+			if ev.Op == fsnotify.Remove {
+				glog.Warningf("Config file disappeared, serving continues")
+				w.Remove(rs.configFile)
+				watching, needRestart = false, false
+			} else if ev.Op == fsnotify.Write {
+				needRestart = true
+			}
+		case s := <-stopSignals:
+			signal.Stop(stopSignals)
+			glog.Infof("Signal: %s", s)
+			rs.hs.Stop()
+			rs.authServer.Stop()
+			glog.Exitf("Exiting")
+		}
+	}
+	w.Close()
+}
+
+func (rs *RestartableServer) MaybeRestart() {
+	glog.Infof("Restarting server")
+	c, err := server.LoadConfig(rs.configFile)
+	if err != nil {
+		glog.Errorf("Failed to reload config (server not restarted): %s", err)
+		return
+	}
+	rs.config = c
+	glog.Infof("New config loaded")
+	rs.hs.Stop()
+	rs.authServer.Stop()
+	rs.authServer, rs.hs = ServeOnce(rs.config, rs.configFile, rs.hd)
+}
+
+func main() {
+	flag.Parse()
+	rand.Seed(time.Now().UnixNano())
+	glog.CopyStandardLogTo("INFO")
+
+	cf := flag.Arg(0)
+	if cf == "" {
+		glog.Exitf("Config file not specified")
+	}
+	c, err := server.LoadConfig(cf)
+	if err != nil {
+		glog.Exitf("Failed to load config: %s", err)
+	}
+	rs := RestartableServer{
+		config:     c,
+		configFile: cf,
+		hd:         &httpdown.HTTP{},
+	}
+	rs.Serve()
 }

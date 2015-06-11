@@ -33,7 +33,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//go:generate go-bindata -pkg server data/google_auth.tmpl
+//go:generate go-bindata -pkg server -modtime 1 -mode 420 data/google_auth.tmpl
 
 type GoogleAuthRequest struct {
 	Action string `json:"action,omitempty"`

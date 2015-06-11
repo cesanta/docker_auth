@@ -235,7 +235,7 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 	}
 	if len(ar.Actions) > 0 {
 		if allowed, err := as.Authorize(ar); !allowed {
-			http.Error(rw, fmt.Sprintf("Access denied (%s)", err), http.StatusForbidden)
+			http.Error(rw, fmt.Sprintf("Access denied (%s)", err), http.StatusUnauthorized)
 			return
 		}
 	} else {

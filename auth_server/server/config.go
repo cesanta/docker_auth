@@ -28,17 +28,18 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cesanta/docker_auth/auth_server/authn"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/docker/libtrust"
 	yaml "gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	Server     ServerConfig             `yaml:"server"`
-	Token      TokenConfig              `yaml:"token"`
-	Users      map[string]*Requirements `yaml:"users,omitempty"`
-	GoogleAuth *GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	ACL        []*ACLEntry              `yaml:"acl"`
+	Server     ServerConfig                   `yaml:"server"`
+	Token      TokenConfig                    `yaml:"token"`
+	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
+	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	ACL        []*ACLEntry                    `yaml:"acl"`
 }
 
 type ServerConfig struct {
@@ -60,15 +61,6 @@ type TokenConfig struct {
 	privateKey libtrust.PrivateKey
 }
 
-type GoogleAuthConfig struct {
-	Domain           string `yaml:"domain,omitempty"`
-	ClientId         string `yaml:"client_id,omitempty"`
-	ClientSecret     string `yaml:"client_secret,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-	TokenDB          string `yaml:"token_db,omitempty"`
-	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
-}
-
 type ACLEntry struct {
 	Match   *MatchConditions `yaml:"match"`
 	Actions *[]string        `yaml:"actions,flow"`
@@ -80,24 +72,10 @@ type MatchConditions struct {
 	Name    *string `yaml:"name,omitempty" json:"name,omitempty"`
 }
 
-type Requirements struct {
-	Password *PasswordString `yaml:"password,omitempty" json:"password,omitempty"`
-}
 type aclEntryJSON *ACLEntry
 
 func (e ACLEntry) String() string {
 	b, _ := json.Marshal(e)
-	return string(b)
-}
-
-func (r Requirements) String() string {
-	p := r.Password
-	if p != nil {
-		pm := PasswordString("***")
-		r.Password = &pm
-	}
-	b, _ := json.Marshal(r)
-	r.Password = p
 	return string(b)
 }
 

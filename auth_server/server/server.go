@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/docker/distribution/registry/auth/token"
 	"github.com/golang/glog"
 )
@@ -34,7 +35,7 @@ import (
 type AuthRequest struct {
 	RemoteAddr string
 	User       string
-	Password   PasswordString
+	Password   authn.PasswordString
 
 	Account string
 	Type    string
@@ -47,33 +48,19 @@ func (ar AuthRequest) String() string {
 	return fmt.Sprintf("{%s:%s@%s %s %s %s %s}", ar.User, ar.Password, ar.RemoteAddr, ar.Account, strings.Join(ar.Actions, ","), ar.Type, ar.Name)
 }
 
-type PasswordString string
-
-func (ps PasswordString) String() string {
-	if len(ps) == 0 {
-		return ""
-	}
-	return "***"
-}
-
-type Authenticator interface {
-	Authenticate(user string, password PasswordString) error
-	Stop()
-}
-
 type AuthServer struct {
 	config         *Config
-	authenticators []Authenticator
-	ga             *GoogleAuth
+	authenticators []authn.Authenticator
+	ga             *authn.GoogleAuth
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
 	as := &AuthServer{config: c}
 	if c.Users != nil {
-		as.authenticators = append(as.authenticators, &StaticUsersAuth{c.Users})
+		as.authenticators = append(as.authenticators, authn.NewStaticUserAuth(c.Users))
 	}
 	if c.GoogleAuth != nil {
-		ga, err := NewGoogleAuth(c.GoogleAuth)
+		ga, err := authn.NewGoogleAuth(c.GoogleAuth)
 		if err != nil {
 			return nil, err
 		}
@@ -88,7 +75,7 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*AuthRequest, error) {
 	user, password, haveBasicAuth := req.BasicAuth()
 	if haveBasicAuth {
 		ar.User = user
-		ar.Password = PasswordString(password)
+		ar.Password = authn.PasswordString(password)
 	}
 	ar.Account = req.FormValue("account")
 	if ar.Account == "" {
@@ -204,7 +191,7 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	case req.URL.Path == "/auth":
 		as.doAuth(rw, req)
 	case req.URL.Path == "/google_auth" && as.ga != nil:
-		as.ga.doGoogleAuth(rw, req)
+		as.ga.DoGoogleAuth(rw, req)
 	default:
 		http.Error(rw, "Not found", http.StatusNotFound)
 		return

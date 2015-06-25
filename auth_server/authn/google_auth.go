@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package server
+package authn
 
 import (
 	"encoding/json"
@@ -33,7 +33,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//go:generate go-bindata -pkg server -modtime 1 -mode 420 data/google_auth.tmpl
+type GoogleAuthConfig struct {
+	Domain           string `yaml:"domain,omitempty"`
+	ClientId         string `yaml:"client_id,omitempty"`
+	ClientSecret     string `yaml:"client_secret,omitempty"`
+	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
+	TokenDB          string `yaml:"token_db,omitempty"`
+	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
+}
 
 type GoogleAuthRequest struct {
 	Action string `json:"action,omitempty"`
@@ -150,7 +157,7 @@ func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
 	}, nil
 }
 
-func (ga *GoogleAuth) doGoogleAuth(rw http.ResponseWriter, req *http.Request) {
+func (ga *GoogleAuth) DoGoogleAuth(rw http.ResponseWriter, req *http.Request) {
 	if req.Method == "GET" {
 		ga.doGoogleAuthPage(rw, req)
 		return

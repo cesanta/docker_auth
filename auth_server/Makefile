@@ -1,6 +1,6 @@
 .PHONY: update-deps build docker-build
 
-all: docker-build
+all: build
 
 update-deps:
 	go get -v -u -f github.com/jteeuwen/go-bindata/... .

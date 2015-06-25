@@ -14,18 +14,38 @@
    limitations under the License.
 */
 
-package server
+package authn
 
 import (
+	"encoding/json"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type StaticUsersAuth struct {
+type Requirements struct {
+	Password *PasswordString `yaml:"password,omitempty" json:"password,omitempty"`
+}
+
+type staticUsersAuth struct {
 	users map[string]*Requirements
 }
 
-func (sua *StaticUsersAuth) Authenticate(user string, password PasswordString) error {
+func (r Requirements) String() string {
+	p := r.Password
+	if p != nil {
+		pm := PasswordString("***")
+		r.Password = &pm
+	}
+	b, _ := json.Marshal(r)
+	r.Password = p
+	return string(b)
+}
+
+func NewStaticUserAuth(users map[string]*Requirements) *staticUsersAuth {
+	return &staticUsersAuth{users: users}
+}
+
+func (sua *staticUsersAuth) Authenticate(user string, password PasswordString) error {
 	reqs := sua.users[user]
 	if reqs == nil {
 		return errors.New("unknown user")
@@ -38,5 +58,5 @@ func (sua *StaticUsersAuth) Authenticate(user string, password PasswordString) e
 	return nil
 }
 
-func (sua *StaticUsersAuth) Stop() {
+func (sua *staticUsersAuth) Stop() {
 }

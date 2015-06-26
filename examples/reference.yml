@@ -31,9 +31,9 @@ token:  # Settings for the tokens.
 users:
   # Password is specified as a BCrypt hash. Use htpasswd -B to generate.
   "admin":
-    password: "$2y$05$SirvKgES6jlgIKDqElQgAu6.3d.czANNYnyPe6SJy4exvAW0cpUjW"
+    password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC"  # badmin
   "test":
-    password: "$2y$05$RkZWQNIY8j87k1Wn4MwprOYteXizIRjpTDs6TgeSPlQh045SYybvS"
+    password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya"  # 123
   "": {}  # Allow anonymous (no "docker login") access.
 
 # Google authentication.

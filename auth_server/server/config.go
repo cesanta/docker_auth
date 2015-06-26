@@ -19,17 +19,13 @@ package server
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"path"
-	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
-	mapset "github.com/deckarep/golang-set"
+	"github.com/cesanta/docker_auth/auth_server/authz"
 	"github.com/docker/libtrust"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -39,7 +35,7 @@ type Config struct {
 	Token      TokenConfig                    `yaml:"token"`
 	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
 	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	ACL        []*ACLEntry                    `yaml:"acl"`
+	ACL        authz.ACL                      `yaml:"acl"`
 }
 
 type ServerConfig struct {
@@ -59,74 +55,6 @@ type TokenConfig struct {
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
-}
-
-type ACLEntry struct {
-	Match   *MatchConditions `yaml:"match"`
-	Actions *[]string        `yaml:"actions,flow"`
-}
-
-type MatchConditions struct {
-	Account *string `yaml:"account,omitempty" json:"account,omitempty"`
-	Type    *string `yaml:"type,omitempty" json:"type,omitempty"`
-	Name    *string `yaml:"name,omitempty" json:"name,omitempty"`
-}
-
-type aclEntryJSON *ACLEntry
-
-func (e ACLEntry) String() string {
-	b, _ := json.Marshal(e)
-	return string(b)
-}
-
-func matchString(pp *string, s string) bool {
-	if pp == nil {
-		return true
-	}
-	p := *pp
-	var matched bool
-	var err error
-	if len(p) > 2 && p[0] == '/' && p[len(p)-1] == '/' {
-		matched, err = regexp.Match(p[1:len(p)-1], []byte(s))
-	} else {
-		matched, err = path.Match(p, s)
-	}
-	return err == nil && matched
-}
-
-func (e *ACLEntry) Matches(rq *AuthRequest) bool {
-	if matchString(e.Match.Account, rq.Account) &&
-		matchString(e.Match.Type, rq.Type) &&
-		matchString(e.Match.Name, rq.Name) {
-		return true
-	}
-	return false
-}
-
-func makeSet(ss []string) mapset.Set {
-	set := mapset.NewSet()
-	for _, s := range ss {
-		set.Add(s)
-	}
-	return set
-}
-
-func (e *ACLEntry) Check(rq *AuthRequest) error {
-	if len(*e.Actions) == 1 && (*e.Actions)[0] == "*" {
-		return nil
-	}
-	requested := makeSet(rq.Actions)
-	allowed := makeSet(*e.Actions)
-	missing := requested.Difference(allowed)
-	if missing.Cardinality() == 0 {
-		return nil
-	}
-	missingStr := []string{}
-	for e := range missing.Iter() {
-		missingStr = append(missingStr, fmt.Sprintf("%q", e.(string)))
-	}
-	sort.Strings(missingStr)
-	return fmt.Errorf("%s not allowed", strings.Join(missingStr, ","))
 }
 
 func validate(c *Config) error {

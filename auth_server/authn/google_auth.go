@@ -221,7 +221,7 @@ func (ga *GoogleAuth) doGoogleAuthCreateToken(rw http.ResponseWriter, code strin
 	}
 
 	if c2t.RefreshToken == "" {
-		http.Error(rw, "Server did not return refresh token. Log out and log in again.", http.StatusBadRequest)
+		http.Error(rw, "Google did not return refresh token, please sign out and sign in again.", http.StatusBadRequest)
 		return
 	}
 
@@ -292,6 +292,7 @@ func (ga *GoogleAuth) getIDTokenInfo(token string) (*GoogleTokenInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	glog.V(2).Infof("Token for %s, expires in %d", ti.Email, ti.ExpiresIn)
 	return &ti, nil
 }
 
@@ -359,7 +360,7 @@ func (ga *GoogleAuth) getDBValue(user string) (*TokenDBValue, error) {
 	valueStr, err := ga.db.Get(getDBKey(user), nil)
 	switch {
 	case err == leveldb.ErrNotFound:
-		return nil, errors.New("no existing token, please sign in")
+		return nil, nil
 	case err != nil:
 		glog.Errorf("error accessing token db: %s", err)
 		return nil, fmt.Errorf("error accessing token db: %s", err)
@@ -375,7 +376,10 @@ func (ga *GoogleAuth) getDBValue(user string) (*TokenDBValue, error) {
 
 func (ga *GoogleAuth) validateServerToken(user string) (*TokenDBValue, error) {
 	v, err := ga.getDBValue(user)
-	if err != nil {
+	if err != nil || v == nil {
+		if err == nil {
+			err = errors.New("no db value, please sign out and sign in again.")
+		}
 		return nil, err
 	}
 	if time.Now().After(v.ValidUntil) {
@@ -443,7 +447,7 @@ func (ga *GoogleAuth) doGoogleAuthCheck(rw http.ResponseWriter, token string) {
 	}
 	// Truncate to seconds for presentation.
 	texp := time.Duration(int64(dbv.ValidUntil.Sub(time.Now()).Seconds())) * time.Second
-	fmt.Fprintf(rw, `Server token for %s validated, expires in %s`, ti.Email, texp)
+	fmt.Fprintf(rw, "Server token for %s validated, expires in %s", ti.Email, texp)
 }
 
 func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) {
@@ -457,24 +461,31 @@ func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) 
 	fmt.Fprint(rw, "signed out")
 }
 
-func (ga *GoogleAuth) Authenticate(user string, password PasswordString) error {
+func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, error) {
 	dbv, err := ga.getDBValue(user)
 	if err != nil {
-		return err
+		return false, err
+	}
+	if dbv == nil {
+		return false, NoMatch
 	}
 	if time.Now().After(dbv.ValidUntil) {
 		dbv, err = ga.validateServerToken(user)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return errors.New("wrong password")
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 func (ga *GoogleAuth) Stop() {
 	ga.db.Close()
 	glog.Info("Token DB closed")
+}
+
+func (ga *GoogleAuth) Name() string {
+	return "Google"
 }

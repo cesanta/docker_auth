@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cesanta/docker_auth/auth_server/authn"
+	"github.com/brandnetworks/docker_auth/auth_server/authn"
 	"github.com/docker/distribution/registry/auth/token"
 	"github.com/golang/glog"
 )

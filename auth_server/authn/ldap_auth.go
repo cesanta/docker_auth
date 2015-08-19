@@ -20,7 +20,6 @@ import (
 	"github.com/go-ldap/ldap"
 	"crypto/tls"
 	"fmt"
-	"errors"
 )
 
 type LdapAuthConfig struct {
@@ -39,7 +38,7 @@ func NewLdapAuth(config *LdapAuthConfig) (*ldapAuth, error) {
 	conn, err := config.connect()
 	sua := &ldapAuth{conn: conn}
 	if err != nil {
-		return errors.New("error connecting to auth")
+		return nil, err
 	}
 	return sua, nil
 }
@@ -65,7 +64,7 @@ func (sua *LdapAuthConfig) connect() (*ldap.Conn, error) {
 
 func (sua *ldapAuth) Authenticate(user string, password PasswordString) error {
 
-	err := sua.conn.Bind(user, password)
+	err := sua.conn.Bind(user, string(password))
 	if err != nil {
 		return err
 	}

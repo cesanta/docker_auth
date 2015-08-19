@@ -28,7 +28,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cesanta/docker_auth/auth_server/authn"
+	"github.com/brandnetworks/docker_auth/auth_server/authn"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/docker/libtrust"
 	yaml "gopkg.in/yaml.v2"
@@ -39,6 +39,7 @@ type Config struct {
 	Token      TokenConfig                    `yaml:"token"`
 	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
 	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	Ldap       *authn.LdapAuthConfig        `yaml:"ldap,omitempty"`
 	ACL        []*ACLEntry                    `yaml:"acl"`
 }
 

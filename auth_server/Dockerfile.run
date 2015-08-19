@@ -1,0 +1,7 @@
+FROM flynn/busybox
+
+COPY auth_server /bin/auth_server
+
+EXPOSE 5001
+
+ENTRYPOINT ["/bin/auth_server"]

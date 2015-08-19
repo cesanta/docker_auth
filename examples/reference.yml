@@ -36,6 +36,14 @@ users:
     password: "$2y$05$RkZWQNIY8j87k1Wn4MwprOYteXizIRjpTDs6TgeSPlQh045SYybvS"
   "": {}  # Allow anonymous (no "docker login") access.
 
+# LDAP Configuration
+ldap:
+  "host": "example.com"
+  "suffix": "@example.com" # username suffix
+  "port": 636
+  "tls": true
+  "insecure": false # whether to ignore certificates
+
 # Google authentication.
 # ==! NB: DO NOT ENTER YOUR GOOGLE PASSWORD AT "docker login". IT WILL NOT WORK.
 # Instead, Auth server maintains a database of Google authentication tokens.

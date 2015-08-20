@@ -19,7 +19,6 @@ package server
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -28,6 +27,7 @@ import (
 	"time"
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
+	"github.com/cesanta/docker_auth/auth_server/authz"
 	"github.com/docker/distribution/registry/auth/token"
 	"github.com/golang/glog"
 )
@@ -36,26 +36,25 @@ type AuthRequest struct {
 	RemoteAddr string
 	User       string
 	Password   authn.PasswordString
-
-	Account string
-	Type    string
-	Name    string
-	Service string
-	Actions []string
+	ai         authz.AuthRequestInfo
 }
 
 func (ar AuthRequest) String() string {
-	return fmt.Sprintf("{%s:%s@%s %s %s %s %s}", ar.User, ar.Password, ar.RemoteAddr, ar.Account, strings.Join(ar.Actions, ","), ar.Type, ar.Name)
+	return fmt.Sprintf("{%s:%s@%s %s}", ar.User, ar.Password, ar.RemoteAddr, ar.ai)
 }
 
 type AuthServer struct {
 	config         *Config
 	authenticators []authn.Authenticator
+	authorizers    []authz.Authorizer
 	ga             *authn.GoogleAuth
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
-	as := &AuthServer{config: c}
+	as := &AuthServer{
+		config:      c,
+		authorizers: []authz.Authorizer{authz.NewACLAuthorizer(c.ACL)},
+	}
 	if c.Users != nil {
 		as.authenticators = append(as.authenticators, authn.NewStaticUserAuth(c.Users))
 	}
@@ -71,70 +70,73 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 }
 
 func (as *AuthServer) ParseRequest(req *http.Request) (*AuthRequest, error) {
-	ar := &AuthRequest{RemoteAddr: req.RemoteAddr, Actions: []string{}}
+	ar := &AuthRequest{RemoteAddr: req.RemoteAddr}
 	user, password, haveBasicAuth := req.BasicAuth()
 	if haveBasicAuth {
 		ar.User = user
 		ar.Password = authn.PasswordString(password)
 	}
-	ar.Account = req.FormValue("account")
-	if ar.Account == "" {
-		ar.Account = ar.User
-	} else if haveBasicAuth && ar.Account != ar.User {
-		return nil, fmt.Errorf("user and account are not the same (%q vs %q)", ar.User, ar.Account)
+	ar.ai.Account = req.FormValue("account")
+	if ar.ai.Account == "" {
+		ar.ai.Account = ar.User
+	} else if haveBasicAuth && ar.ai.Account != ar.User {
+		return nil, fmt.Errorf("user and account are not the same (%q vs %q)", ar.User, ar.ai.Account)
 	}
-	ar.Service = req.FormValue("service")
+	ar.ai.Service = req.FormValue("service")
 	scope := req.FormValue("scope")
 	if scope != "" {
 		parts := strings.Split(scope, ":")
 		if len(parts) != 3 {
 			return nil, fmt.Errorf("invalid scope: %q", scope)
 		}
-		ar.Type = parts[0]
-		ar.Name = parts[1]
-		ar.Actions = strings.Split(parts[2], ",")
-		sort.Strings(ar.Actions)
+		ar.ai.Type = parts[0]
+		ar.ai.Name = parts[1]
+		ar.ai.Actions = strings.Split(parts[2], ",")
+		sort.Strings(ar.ai.Actions)
 	}
 	return ar, nil
 }
 
-func (as *AuthServer) Authenticate(ar *AuthRequest) error {
+func (as *AuthServer) Authenticate(ar *AuthRequest) (bool, error) {
 	for i, a := range as.authenticators {
-		err := a.Authenticate(ar.Account, ar.Password)
-		glog.V(2).Infof("auth %d %s -> %s", i, ar.Account, err)
-		if err == nil {
-			return nil
+		result, err := a.Authenticate(ar.ai.Account, ar.Password)
+		glog.V(2).Infof("Authn %s %s -> %t, %s", a.Name(), ar.ai.Account, result, err)
+		if err != nil {
+			if err == authn.NoMatch {
+				continue
+			}
+			err = fmt.Errorf("authn #%d returned error: %s", i+1, err)
+			glog.Errorf("%s: %s", ar, err)
+			return false, err
 		}
+		return result, nil
 	}
-	return errors.New("auth failed")
+	// Deny by default.
+	glog.Warningf("%s did not match any authn rule", ar.ai)
+	return false, nil
 }
 
-func (as *AuthServer) Authorize(ar *AuthRequest) (bool, error) {
-	var e *ACLEntry
-	var err error
-	matched, allowed := false, false
-	for _, e = range as.config.ACL {
-		matched = e.Matches(ar)
-		if matched {
-			err = e.Check(ar)
-			allowed = (err == nil)
-			break
+func (as *AuthServer) Authorize(ar *AuthRequest) ([]string, error) {
+	for i, a := range as.authorizers {
+		result, err := a.Authorize(&ar.ai)
+		glog.V(2).Infof("Authz %s %s -> %s, %s", a.Name(), ar.ai, result, err)
+		if err != nil {
+			if err == authz.NoMatch {
+				continue
+			}
+			err = fmt.Errorf("authz #%d returned error: %s", i+1, err)
+			glog.Errorf("%s: %s", ar, err)
+			return nil, authz.NoMatch
 		}
+		return result, nil
 	}
-	if matched {
-		if allowed {
-			glog.V(2).Infof("%s allowed by %s", ar, e)
-		} else {
-			glog.Warningf("%s denied by %s: %s", ar, e, err)
-		}
-	} else {
-		glog.Warningf("%s did not match any rule", ar)
-	}
-	return allowed, err
+	// Deny by default.
+	glog.Warningf("%s did not match any authz rule", ar.ai)
+	return nil, nil
 }
 
 // https://github.com/docker/distribution/blob/master/docs/spec/auth/token.md#example
-func (as *AuthServer) CreateToken(ar *AuthRequest) (string, error) {
+func (as *AuthServer) CreateToken(ar *AuthRequest, actions []string) (string, error) {
 	now := time.Now().Unix()
 	tc := &as.config.Token
 
@@ -155,17 +157,17 @@ func (as *AuthServer) CreateToken(ar *AuthRequest) (string, error) {
 
 	claims := token.ClaimSet{
 		Issuer:     tc.Issuer,
-		Subject:    ar.Account,
-		Audience:   ar.Service,
+		Subject:    ar.ai.Account,
+		Audience:   ar.ai.Service,
 		NotBefore:  now - 1,
 		IssuedAt:   now,
 		Expiration: now + tc.Expiration,
 		JWTID:      fmt.Sprintf("%d", rand.Int63()),
 		Access:     []*token.ResourceActions{},
 	}
-	if len(ar.Actions) > 0 {
+	if len(actions) > 0 {
 		claims.Access = []*token.ResourceActions{
-			&token.ResourceActions{Type: ar.Type, Name: ar.Name, Actions: ar.Actions},
+			&token.ResourceActions{Type: ar.ai.Type, Name: ar.ai.Name, Actions: actions},
 		}
 	}
 	claimsJSON, err := json.Marshal(claims)
@@ -179,7 +181,7 @@ func (as *AuthServer) CreateToken(ar *AuthRequest) (string, error) {
 	if err != nil || sigAlg2 != sigAlg {
 		return "", fmt.Errorf("failed to sign token: %s", err)
 	}
-	glog.Infof("New token: %s", claimsJSON)
+	glog.Infof("New token for %s: %s", *ar, claimsJSON)
 	return fmt.Sprintf("%s%s%s", payload, token.TokenSeparator, joseBase64UrlEncode(sig)), nil
 }
 
@@ -209,26 +211,35 @@ func (as *AuthServer) doIndex(rw http.ResponseWriter, req *http.Request) {
 
 func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 	ar, err := as.ParseRequest(req)
+	authorizedActions := []string{}
 	if err != nil {
 		glog.Warningf("Bad request: %s", err)
 		http.Error(rw, fmt.Sprintf("Bad request: %s", err), http.StatusBadRequest)
 		return
 	}
 	glog.V(2).Infof("Auth request: %+v", ar)
-	if err = as.Authenticate(ar); err != nil {
-		http.Error(rw, err.Error(), http.StatusUnauthorized)
-		glog.Errorf("%s: %s", ar, err)
-		return
+	{
+		authnResult, err := as.Authenticate(ar)
+		if err != nil {
+			http.Error(rw, fmt.Sprintf("Authentication failed (%s)", err), http.StatusInternalServerError)
+			return
+		}
+		if !authnResult {
+			glog.Warningf("Auth failed: %s", *ar)
+			http.Error(rw, "Auth failed.", http.StatusUnauthorized)
+			return
+		}
 	}
-	if len(ar.Actions) > 0 {
-		if allowed, err := as.Authorize(ar); !allowed {
-			http.Error(rw, fmt.Sprintf("Access denied (%s)", err), http.StatusUnauthorized)
+	if len(ar.ai.Actions) > 0 {
+		authorizedActions, err = as.Authorize(ar)
+		if err != nil {
+			http.Error(rw, fmt.Sprintf("Authorization failed (%s)", err), http.StatusInternalServerError)
 			return
 		}
 	} else {
 		// Authenticaltion-only request ("docker login"), pass through.
 	}
-	token, err := as.CreateToken(ar)
+	token, err := as.CreateToken(ar, authorizedActions)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to generate token %s", err)
 		http.Error(rw, msg, http.StatusInternalServerError)
@@ -242,8 +253,11 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (as *AuthServer) Stop() {
-	for _, a := range as.authenticators {
-		a.Stop()
+	for _, an := range as.authenticators {
+		an.Stop()
+	}
+	for _, az := range as.authorizers {
+		az.Stop()
 	}
 	glog.Infof("Server stopped")
 }

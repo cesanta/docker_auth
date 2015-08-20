@@ -36,7 +36,7 @@ See the [example config files](https://github.com/cesanta/docker_auth/tree/maste
 
 Run with increased verbosity:
 ```{r, engine='bash', count_lines}
-docker run ... cesanta/docker_auth --v=2 /config/auth_config.yml
+docker run ... cesanta/docker_auth --v=2 --alsologtostderr /config/auth_config.yml
 ```
 
 ## Contributing

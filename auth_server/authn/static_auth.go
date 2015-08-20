@@ -18,7 +18,6 @@ package authn
 
 import (
 	"encoding/json"
-	"errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -45,18 +44,22 @@ func NewStaticUserAuth(users map[string]*Requirements) *staticUsersAuth {
 	return &staticUsersAuth{users: users}
 }
 
-func (sua *staticUsersAuth) Authenticate(user string, password PasswordString) error {
+func (sua *staticUsersAuth) Authenticate(user string, password PasswordString) (bool, error) {
 	reqs := sua.users[user]
 	if reqs == nil {
-		return errors.New("unknown user")
+		return false, NoMatch
 	}
 	if reqs.Password != nil {
 		if bcrypt.CompareHashAndPassword([]byte(*reqs.Password), []byte(password)) != nil {
-			return errors.New("wrong password")
+			return false, nil
 		}
 	}
-	return nil
+	return true, nil
 }
 
 func (sua *staticUsersAuth) Stop() {
+}
+
+func (sua *staticUsersAuth) Name() string {
+	return "static"
 }

@@ -72,6 +72,12 @@ google_auth:
 #  * Empty actions set means "deny everything", special set consisting of a
 #    single "*" action means "allow everything".
 #  * If no match is found the default is to deny the request.
+#
+# You can use the following variables in any field:
+#  * ${account} - the username of the logged in person
+#  * ${service} - the service to which the user is logging in, e.g. hub.docker.io or my.reg.com:5000
+#  * ${name} - the name of the repository, e.g. centos or john/myrepo
+#  * ${type} - the type of the entity, normally "repository"
 acl:
   # Admin has full access to everything.
   - match: {account: "admin"}
@@ -84,6 +90,9 @@ acl:
   # All logged in users can pull all images.
   - match: {account: "/.+/"}
     actions: ["pull"]
+  # All logged in users can push all images that are in a namespace beginning with their name
+  - match: {account: "/.+/", name: "${account}/*"}
+    actions: ["*"]
   # Anonymous users can pull "hello-world".
   - match: {account: "", name: "hello-world"}
     actions: ["pull"]

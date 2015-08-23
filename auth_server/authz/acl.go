@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path"
 	"regexp"
+	"strings"
 
 	"github.com/golang/glog"
 )
@@ -58,13 +59,19 @@ func (e ACLEntry) String() string {
 	return string(b)
 }
 
-func matchString(pp *string, s string) bool {
+func matchString(pp *string, s string, ai *AuthRequestInfo) bool {
 	if pp == nil {
 		return true
 	}
 	p := *pp
 	var matched bool
 	var err error
+	
+	// replace each known variable
+	r := strings.NewReplacer("${account}",ai.Account,"${type}",ai.Type,"${name}",ai.Name,"${service}",ai.Service)
+	p = r.Replace(p)
+		
+		
 	if len(p) > 2 && p[0] == '/' && p[len(p)-1] == '/' {
 		matched, err = regexp.Match(p[1:len(p)-1], []byte(s))
 	} else {
@@ -74,9 +81,9 @@ func matchString(pp *string, s string) bool {
 }
 
 func (e *ACLEntry) Matches(ai *AuthRequestInfo) bool {
-	if matchString(e.Match.Account, ai.Account) &&
-		matchString(e.Match.Type, ai.Type) &&
-		matchString(e.Match.Name, ai.Name) {
+	if matchString(e.Match.Account, ai.Account, ai) &&
+		matchString(e.Match.Type, ai.Type, ai) &&
+		matchString(e.Match.Name, ai.Name, ai) {
 		return true
 	}
 	return false

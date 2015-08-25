@@ -57,8 +57,9 @@ google_auth:
   http_timeout: 10
 
 # ACL specifies who can do what. If the match section of an entry matches the
-# request, the set of actions will be compared and token will be issued if
-# all the requested actions are allowed by the entry.
+# request, the set of allowed actions will be applied to the token request
+# and a ticket will be issued only for those of the requested actions that are
+# allowed by the rule.
 #  * It is possible to match on user's name ("account"), subject type ("type")
 #    and name ("name"; for type=repository which, at the timeof writing, is the
 #    only known subject type, this is the image name).
@@ -69,8 +70,9 @@ google_auth:
 #  * ACL is evaluated in the order it is defined until a match is found.
 #  * Empty match clause matches anything, it only makes sense at the end of the
 #    list and can be used as a way of specifying default permissions.
-#  * Empty actions set means "deny everything", special set consisting of a
-#    single "*" action means "allow everything".
+#  * Empty actions set means "deny everything". Thus, a rule with `actions: []`
+#    is in effect a "deny" rule.
+#  * A special set consisting of a single "*" action means "allow everything".
 #  * If no match is found the default is to deny the request.
 acl:
   # Admin has full access to everything.

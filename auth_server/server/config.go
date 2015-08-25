@@ -61,9 +61,6 @@ func validate(c *Config) error {
 	if c.Server.ListenAddress == "" {
 		return errors.New("server.addr is required")
 	}
-	if c.Server.CertFile == "" || c.Server.KeyFile == "" {
-		return errors.New("server certificate and key are required")
-	}
 
 	if c.Token.Issuer == "" {
 		return errors.New("token.issuer is required")
@@ -125,17 +122,38 @@ func LoadConfig(fileName string) (*Config, error) {
 	if err = validate(c); err != nil {
 		return nil, fmt.Errorf("invalid config: %s", err)
 	}
-	c.Server.publicKey, c.Server.privateKey, err = loadCertAndKey(c.Server.CertFile, c.Server.KeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load server cert and key: %s", err)
+	serverConfigured := false
+	if c.Server.CertFile != "" || c.Server.KeyFile != "" {
+		// Check for partial configuration.
+		if c.Server.CertFile == "" || c.Server.KeyFile == "" {
+			return nil, fmt.Errorf("failed to load server cert and key: both were not provided")
+		}
+		c.Server.publicKey, c.Server.privateKey, err = loadCertAndKey(c.Server.CertFile, c.Server.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load server cert and key: %s", err)
+		}
+		serverConfigured = true
 	}
-	if c.Token.CertFile != "" && c.Token.KeyFile != "" {
+	tokenConfigured := false
+	if c.Token.CertFile != "" || c.Token.KeyFile != "" {
+		// Check for partial configuration.
+		if c.Token.CertFile == "" || c.Token.KeyFile == "" {
+			return nil, fmt.Errorf("failed to load token cert and key: both were not provided")
+		}
 		c.Token.publicKey, c.Token.privateKey, err = loadCertAndKey(c.Token.CertFile, c.Token.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load token cert and key: %s", err)
 		}
-	} else {
+		tokenConfigured = true
+	}
+
+	if serverConfigured && !tokenConfigured {
 		c.Token.publicKey, c.Token.privateKey = c.Server.publicKey, c.Server.privateKey
+		tokenConfigured = true
+	}
+
+	if !tokenConfigured {
+		return nil, fmt.Errorf("failed to load token cert and key: none provided")
 	}
 	return c, nil
 }

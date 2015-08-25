@@ -61,9 +61,6 @@ func validate(c *Config) error {
 	if c.Server.ListenAddress == "" {
 		return errors.New("server.addr is required")
 	}
-	if c.Server.CertFile == "" || c.Server.KeyFile == "" {
-		return errors.New("server certificate and key are required")
-	}
 
 	if c.Token.Issuer == "" {
 		return errors.New("token.issuer is required")
@@ -125,9 +122,11 @@ func LoadConfig(fileName string) (*Config, error) {
 	if err = validate(c); err != nil {
 		return nil, fmt.Errorf("invalid config: %s", err)
 	}
-	c.Server.publicKey, c.Server.privateKey, err = loadCertAndKey(c.Server.CertFile, c.Server.KeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load server cert and key: %s", err)
+	if c.Server.CertFile != "" && c.Server.KeyFile != "" {
+		c.Server.publicKey, c.Server.privateKey, err = loadCertAndKey(c.Server.CertFile, c.Server.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load server cert and key: %s", err)
+		}
 	}
 	if c.Token.CertFile != "" && c.Token.KeyFile != "" {
 		c.Token.publicKey, c.Token.privateKey, err = loadCertAndKey(c.Token.CertFile, c.Token.KeyFile)
@@ -135,6 +134,9 @@ func LoadConfig(fileName string) (*Config, error) {
 			return nil, fmt.Errorf("failed to load token cert and key: %s", err)
 		}
 	} else {
+		if c.Server.CertFile == "" || c.Server.KeyFile == "" {
+			return nil, fmt.Errorf("must provide at least one of: server cert/key or token cert/key")
+		}
 		c.Token.publicKey, c.Token.privateKey = c.Server.publicKey, c.Server.privateKey
 	}
 	return c, nil

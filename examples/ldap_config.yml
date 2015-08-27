@@ -1,0 +1,22 @@
+server:
+  addr: :5001
+  certificate: /path/to/server.pem 
+  key: /path/to/server.key
+token:
+  issuer: Acme auth server
+  expiration: 900
+ldap_auth:
+  domain: ldap.example.com
+  port: 389
+  startTLS: true
+  baseDN: o=example.com
+  loginAttribute:
+  - uid
+  - cn
+acl:
+- match:
+    account: ""
+  actions: [pull]
+- match:
+    account: /.+/
+  actions: ['*']

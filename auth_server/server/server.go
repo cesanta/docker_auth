@@ -48,6 +48,7 @@ type AuthServer struct {
 	authenticators []authn.Authenticator
 	authorizers    []authz.Authorizer
 	ga             *authn.GoogleAuth
+	la             *authn.LdapAuth
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
@@ -65,6 +66,14 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authenticators = append(as.authenticators, ga)
 		as.ga = ga
+	}
+	if c.LdapAuth != nil {
+		la, err := authn.NewLdapAuth(c.LdapAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, la)
+		as.la = la
 	}
 	return as, nil
 }
@@ -119,6 +128,7 @@ func (as *AuthServer) Authenticate(ar *AuthRequest) (bool, error) {
 func (as *AuthServer) Authorize(ar *AuthRequest) ([]string, error) {
 	for i, a := range as.authorizers {
 		result, err := a.Authorize(&ar.ai)
+
 		glog.V(2).Infof("Authz %s %s -> %s, %s", a.Name(), ar.ai, result, err)
 		if err != nil {
 			if err == authz.NoMatch {

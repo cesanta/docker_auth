@@ -46,20 +46,29 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 		glog.Exitf("Failed to create auth server: %s", err)
 	}
 
-	hs := &http.Server{
-		Addr:    c.Server.ListenAddress,
-		Handler: as,
-		TLSConfig: &tls.Config{
+	var tlsConfig *tls.Config
+	if c.Server.CertFile != "" || c.Server.KeyFile != "" {
+		// Check for partial configuration.
+		if c.Server.CertFile == "" || c.Server.KeyFile == "" {
+			glog.Exitf("Failed to load certificate and key: both were not provided")
+		}
+		tlsConfig = &tls.Config{
 			NextProtos:   []string{"http/1.1"},
 			Certificates: make([]tls.Certificate, 1),
-		},
+		}
+		glog.Infof("Cert file: %s", c.Server.CertFile)
+		glog.Infof("Key file : %s", c.Server.KeyFile)
+		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(c.Server.CertFile, c.Server.KeyFile)
+		if err != nil {
+			glog.Exitf("Failed to load certificate and key: %s", err)
+		}
+	} else {
+		glog.Warning("Running without TLS")
 	}
-
-	glog.Infof("Cert file: %s", c.Server.CertFile)
-	glog.Infof("Key file : %s", c.Server.KeyFile)
-	hs.TLSConfig.Certificates[0], err = tls.LoadX509KeyPair(c.Server.CertFile, c.Server.KeyFile)
-	if err != nil {
-		glog.Exitf("Failed to load certificate and key: %s", err)
+	hs := &http.Server{
+		Addr:      c.Server.ListenAddress,
+		Handler:   as,
+		TLSConfig: tlsConfig,
 	}
 
 	s, err := hd.ListenAndServe(hs)

@@ -80,8 +80,8 @@ func validate(c *Config) error {
 			}
 			gac.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if gac.ClientId == "" || gac.ClientSecret == "" || gac.TokenDB == "" {
-			return errors.New("google_auth.{client_id,client_secret,token_db} are required.")
+		if gac.ClientId == "" || gac.ClientSecret == "" || (gac.TokenDB == "" && len(gac.TokenStore) == 0) {
+			return errors.New("google_auth.{client_id,client_secret,token_store} are required.")
 		}
 		if gac.HTTPTimeout <= 0 {
 			gac.HTTPTimeout = 10

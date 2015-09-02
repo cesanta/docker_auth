@@ -52,7 +52,8 @@ google_auth:
   # client_secret: "verysecret"
   client_secret_file: "/path/to/client_secret.txt"
   # Where to store server tokens. Required.
-  token_db: "/somewhere/to/put/google_tokens.ldb"
+  token_store:
+    leveldb: "/somewhere/to/put/google_tokens.ldb"
   # How long to wait when talking to Google servers. Optional.
   http_timeout: 10
 

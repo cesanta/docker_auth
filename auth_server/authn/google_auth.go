@@ -29,17 +29,23 @@ import (
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/glog"
-	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/crypto/bcrypt"
+	yaml "gopkg.in/yaml.v2"
+
+	"github.com/cesanta/docker_auth/auth_server/authn/tokenstore"
+	"github.com/cesanta/docker_auth/auth_server/authn/tokenstore/factory"
+	"github.com/cesanta/docker_auth/auth_server/authn/tokenstore/leveldb"
 )
 
 type GoogleAuthConfig struct {
-	Domain           string `yaml:"domain,omitempty"`
-	ClientId         string `yaml:"client_id,omitempty"`
-	ClientSecret     string `yaml:"client_secret,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-	TokenDB          string `yaml:"token_db,omitempty"`
-	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
+	Domain           string                     `yaml:"domain,omitempty"`
+	ClientId         string                     `yaml:"client_id,omitempty"`
+	ClientSecret     string                     `yaml:"client_secret,omitempty"`
+	ClientSecretFile string                     `yaml:"client_secret_file,omitempty"`
+	TokenDB          string                     `yaml:"token_db,omitempty"` // legacy, use token_store instead
+	TokenStore       map[string]factory.RawYAML `yaml:"token_store,omitempty"`
+
+	HTTPTimeout int `yaml:"http_timeout,omitempty"`
 }
 
 type GoogleAuthRequest struct {
@@ -138,20 +144,48 @@ type TokenDBValue struct {
 
 type GoogleAuth struct {
 	config *GoogleAuthConfig
-	db     *leveldb.DB
+	store  tokenstore.TokenStore
 	client *http.Client
 	tmpl   *template.Template
 }
 
 func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
-	db, err := leveldb.OpenFile(c.TokenDB, nil)
+	// Deal with legacy TokenDB value, first.
+	if c.TokenStore == nil {
+		c.TokenStore = make(map[string]factory.RawYAML)
+	}
+	if c.TokenDB != "" {
+		// Check for collision.
+		if len(c.TokenStore) > 0 {
+			return nil, fmt.Errorf("Cannot configure both TokenDB and TokenStore")
+		}
+		// Convert legacy TokenDB to TokenStore entry
+		raw := factory.RawYAML{}
+		yaml.Unmarshal([]byte(c.TokenDB), &raw)
+		c.TokenStore[leveldb.StoreName] = raw
+	}
+	if len(c.TokenStore) == 0 {
+		return nil, fmt.Errorf("TokenStore must be configured")
+	}
+	if len(c.TokenStore) > 1 {
+		return nil, fmt.Errorf("Only one TokenStore may be configured")
+	}
+	var (
+		storeName   string
+		storeParams factory.RawYAML
+	)
+	for k, v := range c.TokenStore {
+		storeName = k
+		storeParams = v
+	}
+	store, err := factory.Create(storeName, storeParams)
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("Google auth token DB at %s", c.TokenDB)
+	glog.Infof("Google auth token DB at %s", store.String())
 	return &GoogleAuth{
 		config: c,
-		db:     db,
+		store:  store,
 		client: &http.Client{Timeout: 10 * time.Second},
 		tmpl:   template.Must(template.New("google_auth").Parse(string(MustAsset("data/google_auth.tmpl")))),
 	}, nil
@@ -357,13 +391,13 @@ func (ga *GoogleAuth) validateAccessToken(toktype, token string) (user string, e
 }
 
 func (ga *GoogleAuth) getDBValue(user string) (*TokenDBValue, error) {
-	valueStr, err := ga.db.Get(getDBKey(user), nil)
+	valueStr, err := ga.store.Get(getDBKey(user))
 	switch {
-	case err == leveldb.ErrNotFound:
+	case err == tokenstore.ErrNotFound:
 		return nil, nil
 	case err != nil:
-		glog.Errorf("error accessing token db: %s", err)
-		return nil, fmt.Errorf("error accessing token db: %s", err)
+		glog.Errorf("error accessing token store: %s", err)
+		return nil, fmt.Errorf("error accessing token store: %s", err)
 	}
 	var dbv TokenDBValue
 	err = json.Unmarshal(valueStr, &dbv)
@@ -417,7 +451,7 @@ func (ga *GoogleAuth) setServerToken(user string, v *TokenDBValue) error {
 	if err != nil {
 		return err
 	}
-	err = ga.db.Put(getDBKey(user), data, nil)
+	err = ga.store.Put(getDBKey(user), data)
 	if err != nil {
 		glog.Errorf("failed to set token data for %s: %s", user, err)
 	}
@@ -427,7 +461,7 @@ func (ga *GoogleAuth) setServerToken(user string, v *TokenDBValue) error {
 
 func (ga *GoogleAuth) deleteServerToken(user string) {
 	glog.V(1).Infof("deleting token for %s", user)
-	if err := ga.db.Delete(getDBKey(user), nil); err != nil {
+	if err := ga.store.Delete(getDBKey(user)); err != nil {
 		glog.Errorf("failed to delete %s: %s", user, err)
 	}
 }
@@ -482,8 +516,8 @@ func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, 
 }
 
 func (ga *GoogleAuth) Stop() {
-	ga.db.Close()
-	glog.Info("Token DB closed")
+	ga.store.Close()
+	glog.Info("Token store closed")
 }
 
 func (ga *GoogleAuth) Name() string {

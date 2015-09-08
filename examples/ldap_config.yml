@@ -8,12 +8,12 @@ token:
 users:
   "": {}
 ldap_auth:
-  addr: 16.217.2.55:389
+  addr: ldap.example.com:389
   start_tls: true
   base: o=example.com
   filter: (|(&(uid=${account})(objectClass=person))(&(cn=${account})(objectClass=Application)))
   # in case bind DN and password is required for querying directory server, the password is Base64 encoded
-  bind_dn: uid=readonlyuser,ou=people,o=hp.com
+  bind_dn: uid=readonlyuser,ou=people,o=example.com
   password: MTIz
 acl:
 - match:

@@ -64,10 +64,6 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 		return false, bindErr
 	}
 
-	if !la.isAccountSafe(account) {
-		return false, fmt.Errorf("The account which is trying to login is destructive. The request is reject.")
-	}
-
 	filter := la.getFilter(account)
 	accountEntryDN, uSearchErr := la.ldapSearch(l, &la.config.Base, &filter, &[]string{})
 	if uSearchErr != nil {
@@ -98,20 +94,6 @@ func (la *LDAPAuth) bindReadOnlyUser(l *ldap.Conn) error {
 		}
 	}
 	return nil
-}
-
-//To prevent LDAP injection, some characters must be escaped or restricted for searching
-//character \ ( ) ! should not be allowed in filter, because those characters will result in filter compiler error. Escaping them by \ does not work
-//* is not allowed, since accountname *@example.com will not get response from LDAP server for search results are too large.
-//other charaters, such as " [ ] : ; | = + ? < > / , & should be allowed as the account. There is no need to escape them.
-func (la *LDAPAuth) isAccountSafe(account string) bool {
-	filterMetaStr := []string{"\\", "(", ")", "!", "*"}
-	for _, str := range filterMetaStr {
-		if strings.Contains(account, str) {
-			return false
-		}
-	}
-	return true
 }
 
 func (la *LDAPAuth) ldapConnection() (*ldap.Conn, error) {

@@ -19,7 +19,7 @@ package authn
 import (
 	"bytes"
 	"crypto/tls"
-	"errors"
+	b64 "encoding/base64"
 	"fmt"
 	"strings"
 
@@ -27,57 +27,96 @@ import (
 	"github.com/golang/glog"
 )
 
-type LdapAuthConfig struct {
-	Domain          string   `yaml:"domain,omitempty"`
-	Port            uint16   `yaml:"port,omitempty"`
-	StartTLS        bool     `yaml:"startTLS,omitempty"`
-	BaseDN          string   `yaml:"baseDN,omitempty"`
-	LoginAttributes []string `yaml:"loginAttribute,omitempty"`
-	GroupBaseDN     string   `yaml:"groupBaseDN,omitempty"`
-	GroupAttribute  string   `yaml:"groupAttribute,omitempty"`
+type LDAPAuthConfig struct {
+	Addr        string `yaml:"addr,omitempty"`
+	StartTLS    bool   `yaml:"start_tls,omitempty"`
+	Base        string `yaml:"base,omitempty"`
+	Filter      string `yaml:"filter,omitempty"`
+	Bind_DN     string `yaml:"bind_dn,omitempty"`
+	Password    string `yaml:"password,omitempty"`
+	GroupBaseDN string `yaml:"group_base_dn,omitempty"`
+	GroupFilter string `yaml:"group_filter,omitempty"`
 }
 
-type LdapAuth struct {
-	config *LdapAuthConfig
+type LDAPAuth struct {
+	config *LDAPAuthConfig
 }
 
-func NewLdapAuth(c *LdapAuthConfig) (*LdapAuth, error) {
-	return &LdapAuth{
+func NewLDAPAuth(c *LDAPAuthConfig) (*LDAPAuth, error) {
+	return &LDAPAuth{
 		config: c,
 	}, nil
 }
 
-func (la *LdapAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	if user == "" {
-		return true, nil
+//How to authenticate user, please refer to https://github.com/go-ldap/ldap/blob/master/example_test.go#L166
+func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool, error) {
+	if account == "" {
+		return false, NoMatch
 	}
 	l, err := la.ldapConnection()
 	if err != nil {
 		return false, err
 	}
 	defer l.Close()
-	//l.Debug = true
-	filter := la.getLoginFilter(user)
-	userEntryDN, uSearchErr := la.ldapSearch(l, &la.config.BaseDN, &filter, &[]string{})
+
+	// First bind with a read only user, to prevent the following search won't perform any write action
+	if bindErr := la.bindReadOnlyUser(l); bindErr != nil {
+		return false, bindErr
+	}
+
+	if !la.isAccountSafe(account) {
+		return false, fmt.Errorf("The account which is trying to login is destructive. The request is reject.")
+	}
+
+	filter := la.getFilter(account)
+	accountEntryDN, uSearchErr := la.ldapSearch(l, &la.config.Base, &filter, &[]string{})
 	if uSearchErr != nil {
 		return false, uSearchErr
 	}
-	if len(userEntryDN) > 0 {
-		err := l.Bind(userEntryDN, string(password))
+	// Bind as the user to verify their password
+	if len(accountEntryDN) > 0 {
+		err := l.Bind(accountEntryDN, string(password))
 		if err != nil {
 			return false, err
 		}
 	}
+	// Rebind as the read only user for any futher queries
+	if bindErr := la.bindReadOnlyUser(l); bindErr != nil {
+		return false, bindErr
+	}
+
 	return true, nil
 }
 
-func (la *LdapAuth) Name() string {
-	return "Ldap"
+func (la *LDAPAuth) bindReadOnlyUser(l *ldap.Conn) error {
+	if la.config.Bind_DN != "" {
+		glog.V(2).Infof("Bind read-only user")
+		sDec, _ := b64.StdEncoding.DecodeString(la.config.Password)
+		err := l.Bind(la.config.Bind_DN, string(sDec))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (la *LdapAuth) ldapConnection() (*ldap.Conn, error) {
-	glog.V(2).Infof("Dial: starting...%s:%d", la.config.Domain, la.config.Port)
-	l, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", la.config.Domain, la.config.Port))
+//To prevent LDAP injection, some characters must be escaped or restricted for searching
+//character \ ( ) ! should not be allowed in filter, because those characters will result in filter compiler error. Escaping them by \ does not work
+//* is not allowed, since accountname *@example.com will not get response from LDAP server for search results are too large.
+//other charaters, such as " [ ] : ; | = + ? < > / , & should be allowed as the account. There is no need to escape them.
+func (la *LDAPAuth) isAccountSafe(account string) bool {
+	filterMetaStr := []string{"\\", "(", ")", "!", "*"}
+	for _, str := range filterMetaStr {
+		if strings.Contains(account, str) {
+			return false
+		}
+	}
+	return true
+}
+
+func (la *LDAPAuth) ldapConnection() (*ldap.Conn, error) {
+	glog.V(2).Infof("Dial: starting...%s", la.config.Addr)
+	l, err := ldap.Dial("tcp", fmt.Sprintf("%s", la.config.Addr))
 	if err != nil {
 		return nil, err
 	}
@@ -91,23 +130,17 @@ func (la *LdapAuth) ldapConnection() (*ldap.Conn, error) {
 	return l, nil
 }
 
-//make filter by login attributes, e.g. login in by ['cn', 'uid']
-//the filter will be '(|(cn=account)(uid=account))'
-func (la *LdapAuth) getLoginFilter(user string) string {
-	var buffer bytes.Buffer
-	buffer.WriteString("(|")
-	for _, attr := range la.config.LoginAttributes {
-		buffer.WriteString(fmt.Sprintf("(%s=%s)", attr, user))
-	}
-	buffer.WriteString(")")
-	return fmt.Sprintf(buffer.String())
+func (la *LDAPAuth) getFilter(account string) string {
+	filter := strings.NewReplacer("${account}", account).Replace(la.config.Filter)
+	glog.V(2).Infof("search filter is %s", filter)
+	return filter
 }
 
 //ldap search and return required attributes' value from searched entries
 //default return entry's DN value if you leave attrs array empty
-func (la *LdapAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, attrs *[]string) (string, error) {
+func (la *LDAPAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, attrs *[]string) (string, error) {
 	if l == nil {
-		return "", errors.New("No ldap connection!")
+		return "", fmt.Errorf("No ldap connection!")
 	}
 	glog.V(2).Infof("Searching...basedDN:%s, filter:%s", *baseDN, *filter)
 	searchRequest := ldap.NewSearchRequest(
@@ -122,7 +155,7 @@ func (la *LdapAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, att
 	}
 
 	if len(sr.Entries) != 1 {
-		return "", errors.New("Error...Search Result number != 1\n")
+		return "", fmt.Errorf("User does not exist or too many entries returned.")
 	}
 
 	var buffer bytes.Buffer
@@ -142,5 +175,9 @@ func (la *LdapAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, att
 	return buffer.String(), nil
 }
 
-func (la *LdapAuth) Stop() {
+func (la *LDAPAuth) Stop() {
+}
+
+func (la *LDAPAuth) Name() string {
+	return "LDAP"
 }

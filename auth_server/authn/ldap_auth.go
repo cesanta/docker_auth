@@ -102,7 +102,7 @@ func (la *LDAPAuth) bindReadOnlyUser(l *ldap.Conn) error {
 }
 
 //To prevent LDAP injection, some characters must be escaped for searching
-//e.g. char '/' will be replaced by hex '\5c'
+//e.g. char '\' will be replaced by hex '\5c'
 //Filter meta chars are choosen based on filter complier code
 //https://github.com/go-ldap/ldap/blob/master/filter.go#L159
 func (la *LDAPAuth) escapeAccountInput(account string) string {

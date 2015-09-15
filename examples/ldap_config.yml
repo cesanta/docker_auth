@@ -9,12 +9,12 @@ users:
   "": {}
 ldap_auth:
   addr: ldap.example.com:389
-  start_tls: true
+  tls: true
   base: o=example.com
-  filter: (|(&(uid=${account})(objectClass=person))(&(cn=${account})(objectClass=Application)))
-  # in case bind DN and password is required for querying directory server, the password is Base64 encoded
-  bind_dn: uid=readonlyuser,ou=people,o=example.com
-  password: MTIz
+  filter: (&(uid=${account})(objectClass=person))
+  # in case bind DN and password is required for querying directory server
+  bind_dn:
+  bind_password_file:
 acl:
 - match:
     account: ""

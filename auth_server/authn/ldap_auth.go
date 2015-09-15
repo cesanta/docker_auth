@@ -19,8 +19,8 @@ package authn
 import (
 	"bytes"
 	"crypto/tls"
-	b64 "encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/go-ldap/ldap"
@@ -28,14 +28,14 @@ import (
 )
 
 type LDAPAuthConfig struct {
-	Addr        string `yaml:"addr,omitempty"`
-	StartTLS    bool   `yaml:"start_tls,omitempty"`
-	Base        string `yaml:"base,omitempty"`
-	Filter      string `yaml:"filter,omitempty"`
-	Bind_DN     string `yaml:"bind_dn,omitempty"`
-	Password    string `yaml:"password,omitempty"`
-	GroupBaseDN string `yaml:"group_base_dn,omitempty"`
-	GroupFilter string `yaml:"group_filter,omitempty"`
+	Addr             string `yaml:"addr,omitempty"`
+	StartTLS         bool   `yaml:"tls,omitempty"`
+	Base             string `yaml:"base,omitempty"`
+	Filter           string `yaml:"filter,omitempty"`
+	BindDN           string `yaml:"bind_dn,omitempty"`
+	BindPasswordFile string `yaml:"bind_password_file,omitempty"`
+	GroupBaseDN      string `yaml:"group_base_dn,omitempty"`
+	GroupFilter      string `yaml:"group_filter,omitempty"`
 }
 
 type LDAPAuth struct {
@@ -64,6 +64,8 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 		return false, bindErr
 	}
 
+	account = la.escapeAccountInput(account)
+
 	filter := la.getFilter(account)
 	accountEntryDN, uSearchErr := la.ldapSearch(l, &la.config.Base, &filter, &[]string{})
 	if uSearchErr != nil {
@@ -85,15 +87,33 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 }
 
 func (la *LDAPAuth) bindReadOnlyUser(l *ldap.Conn) error {
-	if la.config.Bind_DN != "" {
-		glog.V(2).Infof("Bind read-only user")
-		sDec, _ := b64.StdEncoding.DecodeString(la.config.Password)
-		err := l.Bind(la.config.Bind_DN, string(sDec))
+	if la.config.BindDN != "" {
+		password, err := ioutil.ReadFile(la.config.BindPasswordFile)
+		if err != nil {
+			return err
+		}
+		glog.V(2).Infof("Bind read-only user %s", string(password))
+		err = l.Bind(la.config.BindDN, string(password))
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+//To prevent LDAP injection, some characters must be escaped for searching
+//e.g. char '/' will be replaced by hex '\5c'
+//Filter meta chars are choosen based on filter complier code
+//https://github.com/go-ldap/ldap/blob/master/filter.go#L159
+func (la *LDAPAuth) escapeAccountInput(account string) string {
+	filterMetaStr := []string{"\\", "(", ")", "!", "*", "&", "|", "=", ">", "<", "~"}
+	for _, str := range filterMetaStr {
+		if strings.Contains(account, str) {
+			hex := fmt.Sprintf("%x", str)
+			account = strings.NewReplacer(str, "\\"+hex).Replace(account)
+		}
+	}
+	return account
 }
 
 func (la *LDAPAuth) ldapConnection() (*ldap.Conn, error) {

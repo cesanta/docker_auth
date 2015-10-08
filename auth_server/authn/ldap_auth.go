@@ -106,13 +106,21 @@ func (la *LDAPAuth) bindReadOnlyUser(l *ldap.Conn) error {
 //Filter meta chars are choosen based on filter complier code
 //https://github.com/go-ldap/ldap/blob/master/filter.go#L159
 func (la *LDAPAuth) escapeAccountInput(account string) string {
-	filterMetaStr := []string{"\\", "(", ")", "!", "*", "&", "|", "=", ">", "<", "~"}
-	for _, str := range filterMetaStr {
-		if strings.Contains(account, str) {
-			hex := fmt.Sprintf("%x", str)
-			account = strings.NewReplacer(str, "\\"+hex).Replace(account)
-		}
-	}
+	r := strings.NewReplacer(
+		`\`, `\5c`,
+		`(`, `\28`,
+		`)`, `\29`,
+		`!`, `\21`,
+		`*`, `\2a`,
+		`&`, `\26`,
+		`|`, `\7c`,
+		`=`, `\3d`,
+		`>`, `\3e`,
+		`<`, `\3c`,
+		`~`, `\7e`,
+	)
+	account = r.Replace(account)
+	glog.V(2).Infof("Escaped account is %s", account)
 	return account
 }
 

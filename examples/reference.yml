@@ -25,9 +25,10 @@ token:  # Settings for the tokens.
   # key: "..."
 
 # Authentication methods. All are tried, any one returning success is sufficient.
-# At least one must be configured.
+# At least one must be configured. If you want an unauthenticated public setup,
+# configure static user map with anonymous access.
 
-# Static user map. 
+# Static user map.
 users:
   # Password is specified as a BCrypt hash. Use htpasswd -B to generate.
   "admin":
@@ -55,6 +56,20 @@ google_auth:
   token_db: "/somewhere/to/put/google_tokens.ldb"
   # How long to wait when talking to Google servers. Optional.
   http_timeout: 10
+
+# LDAP authentication.
+# Authentication is performed by first binding to the server, looking up the user entry
+# by using the specified filter, and then re-binding using the matched DN and the password provided.
+ldap_auth:
+  addr: "ldap.example.com:389"
+  tls: true
+  # In case bind DN and password is required for querying user information,
+  # specify them here. Plain text password is read from the file.
+  bind_dn:
+  bind_password_file:
+  # User query settings. ${account} is expanded from auth request 
+  base: "o=example.com"
+  filter: "(&(uid=${account})(objectClass=person))"
 
 # ACL specifies who can do what. If the match section of an entry matches the
 # request, the set of allowed actions will be applied to the token request

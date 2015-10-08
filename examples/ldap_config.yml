@@ -5,20 +5,17 @@ server:
 token:
   issuer: Acme auth server
   expiration: 900
-users:
-  "": {}
 ldap_auth:
   addr: ldap.example.com:389
   tls: true
   base: o=example.com
+  # ${account} will be taken from request 
   filter: (&(uid=${account})(objectClass=person))
   # in case bind DN and password is required for querying directory server
   bind_dn:
   bind_password_file:
 acl:
-- match:
-    account: ""
-  actions: [pull]
+# This will allow login user to pull/push
 - match:
     account: /.+/
   actions: ['*']

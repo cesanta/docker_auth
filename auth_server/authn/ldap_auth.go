@@ -119,9 +119,7 @@ func (la *LDAPAuth) escapeAccountInput(account string) string {
 		`<`, `\3c`,
 		`~`, `\7e`,
 	)
-	account = r.Replace(account)
-	glog.V(2).Infof("Escaped account is %s", account)
-	return account
+	return r.Replace(account)
 }
 
 func (la *LDAPAuth) ldapConnection() (*ldap.Conn, error) {

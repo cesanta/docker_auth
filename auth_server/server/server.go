@@ -66,6 +66,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		as.authenticators = append(as.authenticators, ga)
 		as.ga = ga
 	}
+	if c.LDAPAuth != nil {
+		la, err := authn.NewLDAPAuth(c.LDAPAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, la)
+	}
 	return as, nil
 }
 

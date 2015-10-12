@@ -92,8 +92,9 @@ func (la *LDAPAuth) bindReadOnlyUser(l *ldap.Conn) error {
 		if err != nil {
 			return err
 		}
-		glog.V(2).Infof("Bind read-only user %s", string(password))
-		err = l.Bind(la.config.BindDN, string(password))
+		password_str := strings.TrimSpace(string(password))
+		glog.V(2).Infof("Bind read-only user %s", password_str)
+		err = l.Bind(la.config.BindDN, password_str)
 		if err != nil {
 			return err
 		}

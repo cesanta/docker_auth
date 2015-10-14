@@ -53,7 +53,7 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 			glog.Exitf("Failed to load certificate and key: both were not provided")
 		}
 		tlsConfig = &tls.Config{
-			MinVersion: tls.VersionTLS10,
+			MinVersion:               tls.VersionTLS10,
 			PreferServerCipherSuites: true,
 			CipherSuites: []uint16{
 				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,

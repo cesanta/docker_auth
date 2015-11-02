@@ -6,8 +6,12 @@ token:
   issuer: Acme auth server
   expiration: 900
 ldap_auth:
-  addr: ldap.example.com:389
-  tls: true
+  addr: ldap.example.com:636
+  # Setup connection method to be
+  # plain: the communication won't be encrypted, if method is not set, default is plain
+  # simple_tls
+  # starttls
+  method: simple_tls
   bind_dn:
   bind_password_file:
   base: o=example.com

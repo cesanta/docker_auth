@@ -24,21 +24,26 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/cesanta/docker_auth/auth_server/authn"
-	"github.com/cesanta/docker_auth/auth_server/authz"
 	"github.com/docker/libtrust"
+	"github.com/kwk/docker_auth/auth_server/authn"
+	"github.com/kwk/docker_auth/auth_server/authz"
 	yaml "gopkg.in/yaml.v2"
 )
 
+// Config is a representation of the contents of the config file used to start
+// and operate the auth server.
 type Config struct {
-	Server     ServerConfig                   `yaml:"server"`
-	Token      TokenConfig                    `yaml:"token"`
-	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
-	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
-	ACL        authz.ACL                      `yaml:"acl"`
+	Server       ServerConfig                   `yaml:"server"`
+	Token        TokenConfig                    `yaml:"token"`
+	Users        map[string]*authn.Requirements `yaml:"users,omitempty"`
+	GoogleAuth   *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	LDAPAuth     *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
+	ACL          authz.ACL                      `yaml:"acl"`
+	ACLMongoConf *authz.ACLMongoConfig          `yaml:"acl_mongo"`
 }
 
+// ServerConfig represents server portion of configuration including listen
+// address and certificate and private key files.
 type ServerConfig struct {
 	ListenAddress string `yaml:"addr,omitempty"`
 	CertFile      string `yaml:"certificate,omitempty"`
@@ -48,6 +53,7 @@ type ServerConfig struct {
 	privateKey libtrust.PrivateKey
 }
 
+// TokenConfig represents the token portion of the configuration file
 type TokenConfig struct {
 	Issuer     string `yaml:"issuer,omitempty"`
 	CertFile   string `yaml:"certificate,omitempty"`
@@ -70,7 +76,7 @@ func validate(c *Config) error {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
 	if c.Users == nil && c.GoogleAuth == nil && c.LDAPAuth == nil {
-		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
+		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone")
 	}
 	if gac := c.GoogleAuth; gac != nil {
 		if gac.ClientSecretFile != "" {
@@ -81,14 +87,20 @@ func validate(c *Config) error {
 			gac.ClientSecret = strings.TrimSpace(string(contents))
 		}
 		if gac.ClientId == "" || gac.ClientSecret == "" || gac.TokenDB == "" {
-			return errors.New("google_auth.{client_id,client_secret,token_db} are required.")
+			return errors.New("google_auth.{client_id,client_secret,token_db} are required")
 		}
 		if gac.HTTPTimeout <= 0 {
 			gac.HTTPTimeout = 10
 		}
 	}
-	if c.ACL == nil {
-		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions.")
+	if c.ACL == nil && c.ACLMongoConf == nil {
+		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions")
+	}
+	if c.ACLMongoConf != nil {
+		err := c.ACLMongoConf.Validate()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -110,6 +122,7 @@ func loadCertAndKey(certFile, keyFile string) (pk libtrust.PublicKey, prk libtru
 	return
 }
 
+// LoadConfig loads a config from the filesystem
 func LoadConfig(fileName string) (*Config, error) {
 	contents, err := ioutil.ReadFile(fileName)
 	if err != nil {

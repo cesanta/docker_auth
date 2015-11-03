@@ -9,14 +9,17 @@ import (
 	"github.com/golang/glog"
 )
 
+// ACL (Access control list) is an array of pairs of matchers and allowed actions
 type ACL []ACLEntry
 
+// ACLEntry defines pairs of matchers and allowed actions (e.g. "pull", "push")
 type ACLEntry struct {
 	Match   *MatchConditions `yaml:"match"`
 	Actions *[]string        `yaml:"actions,flow"`
 	Comment *string          `yaml:"comment,omitempty"`
 }
 
+// MatchConditions defines three critrias for a match
 type MatchConditions struct {
 	Account *string `yaml:"account,omitempty" json:"account,omitempty"`
 	Type    *string `yaml:"type,omitempty" json:"type,omitempty"`
@@ -27,8 +30,9 @@ type aclAuthorizer struct {
 	acl ACL
 }
 
-func NewACLAuthorizer(acl ACL) Authorizer {
-	return &aclAuthorizer{acl: acl}
+// NewACLAuthorizer Creates a new static authorizer with ACLs that have been read from the config file
+func NewACLAuthorizer(acl ACL) (Authorizer, error) {
+	return &aclAuthorizer{acl: acl}, nil
 }
 
 func (aa *aclAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {
@@ -76,6 +80,7 @@ func matchString(pp *string, s string, vars []string) bool {
 	return err == nil && matched
 }
 
+// Matches tests if a request matches an ACL and returns true of false
 func (e *ACLEntry) Matches(ai *AuthRequestInfo) bool {
 	vars := []string{
 		"${account}", regexp.QuoteMeta(ai.Account),

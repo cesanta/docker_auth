@@ -24,10 +24,10 @@ users:
     password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya"  # 123
 
 acl:
-  # Admin has full access to everything.
   - match: {account: "admin"}
     actions: ["*"]
-  # User "user" can pull stuff.
+    comment: "Admin has full access to everything."
   - match: {account: "user"}
     actions: ["pull"]
+    comment: "User \"user\" can pull stuff."
   # Access is denied by default.

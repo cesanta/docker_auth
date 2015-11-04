@@ -26,10 +26,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cesanta/docker_auth/auth_server/authn"
+	"github.com/cesanta/docker_auth/auth_server/authz"
 	"github.com/docker/distribution/registry/auth/token"
 	"github.com/golang/glog"
-	"github.com/kwk/docker_auth/auth_server/authn"
-	"github.com/kwk/docker_auth/auth_server/authz"
 )
 
 type AuthRequest struct {

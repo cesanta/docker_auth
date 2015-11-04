@@ -27,9 +27,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cesanta/docker_auth/auth_server/server"
 	"github.com/facebookgo/httpdown"
 	"github.com/golang/glog"
-	"github.com/kwk/docker_auth/auth_server/server"
 	fsnotify "gopkg.in/fsnotify.v1"
 )
 

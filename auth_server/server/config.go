@@ -24,9 +24,9 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/cesanta/docker_auth/auth_server/authn"
+	"github.com/cesanta/docker_auth/auth_server/authz"
 	"github.com/docker/libtrust"
-	"github.com/kwk/docker_auth/auth_server/authn"
-	"github.com/kwk/docker_auth/auth_server/authz"
 	yaml "gopkg.in/yaml.v2"
 )
 

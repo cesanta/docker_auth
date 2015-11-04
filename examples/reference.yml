@@ -67,7 +67,7 @@ ldap_auth:
   # specify them here. Plain text password is read from the file.
   bind_dn:
   bind_password_file:
-  # User query settings. ${account} is expanded from auth request 
+  # User query settings. ${account} is expanded from auth request
   base: "o=example.com"
   filter: "(&(uid=${account})(objectClass=person))"
 
@@ -115,3 +115,20 @@ acl:
     actions: ["pull"]
     comment: "Anonymous users can pull \"hello-world\"."
   # Access is denied by default.
+
+acl_mongo:
+  # The MongoDB hostname or IP to connect to.
+  host: "localhost"
+  # The MongoDB port to connect to.
+  port: 27017
+  # The username with which to connect to the MongoDB server.
+  user: ""
+  # Path to the password file with which to connect to the MongoDB server.
+  password_file: ""
+  # Database name that will be used on the MongoDB server.
+  db: "docker_auth"
+  # Name of the collection in which ACLs will be stored in MongoDB.
+  collection: "acls"
+  # A caching timeout of 0 seconds means, to query the MongoDB for ACLs on every
+  # request. Increase the caching time to reduce load on the MongoDB.
+  cachetimeout: 0

@@ -14,6 +14,7 @@ type ACL []ACLEntry
 type ACLEntry struct {
 	Match   *MatchConditions `yaml:"match"`
 	Actions *[]string        `yaml:"actions,flow"`
+	Comment *string          `yaml:"comment,omitempty"`
 }
 
 type MatchConditions struct {
@@ -34,7 +35,7 @@ func (aa *aclAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {
 	for _, e := range aa.acl {
 		matched := e.Matches(ai)
 		if matched {
-			glog.V(2).Infof("%s matched %s", ai, e)
+			glog.V(2).Infof("%s matched %s (Comment: %s)", ai, e, e.Comment)
 			if len(*e.Actions) == 1 && (*e.Actions)[0] == "*" {
 				return ai.Actions, nil
 			}

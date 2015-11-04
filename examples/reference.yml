@@ -96,21 +96,22 @@ ldap_auth:
 #  * ${type} - the type of the entity, normally "repository".
 #  * ${name} - the name of the repository (i.e. image), e.g. centos.
 acl:
-  # Admin has full access to everything.
   - match: {account: "admin"}
     actions: ["*"]
-  # User "test" has full access to test-* images but nothing else.
+    comment: "Admin has full access to everything."
   - match: {account: "test", name: "test-*"}
     actions: ["*"]
+    comment: "User \"test\" has full access to test-* images but nothing else. (1)"
   - match: {account: "test"}
     actions: []
-  # All logged in users can pull all images.
+    comment: "User \"test\" has full access to test-* images but nothing else. (2)"
   - match: {account: "/.+/"}
     actions: ["pull"]
-  # All logged in users can push all images that are in a namespace beginning with their name
+    comment: "All logged in users can pull all images."
   - match: {account: "/.+/", name: "${account}/*"}
     actions: ["*"]
-  # Anonymous users can pull "hello-world".
+    comment: "All logged in users can push all images that are in a namespace beginning with their name"
   - match: {account: "", name: "hello-world"}
     actions: ["pull"]
+    comment: "Anonymous users can pull \"hello-world\"."
   # Access is denied by default.

@@ -1,19 +1,19 @@
 server:
   addr: :5001
-  certificate: /path/to/server.pem 
+  certificate: /path/to/server.pem
   key: /path/to/server.key
 token:
   issuer: Acme auth server
   expiration: 900
 ldap_auth:
   addr: ldap.example.com:636
-  # Setup connection method to be
-  # plain: the communication won't be encrypted, if method is not set, default is plain
-  # simple_tls
-  # starttls
-  method: simple_tls
-  bind_dn:
-  bind_password_file:
+  # Setup tls connection method to be
+  # "" or "none": the communication won't be encrypted
+  # always: setup LDAP over SSL/TLS
+  # starttls: sets StartTLS as the encryption method
+  tls: always 
+  bind_dn: 
+  bind_password_file: 
   base: o=example.com
   filter: (&(uid=${account})(objectClass=person))
 acl:

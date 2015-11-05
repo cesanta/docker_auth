@@ -29,7 +29,7 @@ import (
 
 type LDAPAuthConfig struct {
 	Addr             string `yaml:"addr,omitempty"`
-	Method           string `yaml:"method,omitempty"`
+	TLS              string `yaml:"tls,omitempty"`
 	Base             string `yaml:"base,omitempty"`
 	Filter           string `yaml:"filter,omitempty"`
 	BindDN           string `yaml:"bind_dn,omitempty"`
@@ -126,20 +126,18 @@ func (la *LDAPAuth) escapeAccountInput(account string) string {
 func (la *LDAPAuth) ldapConnection() (*ldap.Conn, error) {
 	var l *ldap.Conn
 	var err error
-	if la.config.Method == "simple_tls" {
-		glog.V(2).Infof("DialTLS: starting...%s", la.config.Addr)
-		l, err = ldap.DialTLS("tcp", fmt.Sprintf("%s", la.config.Addr), &tls.Config{InsecureSkipVerify: true})
-	} else {
+	if la.config.TLS == "" || la.config.TLS == "none" || la.config.TLS == "starttls" {
 		glog.V(2).Infof("Dial: starting...%s", la.config.Addr)
 		l, err = ldap.Dial("tcp", fmt.Sprintf("%s", la.config.Addr))
-
-		if la.config.Method == "starttls" {
+		if err == nil && la.config.TLS == "starttls" {
 			glog.V(2).Infof("StartTLS...")
-			tlserr := l.StartTLS(&tls.Config{InsecureSkipVerify: true})
-			if tlserr != nil {
-				return nil, err
+			if tlserr := l.StartTLS(&tls.Config{InsecureSkipVerify: true}); tlserr != nil {
+				return nil, tlserr
 			}
 		}
+	} else if la.config.TLS == "always" {
+		glog.V(2).Infof("DialTLS: starting...%s", la.config.Addr)
+		l, err = ldap.DialTLS("tcp", fmt.Sprintf("%s", la.config.Addr), &tls.Config{InsecureSkipVerify: true})
 	}
 	if err != nil {
 		return nil, err

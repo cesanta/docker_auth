@@ -71,6 +71,9 @@ ldap_auth:
   base: "o=example.com"
   filter: "(&(uid=${account})(objectClass=person))"
 
+# Authorization methods. All are tried, any one returning success is sufficient.
+# At least one must be configured.
+
 # ACL specifies who can do what. If the match section of an entry matches the
 # request, the set of allowed actions will be applied to the token request
 # and a ticket will be issued only for those of the requested actions that are
@@ -115,3 +118,27 @@ acl:
     actions: ["pull"]
     comment: "Anonymous users can pull \"hello-world\"."
   # Access is denied by default.
+
+# (optional) Define to query ACL from a MongoDB server.
+acl_mongo:
+  # Essentially all options are described here: https://godoc.org/gopkg.in/mgo.v2#DialInfo
+  dial_info:
+    # The MongoDB hostnames or IPs to connect to.
+    addrs: ["localhost"]
+    # The time to wait for a server to respond when first connecting and on
+    # follow up operations in the session. If timeout is zero, the call may
+    # block forever waiting for a connection to be established.
+    # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
+    timeout: "10s"
+    # Database name that will be used on the MongoDB server.
+    database: "docker_auth"
+    # The username with which to connect to the MongoDB server.
+    user: ""
+    # Path to the text file with the password in it.
+    password_file: ""
+  # Name of the collection in which ACLs will be stored in MongoDB.
+  collection: "acl"
+  # Specify how long an ACL remains valid before they will be fetched again from
+  # the MongoDB server.
+  # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
+  cache_ttl: "1m"

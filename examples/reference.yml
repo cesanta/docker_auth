@@ -115,3 +115,36 @@ acl:
     actions: ["pull"]
     comment: "Anonymous users can pull \"hello-world\"."
   # Access is denied by default.
+
+# (optional) Define to query ACL from a MongoDB server.
+acl_mongo:
+  # Essentially all options are described here: https://godoc.org/gopkg.in/mgo.v2#DialInfo
+  dial_info:
+    # The MongoDB hostnames or IP to connect to.
+    addrs: ["localhost"]
+    # The time to wait for a server to respond when first connecting and on follow
+    # up operations in the session. If timeout is zero, the call may block forever
+    # waiting for a connection to be established. (See "cache_duration" below for
+    # an explanation about valid values.)
+    timeout: "10s"
+    # Database name that will be used on the MongoDB server.
+    database: "docker_auth"
+    # The username with which to connect to the MongoDB server.
+    user: ""
+    # Password to use with the username to connect to the MongoDB server.
+    # NOTE: You can also specify a password_file below to load the password
+    # from a file.
+    password: ""
+    # Path to the text file with the password in it. If both, "dial_info.password"
+    # and "dial_info.password_file" are set, "dial_info.password_file" will be
+    # used in favor of "dial_info.password".
+    # NOTE: This is not part of the godoc.org resource referenced above.
+    password_file: ""
+  # Name of the collection in which ACLs will be stored in MongoDB.
+  collection: "acl"
+  # Specify how long an ACL remains valid before they will be fetched again from
+  # the MongoDB server. A duration string is a possibly signed sequence of
+  # decimal numbers, each with optional fraction and a unit suffix, such as
+  # "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"),
+  # "ms", "s", "m", "h".
+  cache_duration: "1.0m"

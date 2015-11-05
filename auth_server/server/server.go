@@ -53,7 +53,21 @@ type AuthServer struct {
 func NewAuthServer(c *Config) (*AuthServer, error) {
 	as := &AuthServer{
 		config:      c,
-		authorizers: []authz.Authorizer{authz.NewACLAuthorizer(c.ACL)},
+		authorizers: []authz.Authorizer{},
+	}
+	if c.ACL != nil {
+		staticAuthorizer, err := authz.NewACLAuthorizer(c.ACL)
+		if err != nil {
+			return nil, err
+		}
+		as.authorizers = append(as.authorizers, staticAuthorizer)
+	}
+	if c.ACLMongoConf != nil {
+		mongoAuthorizer, err := authz.NewACLMongoAuthorizer(*c.ACLMongoConf)
+		if err != nil {
+			return nil, err
+		}
+		as.authorizers = append(as.authorizers, mongoAuthorizer)
 	}
 	if c.Users != nil {
 		as.authenticators = append(as.authenticators, authn.NewStaticUserAuth(c.Users))

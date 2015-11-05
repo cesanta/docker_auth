@@ -40,7 +40,7 @@ type RestartableServer struct {
 }
 
 func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServer, httpdown.Server) {
-	glog.Infof("Config from %s (%d users, %d ACL entries)", cf, len(c.Users), len(c.ACL))
+	glog.Infof("Config from %s (%d users, %d ACL static entries)", cf, len(c.Users), len(c.ACL))
 	as, err := server.NewAuthServer(c)
 	if err != nil {
 		glog.Exitf("Failed to create auth server: %s", err)
@@ -101,6 +101,7 @@ func (rs *RestartableServer) WatchConfig() {
 	if err != nil {
 		glog.Fatalf("Failed to create watcher: %s", err)
 	}
+	defer w.Close()
 
 	stopSignals := make(chan os.Signal, 1)
 	signal.Notify(stopSignals, syscall.SIGTERM, syscall.SIGINT)
@@ -137,7 +138,6 @@ func (rs *RestartableServer) WatchConfig() {
 			glog.Exitf("Exiting")
 		}
 	}
-	w.Close()
 }
 
 func (rs *RestartableServer) MaybeRestart() {

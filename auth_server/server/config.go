@@ -31,12 +31,13 @@ import (
 )
 
 type Config struct {
-	Server     ServerConfig                   `yaml:"server"`
-	Token      TokenConfig                    `yaml:"token"`
-	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
-	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
-	ACL        authz.ACL                      `yaml:"acl"`
+	Server       ServerConfig                   `yaml:"server"`
+	Token        TokenConfig                    `yaml:"token"`
+	Users        map[string]*authn.Requirements `yaml:"users,omitempty"`
+	GoogleAuth   *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	LDAPAuth     *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
+	ACL          authz.ACL                      `yaml:"acl"`
+	ACLMongoConf *authz.ACLMongoConfig          `yaml:"acl_mongo"`
 }
 
 type ServerConfig struct {
@@ -87,8 +88,13 @@ func validate(c *Config) error {
 			gac.HTTPTimeout = 10
 		}
 	}
-	if c.ACL == nil {
-		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions.")
+	if c.ACL == nil && c.ACLMongoConf == nil {
+		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions")
+	}
+	if c.ACLMongoConf != nil {
+		if err := c.ACLMongoConf.Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

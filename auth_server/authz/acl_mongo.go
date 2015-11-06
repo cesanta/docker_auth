@@ -11,15 +11,17 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// ACLMongoConfig stores how to connect to
+// ACLMongoConfig stores how to connect to the MongoDB server and how long
+// an ACL remains valid until new ones will be fetched.
 type ACLMongoConfig struct {
-	Host            string `yaml:"host,omitempty"`
-	Port            int    `yaml:"port,omitempty"`
-	User            string `yaml:"user,omitempty"`
-	PasswordFile    string `yaml:"password_file,omitempty"`
-	Db              string `yaml:"db,omitempty"`
-	Collection      string `yaml:"collection,omitempty"`
-	CacheExpiration int64  `yaml:"cacheexpiration,omitempty"`
+	Host             string        `yaml:"host,omitempty"`
+	Port             int           `yaml:"port,omitempty"`
+	OperationTimeout time.Duration `yaml:"operation_timeout,omitempty"`
+	User             string        `yaml:"user,omitempty"`
+	PasswordFile     string        `yaml:"password_file,omitempty"`
+	Db               string        `yaml:"db,omitempty"`
+	Collection       string        `yaml:"collection,omitempty"`
+	CacheDuration    time.Duration `yaml:"cache_duration,omitempty"`
 }
 
 // Validate ensures all fields inside an ACLMongoConfig object are okay
@@ -30,35 +32,31 @@ func (c *ACLMongoConfig) Validate() error {
 	if c.Port <= 0 {
 		return errors.New("acl_mongo.port is required")
 	}
-	/*
-		if c.User == "" {
-			return errors.New("acl_mongo.user is required")
-		}
-		if c.PasswordFile == "" {
-			return errors.New("acl_mongo.password is required")
-		}
-	*/
+	if c.OperationTimeout.String() == "" {
+		return errors.New("acl_mongo.operation_timeout is required (e.g. \"10s\" for 10 seconds)")
+	}
 	if c.Db == "" {
 		return errors.New("acl_mongo.db is required")
 	}
 	if c.Collection == "" {
 		return errors.New("acl_mongo.collection is required")
 	}
-	if c.CacheExpiration < 0 {
-		return errors.New("acl_mongo.cacheexpiration is required")
+	if c.CacheDuration.String() == "" {
+		return errors.New("acl_mongo.cache_duration is required (e.g. \"1m\" for one minute)")
 	}
 	return nil
 }
 
 type aclMongoAuthorizer struct {
-	config *ACLMongoConfig
-	cache  ACLCache
+	config           *ACLMongoConfig
+	cache            ACLCache
+	staticAuthorizer Authorizer
 }
 
-// ACLCache caches ACLs and remembers the last time it was updated
+// ACLCache caches ACL and remembers the last time it was updated
 type ACLCache struct {
 	ACL        ACL
-	LastUpdate int64
+	LastUpdate time.Time
 }
 
 // NewACLMongoAuthorizer creates a new ACL Mongo authorizer
@@ -67,68 +65,15 @@ func NewACLMongoAuthorizer(config *ACLMongoConfig) (Authorizer, error) {
 }
 
 func (mongoAuthorizer *aclMongoAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {
-	c := mongoAuthorizer.config
-
-	if c == nil {
-		return []string{}, fmt.Errorf("MongoDB ACL config is not set")
+	if mongoAuthorizer.config == nil {
+		return nil, fmt.Errorf("MongoDB ACL config is not set")
 	}
 
-	// Read in the password (if any)
-	var password string
-	if c.PasswordFile != "" {
-		passBuf, err := ioutil.ReadFile(c.PasswordFile)
-		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read password file \"%s\": %s", c.PasswordFile, err)
-		}
-		password = string(passBuf)
+	if err := mongoAuthorizer.MaybeUpdateACLCache(); err != nil {
+		return nil, err
 	}
 
-	secondsSinceLastUpdate := time.Now().Unix() - mongoAuthorizer.cache.LastUpdate
-	glog.V(2).Infof("Seconds since last update of ACL %d. Expiration time %d secs.", secondsSinceLastUpdate, c.CacheExpiration)
-
-	// Test if cache has ever been filled or needs to be updated
-	if len(mongoAuthorizer.cache.ACL) == 0 || secondsSinceLastUpdate > c.CacheExpiration {
-		var credentialString string
-		var credentialStringSafe string // Same as above but will have *** as password placeholder
-		if c.User != "" && password == "" {
-			credentialString = fmt.Sprintf("%s@", c.User)
-			credentialStringSafe = fmt.Sprintf("%s@", c.User)
-		}
-		if c.User != "" && password != "" {
-			credentialString = fmt.Sprintf("%s:%s@", c.User, password)
-			credentialStringSafe = fmt.Sprintf("%s:%s@", c.User, "***")
-		}
-		connectionString := fmt.Sprintf("mongodb://%s%s:%d/%s", credentialString, c.Host, c.Port, c.Db)
-		connectionStringSafe := fmt.Sprintf("mongodb://%s%s:%d/%s", credentialStringSafe, c.Host, c.Port, c.Db)
-		glog.Infof("ACLs from MongoDB will be fetched from %s", connectionStringSafe)
-		session, err := mgo.Dial(connectionString)
-		if err != nil {
-			return []string{}, err
-		}
-		defer session.Close()
-
-		// Wait for errors on inserts and updates and for flushing changes to disk
-		session.SetSafe(&mgo.Safe{FSync: true})
-
-		collection := session.DB(c.Db).C(c.Collection)
-		_ = collection.Find(bson.M{}).All(&mongoAuthorizer.cache.ACL)
-		mongoAuthorizer.cache.LastUpdate = time.Now().Unix()
-	} else {
-		glog.V(2).Infof("Using cached ACLs from MongoDB")
-	}
-
-	// This loop is basically copied from the static authorizer
-	for _, e := range mongoAuthorizer.cache.ACL {
-		matched := e.Matches(ai)
-		if matched {
-			glog.V(2).Infof("%s matched %s (Comment: %s)", ai, e, e.Comment)
-			if len(*e.Actions) == 1 && (*e.Actions)[0] == "*" {
-				return ai.Actions, nil
-			}
-			return StringSetIntersection(ai.Actions, *e.Actions), nil
-		}
-	}
-	return nil, NoMatch
+	return mongoAuthorizer.staticAuthorizer.Authorize(ai)
 }
 
 func (mongoAuthorizer *aclMongoAuthorizer) Stop() {
@@ -137,4 +82,62 @@ func (mongoAuthorizer *aclMongoAuthorizer) Stop() {
 
 func (mongoAuthorizer *aclMongoAuthorizer) Name() string {
 	return "mongo ACL"
+}
+
+// MaybeUpdateACLCache checks if the ACL cache has expired and depending on the
+// the result it updates the cache with the ACL from the MongoDB server. The
+// ACL will be stored inside the static authorizer instance which we use
+// to minimize duplication of code and maximize reuse of existing code.
+func (mongoAuthorizer *aclMongoAuthorizer) MaybeUpdateACLCache() error {
+	c := mongoAuthorizer.config
+
+	duration := time.Now().Sub(mongoAuthorizer.cache.LastUpdate)
+	glog.V(2).Infof("Duration since last update of ACL %s. Cache expires afer %s.", duration.String(), c.CacheDuration.String())
+
+	// Test if cache has ever been filled or needs to be updated
+	if len(mongoAuthorizer.cache.ACL) == 0 || duration.Seconds() > c.CacheDuration.Seconds() {
+		// Read in the password (if any)
+		var password string
+		if c.PasswordFile != "" {
+			passBuf, err := ioutil.ReadFile(c.PasswordFile)
+			if err != nil {
+				return fmt.Errorf("Failed to read password file \"%s\": %s", c.PasswordFile, err)
+			}
+			password = string(passBuf)
+		}
+
+		glog.Infof("ACL from MongoDB will be fetched from %s:%d (operation timeout %s)", c.Host, c.Port, c.OperationTimeout.String())
+		session, err := mgo.DialWithInfo(&mgo.DialInfo{
+			Addrs:    []string{c.Host},
+			Username: c.User,
+			Password: password,
+			Database: c.Db,
+			Timeout:  c.OperationTimeout,
+		})
+
+		glog.V(2).Infof("ERROR: %s", err)
+
+		if err != nil {
+			return err
+		}
+		defer session.Close()
+
+		mongoAuthorizer.cache.ACL = ACL{} // Reset ACL
+		collection := session.DB(c.Db).C(c.Collection)
+		err = collection.Find(bson.M{}).All(&mongoAuthorizer.cache.ACL)
+		if err != nil {
+			return err
+		}
+		mongoAuthorizer.cache.LastUpdate = time.Now()
+
+		// Create a new static authorizer reusing the ACL we fetched from MongoDB
+		mongoAuthorizer.staticAuthorizer, err = NewACLAuthorizer(mongoAuthorizer.cache.ACL)
+		if err != nil {
+			return err
+		}
+	} else {
+		glog.V(2).Infof("Using cached ACL from MongoDB.")
+	}
+
+	return nil
 }

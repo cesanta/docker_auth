@@ -121,6 +121,12 @@ acl_mongo:
   host: "localhost"
   # The MongoDB port to connect to.
   port: 27017
+  # operation_timeout is the amount of time to wait for a server to respond when
+  # first connecting and on follow up operations in the session. If
+  # timeout is zero, the call may block forever waiting for a connection
+  # to be established. (See "cache_duration" below for an explanation about
+  # valid values.)
+  operation_timeout: "10s"
   # The username with which to connect to the MongoDB server.
   user: ""
   # Path to the password file with which to connect to the MongoDB server.
@@ -129,6 +135,9 @@ acl_mongo:
   db: "docker_auth"
   # Name of the collection in which ACLs will be stored in MongoDB.
   collection: "acls"
-  # A caching timeout of 0 seconds means, to query the MongoDB for ACLs on every
-  # request. Increase the caching time to reduce load on the MongoDB.
-  cachetimeout: 0
+  # Specify how long an ACL remains valid before they will be fetched again from
+  # the MongoDB server. A duration string is a possibly signed sequence of
+  # decimal numbers, each with optional fraction and a unit suffix, such as
+  # "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"),
+  # "ms", "s", "m", "h".
+  cache_duration: "1.0m"

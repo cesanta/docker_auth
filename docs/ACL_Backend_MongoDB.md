@@ -1,12 +1,13 @@
 # ACL backend in MongoDB
 
-Maybe you want to manage your ACLs from an external application and therefore
+Maybe you want to manage your ACL from an external application and therefore
 need them to be stored outside of your auth_server's configuration file.
 
 For this purpose, there's a [MongoDB](https://www.mongodb.org/) ACL backend
-which can query ACLs from a MongoDB database.
+which can query an ACL from a MongoDB database.
 
-A typical ACL from the static YAML configuration file looks something like this:
+A typical ACL entry from the static YAML configuration file looks something like
+this:
 
 ```
 - match: {account: "/.+/", name: "${account}/*"}
@@ -17,12 +18,12 @@ A typical ACL from the static YAML configuration file looks something like this:
 Notice the use of a regular expression (`/.+/`), a placeholder (`${account}`),
 and in particular the `actions` array.
 
-The ACL as is it is stored inside the static YAML file can be mapped to MongoDB
-quite easily. Below you can find a list of ACLs that are ready to be imported
-into MongoDB. Those ACLs reflect what's specified in the `example/reference.yml`
-file.
+The ACL entry as is it is stored inside the static YAML file can be mapped to
+MongoDB quite easily. Below you can find a list of ACL entries that are ready to
+be imported into MongoDB. Those ACL entries reflect what's specified in the
+`example/reference.yml` file under the `acl` section (aka static ACL).
 
-**reference_acls.json**
+**reference_acl.json**
 
 ```json
 {"match" : {"account" : "admin"}, "actions" : ["*"], "comment" : "Admin has full access to everything."}
@@ -38,8 +39,8 @@ file.
 
 ## Import reference ACLs into MongoDB
 
-To import the above specified ACLs from the reference file, simply execute these
-commands:
+To import the above specified ACL entries from the reference file, simply
+execute the following commands.
 
 ### Ensure MongoDB is running
 
@@ -56,7 +57,7 @@ On Ubuntu this is a matter of `sudo apt-get install mongodb-clients`.
 
 ```bash
 MONGO_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' mongo-acl)
-mongoimport --host $MONGO_IP --db docker_auth --collection acl < reference_acls.json
+mongoimport --host $MONGO_IP --db docker_auth --collection acl < reference_acl.json
 ```
 
 This should print a message like this if everything was successful:

@@ -24,6 +24,7 @@ Supported authorization methods:
 A public Docker image is available on Docker Hub: [cesanta/docker_auth:stable](https://registry.hub.docker.com/u/cesanta/docker_auth/).
 
 The binary takes a single argument - path to the config file.
+If no arguments are given, the Dockerfile defaults to `/config/auth_config.yml`.
 
 Example command line:
 

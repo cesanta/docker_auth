@@ -1,4 +1,5 @@
-FROM golang:1.5
+FROM busybox
 EXPOSE 5001
-ADD auth_server /
 ENTRYPOINT ["/auth_server"]
+CMD ["config.yml"]
+COPY auth_server .

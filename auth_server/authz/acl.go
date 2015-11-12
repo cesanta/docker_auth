@@ -27,8 +27,10 @@ type aclAuthorizer struct {
 	acl ACL
 }
 
-func NewACLAuthorizer(acl ACL) Authorizer {
-	return &aclAuthorizer{acl: acl}
+// NewACLAuthorizer Creates a new static authorizer with ACL that have been read from the config file
+func NewACLAuthorizer(acl ACL) (Authorizer, error) {
+	glog.V(1).Infof("Created ACL Authorizer with %d entries", len(acl))
+	return &aclAuthorizer{acl: acl}, nil
 }
 
 func (aa *aclAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {

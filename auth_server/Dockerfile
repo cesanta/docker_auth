@@ -1,5 +1,5 @@
 FROM busybox
 EXPOSE 5001
 ENTRYPOINT ["/auth_server"]
-CMD ["config.yml"]
+CMD ["/config/config.yml"]
 COPY auth_server .

@@ -1,23 +1,27 @@
-image=cesanta/docker_auth
-compress_binary=true
-builder_image=centurylink/golang-builder
-builder_image_extra-build-cross=-cross
-builder_opts-docker-build=-v /var/run/docker.sock:/var/run/docker.sock
+makeflags += --warn-undefined-variables
+image = cesanta/docker_auth
+compress_binary = true
 
-.PHONY: update-deps build-local build build-cross docker-build docker-push-% docker-tag-% docker-push
+builder_image = centurylink/golang-builder
+builder_image_extra-build-cross = -cross
+builder_opts-docker-build = -v /var/run/docker.sock:/var/run/docker.sock
+
+.PHONY: %
 
 all: build
 local: build-local
 
 update-deps:
-	go get -v -u -f github.com/jteeuwen/go-bindata/... .
-	godep save
+	go get -v -u -f github.com/tools/godep github.com/jteeuwen/go-bindata/... .
+
+godep:
+	godep save -r
 
 build-local: update-deps
 	go generate ./...
 	go build
 
-build build-cross docker-build: update-deps
+build build-cross docker-build: update-deps godep
 	docker run --rm -v $(PWD):/src -e COMPRESS_BINARY=$(compress_binary) $(builder_opts-$@) $(builder_image)$(builder_image_extra-$@) $(image)
 
 docker-tag-%:

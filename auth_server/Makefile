@@ -15,7 +15,7 @@ update-deps:
 	go get -v -u -f github.com/tools/godep github.com/jteeuwen/go-bindata/... .
 
 godep:
-	godep save -r
+	godep save
 
 build-local: update-deps
 	go generate ./...

@@ -15,6 +15,10 @@ Supported authentication methods:
  * Google Sign-In (incl. Google for Work / GApps for domain) (documented [here](https://github.com/cesanta/docker_auth/blob/master/examples/reference.yml))
  * LDAP bind
 
+Supported authorization methods:
+ * Static ACL
+ * MongoDB-backed ACL
+
 ## Installation and Examples
 
 A public Docker image is available on Docker Hub: [cesanta/docker_auth:stable](https://registry.hub.docker.com/u/cesanta/docker_auth/).

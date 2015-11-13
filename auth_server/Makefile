@@ -1,20 +1,34 @@
-.PHONY: update-deps build docker-build
+MAKEFLAGS += --warn-undefined-variables
+IMAGE ?= cesanta/docker_auth
+COMPRESS_BINARY ?= false
+
+BUILDER_IMAGE ?= centurylink/golang-builder
+BUILDER_IMAGE_EXTRA-build-cross = -cross
+BUILDER_OPTS-docker-build = -v /var/run/docker.sock:/var/run/docker.sock
+
+.PHONY: %
 
 all: build
+local: build-local
 
 update-deps:
-	go get -v -u -f github.com/jteeuwen/go-bindata/... .
+	go get -v -u -f github.com/tools/godep github.com/jteeuwen/go-bindata/... .
 
-build:
+godep:
+	godep save
+
+build-local: update-deps
 	go generate ./...
 	go build
 
-docker-build: update-deps build
-	docker build -t cesanta/docker_auth -f Dockerfile .
+build build-cross docker-build: update-deps godep
+	docker run --rm -v $(PWD):/src -e COMPRESS_BINARY=$(COMPRESS_BINARY) $(BUILDER_OPTS-$@) $(BUILDER_IMAGE)$(BUILDER_IMAGE_EXTRA-$@) $(IMAGE)
 
-docker-push-latest:
-	docker push cesanta/docker_auth:latest
+docker-tag-%:
+	docker tag -f $(IMAGE):latest $(IMAGE):$*
 
-docker-push-stable:
-	docker tag -f cesanta/docker_auth:latest cesanta/docker_auth:stable
-	docker push cesanta/docker_auth:stable
+docker-push-%: docker-tag-%
+	docker push $(IMAGE):$*
+
+# Shortcut for latest
+docker-push: docker-push-latest

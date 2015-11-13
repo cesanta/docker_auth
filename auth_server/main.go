@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package main
+package main // import "github.com/cesanta/docker_auth/auth_server"
 
 import (
 	"crypto/tls"

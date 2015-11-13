@@ -140,6 +140,7 @@ func (as *AuthServer) Authenticate(ar *AuthRequest) (bool, error) {
 func (as *AuthServer) Authorize(ar *AuthRequest) ([]string, error) {
 	for i, a := range as.authorizers {
 		result, err := a.Authorize(&ar.ai)
+
 		glog.V(2).Infof("Authz %s %s -> %s, %s", a.Name(), ar.ai, result, err)
 		if err != nil {
 			if err == authz.NoMatch {

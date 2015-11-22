@@ -1,10 +1,12 @@
 MAKEFLAGS += --warn-undefined-variables
 IMAGE ?= cesanta/docker_auth
 COMPRESS_BINARY ?= false
+CA_BUNDLE = /etc/ssl/certs/ca-certificates.crt
 
 BUILDER_IMAGE ?= centurylink/golang-builder
 BUILDER_IMAGE_EXTRA-build-cross = -cross
 BUILDER_OPTS-docker-build = -v /var/run/docker.sock:/var/run/docker.sock
+BUILDER_IMAGE_EXTRA-docker-build =
 
 .PHONY: %
 
@@ -21,7 +23,10 @@ build-local: update-deps
 	go generate ./...
 	go build
 
-build build-cross docker-build: update-deps godep
+ca-certificates.crt:
+	cp $(CA_BUNDLE) .
+
+build build-cross docker-build: update-deps godep ca-certificates.crt
 	docker run --rm -v $(PWD):/src -e COMPRESS_BINARY=$(COMPRESS_BINARY) $(BUILDER_OPTS-$@) $(BUILDER_IMAGE)$(BUILDER_IMAGE_EXTRA-$@) $(IMAGE)
 
 docker-tag-%:

@@ -3,6 +3,7 @@ package authz
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 )
 
@@ -36,6 +37,7 @@ type AuthRequestInfo struct {
 	Type    string
 	Name    string
 	Service string
+	IP      net.IP
 	Actions []string
 }
 

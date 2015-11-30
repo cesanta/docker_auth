@@ -85,6 +85,7 @@ ldap_auth:
 #    so "foobar", "f??bar", "f*bar" are all valid. For even more flexibility
 #    match patterns can be evaluated as regexes by enclosing them in //, e.g.
 #    "/(foo|bar)/".
+#  * IP match can be single IP address or a subnet in the "prefix/mask" notation.
 #  * ACL is evaluated in the order it is defined until a match is found.
 #  * Empty match clause matches anything, it only makes sense at the end of the
 #    list and can be used as a way of specifying default permissions.
@@ -99,6 +100,13 @@ ldap_auth:
 #  * ${type} - the type of the entity, normally "repository".
 #  * ${name} - the name of the repository (i.e. image), e.g. centos.
 acl:
+  # Any manipulations from localhost are allowed.
+  - match: {ip: "127.0.0.0/8"}
+    actions: ["*"]
+    comment: "Allow everything from localhost (IPv4)"
+  - match: {ip: "::1"}
+    actions: ["*"]
+    comment: "Allow everything from localhost (IPv6)"
   - match: {account: "admin"}
     actions: ["*"]
     comment: "Admin has full access to everything."

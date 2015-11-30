@@ -87,7 +87,7 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 	if err != nil {
 		glog.Exitf("Failed to set up listener: %s", err)
 	}
-	glog.Infof("Serving")
+	glog.Infof("Serving on %s", c.Server.ListenAddress)
 	return as, s
 }
 

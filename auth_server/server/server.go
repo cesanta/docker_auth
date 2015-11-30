@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/http"
 	"sort"
 	"strings"
@@ -90,8 +91,26 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 	return as, nil
 }
 
+func parseRemoteAddr(ra string) net.IP {
+	colonIndex := strings.LastIndex(ra, ":")
+	if colonIndex == -1 {
+		return nil
+	}
+	ra = ra[:colonIndex]
+	if ra[0] == '[' && ra[len(ra)-1] == ']' { // IPv6
+		ra = ra[1 : len(ra)-1]
+	}
+	res := net.ParseIP(ra)
+	glog.Infof("RA %s -> %s", ra, res)
+	return res
+}
+
 func (as *AuthServer) ParseRequest(req *http.Request) (*AuthRequest, error) {
 	ar := &AuthRequest{RemoteAddr: req.RemoteAddr}
+	ar.ai.IP = parseRemoteAddr(req.RemoteAddr)
+	if ar.ai.IP == nil {
+		return nil, fmt.Errorf("unable to parse remote addr %s", req.RemoteAddr)
+	}
 	user, password, haveBasicAuth := req.BasicAuth()
 	if haveBasicAuth {
 		ar.User = user

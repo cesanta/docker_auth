@@ -1,0 +1,90 @@
+<html itemscope itemtype="http://schema.org/Article">
+<head>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+  <script src="https://apis.google.com/js/client:platform.js?onload=start" async defer></script>
+  <script>
+		function checkLogin() {
+			var auth2 = gapi.auth2.getAuthInstance();
+			if (auth2.isSignedIn.get()) {
+				$('#result').text('validating existing token...');
+				var id_token = auth2.currentUser.get().getAuthResponse().id_token;
+				$.ajax({
+					type: 'POST',
+					url: '/google_auth',
+					contentType: 'application/json; charset=utf-8',
+					processData: false,
+					data: JSON.stringify({'action': 'check', 'token': id_token}),
+					success: function(result) {
+						$('#result').text(result);
+					},
+					error: function(xhr) {
+						$('#result').text('error: ' + xhr.responseText);
+					},
+				});
+			} else {
+				console.log('not logged in');
+			}
+		}
+    function start() {
+      gapi.load('auth2', function() {
+				gapi.auth2.init({client_id: '{{.ClientId}}'}).then(checkLogin);
+			});
+    }
+  </script>
+</head>
+<body>
+	<button id="signinButton">Sign in with Google</button>
+	<script>
+		$('#signinButton').click(function() {
+			// signInCallback defined in step 6.
+			var auth2 = gapi.auth2.getAuthInstance();
+			auth2.grantOfflineAccess({'redirect_uri': 'postmessage'}).then(function(authResult) {
+				console.log(authResult);
+				$.ajax({
+					type: 'POST',
+					url: '/google_auth',
+					contentType: 'application/json; charset=utf-8',
+					processData: false,
+					data: JSON.stringify({'action': 'sign_in', 'code': authResult['code']}),
+					success: function(result) {
+						$('#result').text(result);
+						console.log("result:", result);
+					},
+					error: function(xhr) {
+						$('#result').text('error: ' + xhr.responseText);
+						console.log('error:', xhr.responseText);
+					},
+				});
+			});
+		});
+	</script>
+	<button id="signOutButton">Sign out</button>
+	<script>
+		$('#signOutButton').click(function() {
+			var auth2 = gapi.auth2.getAuthInstance();
+			if (auth2.isSignedIn.get()) {
+				$('#result').text('validating existing token...');
+				var id_token = auth2.currentUser.get().getAuthResponse().id_token;
+				// Perform server-side sign out.
+				$.ajax({
+					type: 'POST',
+					url: '/google_auth',
+					contentType: 'application/json; charset=utf-8',
+					data: JSON.stringify({'action': 'sign_out', 'token': id_token}),
+					processData: false,
+					success: function() {},
+					error: function() {},
+					complete: function(xhr) {
+						console.log('sign out result:', xhr.responseText);
+						gapi.auth2.getAuthInstance().disconnect();
+						$('#result').text('signed out');
+					},
+				});
+			} else {
+				$('#result').text('not logged in');
+			}
+		});
+	</script>
+	<div id="result"></div>
+</body>
+</html>

@@ -88,6 +88,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authenticators = append(as.authenticators, la)
 	}
+	if c.MongoAuth != nil {
+		ma, err := authn.NewMongoAuth(c.MongoAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, ma)
+	}
 	return as, nil
 }
 

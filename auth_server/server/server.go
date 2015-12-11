@@ -63,8 +63,8 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authorizers = append(as.authorizers, staticAuthorizer)
 	}
-	if c.ACLMongoConf != nil {
-		mongoAuthorizer, err := authz.NewACLMongoAuthorizer(*c.ACLMongoConf)
+	if c.ACLMongo != nil {
+		mongoAuthorizer, err := authz.NewACLMongoAuthorizer(c.ACLMongo)
 		if err != nil {
 			return nil, err
 		}
@@ -87,6 +87,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 			return nil, err
 		}
 		as.authenticators = append(as.authenticators, la)
+	}
+	if c.MongoAuth != nil {
+		ma, err := authn.NewMongoAuth(c.MongoAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, ma)
 	}
 	return as, nil
 }

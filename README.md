@@ -14,6 +14,7 @@ Supported authentication methods:
  * Static list of users
  * Google Sign-In (incl. Google for Work / GApps for domain) (documented [here](https://github.com/cesanta/docker_auth/blob/master/examples/reference.yml))
  * LDAP bind
+ * MongoDB user collection
 
 Supported authorization methods:
  * Static ACL

@@ -14,7 +14,7 @@ all: build
 local: build-local
 
 update-deps:
-	go get -v -u -f github.com/tools/godep github.com/jteeuwen/go-bindata/... .
+	go get -v -u -f github.com/tools/godep github.com/jteeuwen/go-bindata/...
 
 godep:
 	godep save

@@ -17,55 +17,16 @@
 package authn
 
 import (
-	// "encoding/json"
-	"errors"
-	"time"
-
+	"github.com/cesanta/docker_auth/auth_server/mgo_session"
 	"github.com/golang/glog"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
-// MongoAuthDialConfig stores how we connect to the MongoDB server
-type MongoAuthDialConfig struct {
-	mgo.DialInfo `yaml:",inline"`
-	PasswordFile string `yaml:"password_file,omitempty"`
-}
-
-// MongoAuthConfig stores how to connect to the MongoDB server and how long
-// an ACL remains valid until new ones will be fetched.
-type MongoAuthConfig struct {
-	DialInfo   MongoAuthDialConfig `yaml:"dial_info,omitempty"`
-	Collection string              `yaml:"collection,omitempty"`
-	CacheTTL   time.Duration       `yaml:"cache_ttl,omitempty"`
-}
-
 type MongoAuth struct {
-	config   *MongoAuthConfig
-//	session  *mgo.Session
-}
-
-// Validate ensures the most common fields inside the mgo.DialInfo portion of
-// an AuthMongoDialInfo are set correctly as well as other fields inside the
-// MongoAuthConfig itself.
-func (c *MongoAuthConfig) Validate() error {
-	if len(c.DialInfo.DialInfo.Addrs) == 0 {
-		return errors.New("At least one element in auth_mongo.dial_info.addrs is required")
-	}
-	if c.DialInfo.DialInfo.Timeout == 0 {
-		c.DialInfo.DialInfo.Timeout = 10 * time.Second
-	}
-	if c.DialInfo.DialInfo.Database == "" {
-		return errors.New("auth_mongo.dial_info.database is required")
-	}
-	if c.Collection == "" {
-		return errors.New("auth_mongo.collection is required")
-	}
-	if c.CacheTTL < 0 {
-		return errors.New(`auth_mongo.cache_ttl is required (e.g. "1m" for 1 minute)`)
-	}
-	return nil
+	config   *mgo_session.MongoConfig
+	session  *mgo.Session
 }
 
 type authUserEntry struct {
@@ -73,47 +34,31 @@ type authUserEntry struct {
 	Password *string `yaml:"password,omitempty" json:"password,omitempty"`
 }
 
-func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
-	// // Attempt to create a MongoDB session which we can re-use when handling
-	// // multiple auth requests.
-
-	// // Read in the password (if any)
-	// if c.DialInfo.PasswordFile != "" {
-	// 	passBuf, err := ioutil.ReadFile(c.DialInfo.PasswordFile)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf(`Failed to read password file "%s": %s`, c.DialInfo.PasswordFile, err)
-	// 	}
-	// 	c.DialInfo.DialInfo.Password = strings.TrimSpace(string(passBuf))
-	// }
-
-	// glog.V(2).Infof("Creating MongoDB session (operation timeout %s)", c.DialInfo.DialInfo.Timeout)
-	// session, err := mgo.DialWithInfo(&c.DialInfo.DialInfo)
-	// if err != nil {
-	// 	return nil, err
-	// }
+func NewMongoAuth(c *mgo_session.MongoConfig) (*MongoAuth, error) {
+	// Attempt to create new mongo session.
+	session, err := mgo_session.New(c)
+	if err != nil {
+		return nil, err
+	}
 
 	return &MongoAuth{
 		config: c,
-//		session: session
+		session: session,
 	}, nil
 }
 
 func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, error) {
-	// Login to mongo
-	glog.V(2).Infof("Creating MongoDB session (operation timeout %s)", mauth.config.DialInfo.DialInfo.Timeout)
-	session, derr := mgo.DialWithInfo(&mauth.config.DialInfo.DialInfo)
-	if derr != nil {
-		return false, derr
-	}
-
+	// Copy our session
+	glog.V(2).Infof("Copy MongoDB session for Authenticate")
+	tmp_session := mauth.session.Copy()
 	// Close up when we are done
-	defer session.Close()
+	defer tmp_session.Close()
 
 	// Get Users from MongoDB
 	glog.V(2).Infof("Checking user %s against Mongo Users. DB: %s, collection:%s", 
-		account, mauth.config.DialInfo.DialInfo.Database, mauth.config.Collection)
+		account, mauth.config.DialConfig.DialInfo.Database, mauth.config.Collection)
 	var dbUserRecord authUserEntry
-	collection := session.DB(mauth.config.DialInfo.DialInfo.Database).C(mauth.config.Collection)
+	collection := tmp_session.DB(mauth.config.DialConfig.DialInfo.Database).C(mauth.config.Collection)
 	err := collection.Find(bson.M{"username": account}).One(&dbUserRecord)
 	if err != nil {
 		return false, err
@@ -176,9 +121,9 @@ func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (b
 
 func (ma *MongoAuth) Stop() {
 	// Close connection to MongoDB database (if any)
-	// if ma.session != nil {
-	// 	ma.session.Close()
-	// }
+	if ma.session != nil {
+		ma.session.Close()
+	}
 }
 
 func (ga *MongoAuth) Name() string {

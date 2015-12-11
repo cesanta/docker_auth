@@ -26,19 +26,20 @@ import (
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/docker_auth/auth_server/authz"
+	"github.com/cesanta/docker_auth/auth_server/mgo_session"
 	"github.com/docker/libtrust"
 	yaml "gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	Server       ServerConfig                   `yaml:"server"`
-	Token        TokenConfig                    `yaml:"token"`
-	Users        map[string]*authn.Requirements `yaml:"users,omitempty"`
-	GoogleAuth   *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	LDAPAuth     *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
-	MongoAuth    *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
-	ACL          authz.ACL                      `yaml:"acl"`
-	ACLMongoConf *authz.ACLMongoConfig          `yaml:"acl_mongo"`
+	Server        ServerConfig                   `yaml:"server"`
+	Token         TokenConfig                    `yaml:"token"`
+	Users         map[string]*authn.Requirements `yaml:"users,omitempty"`
+	GoogleAuth    *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	LDAPAuth      *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
+	MongoAuth     *mgo_session.MongoConfig       `yaml:"mongo_auth,omitempty"`
+	ACL           authz.ACL                      `yaml:"acl"`
+	ACLMongo      *mgo_session.MongoConfig       `yaml:"acl_mongo"`
 }
 
 type ServerConfig struct {
@@ -74,6 +75,11 @@ func validate(c *Config) error {
 	if c.Users == nil && c.GoogleAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
+	if c.MongoAuth != nil {
+		if err := c.MongoAuth.Validate("mongo_auth"); err != nil {
+			return err
+		}
+	}
 	if gac := c.GoogleAuth; gac != nil {
 		if gac.ClientSecretFile != "" {
 			contents, err := ioutil.ReadFile(gac.ClientSecretFile)
@@ -89,11 +95,11 @@ func validate(c *Config) error {
 			gac.HTTPTimeout = 10
 		}
 	}
-	if c.ACL == nil && c.ACLMongoConf == nil {
+	if c.ACL == nil && c.ACLMongo == nil {
 		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions")
 	}
-	if c.ACLMongoConf != nil {
-		if err := c.ACLMongoConf.Validate(); err != nil {
+	if c.ACLMongo != nil {
+		if err := c.ACLMongo.Validate("acl_mongo"); err != nil {
 			return err
 		}
 	}

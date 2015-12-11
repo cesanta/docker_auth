@@ -1,15 +1,30 @@
-# ACL backend in MongoDB
+# MongoDB Backends
 
-Maybe you want to manage your ACL from an external application and therefore
+You may want to manage your ACLs and Users from an external application and therefore
 need them to be stored outside of your auth_server's configuration file.
 
-For this purpose, there's a [MongoDB](https://www.mongodb.org/) ACL backend
-which can query an ACL from a MongoDB database.
+For this purpose, there's a [MongoDB](https://www.mongodb.org/) backend
+which can query ACL and Auth from a MongoDB database.
+
+
+## Auth backend in MongoDB
+
+Auth entries in mongo are single dictionary containing a username and password entry.
+The password entry must contain a BCrypt hash.
+
+```json
+{
+    "username" : "admin",
+    "password" : "$2y$05$B.x046DV3bvuwFgn0I42F.W/SbRU5fUoCbCGtjFl7S33aCUHNBxbq"
+}
+```
+
+## ACL backend in MongoDB
 
 A typical ACL entry from the static YAML configuration file looks something like
 this:
 
-```
+```yaml
 - match: {account: "/.+/", name: "${account}/*"}
   actions: ["push", "pull"]
   comment: "All logged in users can push all images that are in a namespace beginning with their name"
@@ -37,12 +52,12 @@ be imported into MongoDB. Those ACL entries reflect what's specified in the
 **Note** that each document entry must span exactly one line or otherwise the
 `mongoimport` tool (see below) will not accept it.
 
-## Import reference ACLs into MongoDB
+### Import reference ACLs into MongoDB
 
 To import the above specified ACL entries from the reference file, simply
 execute the following commands.
 
-### Ensure MongoDB is running
+#### Ensure MongoDB is running
 
 If you don't have a MongoDB server running, consider to start it within it's own
 docker container:
@@ -54,11 +69,11 @@ this out by running `docker logs -f mongo-acl`. Once you see the message
 `waiting for connections on port 27017`, you can proceed with the instructions
 below.
 
-### Get mongoimport tool
+#### Get mongoimport tool
 
 On Ubuntu this is a matter of `sudo apt-get install mongodb-clients`.
 
-### Import ACLs
+#### Import ACLs
 
 ```bash
 MONGO_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' mongo-acl)

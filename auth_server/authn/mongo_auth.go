@@ -49,7 +49,6 @@ func NewMongoAuth(c *mgo_session.MongoConfig) (*MongoAuth, error) {
 
 func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, error) {
 	// Copy our session
-	glog.V(2).Infof("Copy MongoDB session for Authenticate")
 	tmp_session := mauth.session.Copy()
 	// Close up when we are done
 	defer tmp_session.Close()
@@ -61,7 +60,7 @@ func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (b
 	collection := tmp_session.DB(mauth.config.DialConfig.DialInfo.Database).C(mauth.config.Collection)
 	err := collection.Find(bson.M{"username": account}).One(&dbUserRecord)
 	if err != nil {
-		return false, err
+		return false, NoMatch
 	}
 
 	// Validate db password against passed password 
@@ -74,50 +73,6 @@ func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (b
 	// Auth success
 	return true, nil
 }
-
-
-// type Requirements struct {
-// 	Password *PasswordString `yaml:"password,omitempty" json:"password,omitempty"`
-// }
-
-// type staticUsersAuth struct {
-// 	users map[string]*Requirements
-// }
-
-// func (r Requirements) String() string {
-// 	p := r.Password
-// 	if p != nil {
-// 		pm := PasswordString("***")
-// 		r.Password = &pm
-// 	}
-// 	b, _ := json.Marshal(r)
-// 	r.Password = p
-// 	return string(b)
-// }
-
-// func NewStaticUserAuth(users map[string]*Requirements) *staticUsersAuth {
-// 	return &staticUsersAuth{users: users}
-// }
-
-// func (sua *staticUsersAuth) Authenticate(user string, password PasswordString) (bool, error) {
-// 	reqs := sua.users[user]
-// 	if reqs == nil {
-// 		return false, NoMatch
-// 	}
-// 	if reqs.Password != nil {
-// 		if bcrypt.CompareHashAndPassword([]byte(*reqs.Password), []byte(password)) != nil {
-// 			return false, nil
-// 		}
-// 	}
-// 	return true, nil
-// }
-
-// func (sua *staticUsersAuth) Stop() {
-// }
-
-// func (sua *staticUsersAuth) Name() string {
-// 	return "static"
-// }
 
 func (ma *MongoAuth) Stop() {
 	// Close connection to MongoDB database (if any)

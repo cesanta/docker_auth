@@ -95,7 +95,6 @@ func (ma *aclMongoAuthorizer) updateACLCache() error {
 	var newACL ACL
 
 	// Copy our session
-	glog.V(2).Infof("Copy MongoDB session for Authenticate")
 	tmp_session := ma.session.Copy()
 
 	// Close up when we are done

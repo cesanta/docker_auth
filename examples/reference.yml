@@ -87,6 +87,8 @@ ldap_auth:
 #    "/(foo|bar)/".
 #  * IP match can be single IP address or a subnet in the "prefix/mask" notation.
 #  * ACL is evaluated in the order it is defined until a match is found.
+#    Rules below the first match are not evaluated, so you'll need to put more
+#    specific rules above more broad ones.
 #  * Empty match clause matches anything, it only makes sense at the end of the
 #    list and can be used as a way of specifying default permissions.
 #  * Empty actions set means "deny everything". Thus, a rule with `actions: []`
@@ -116,12 +118,12 @@ acl:
   - match: {account: "test"}
     actions: []
     comment: "User \"test\" has full access to test-* images but nothing else. (2)"
-  - match: {account: "/.+/"}
-    actions: ["pull"]
-    comment: "All logged in users can pull all images."
   - match: {account: "/.+/", name: "${account}/*"}
     actions: ["*"]
-    comment: "All logged in users can push all images that are in a namespace beginning with their name"
+    comment: "Logged in users have full access to images that are in their 'namespace'"
+  - match: {account: "/.+/"}
+    actions: ["pull"]
+    comment: "Logged in users can pull all images."
   - match: {account: "", name: "hello-world"}
     actions: ["pull"]
     comment: "Anonymous users can pull \"hello-world\"."

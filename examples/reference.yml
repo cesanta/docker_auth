@@ -71,6 +71,27 @@ ldap_auth:
   base: "o=example.com"
   filter: "(&(uid=${account})(objectClass=person))"
 
+mongo_auth:
+  # Essentially all options are described here: https://godoc.org/gopkg.in/mgo.v2#DialInfo
+  dial_info:
+    # The MongoDB hostnames or IPs to connect to.
+    addrs: ["localhost"]
+    # The time to wait for a server to respond when first connecting and on
+    # follow up operations in the session. If timeout is zero, the call may
+    # block forever waiting for a connection to be established.
+    # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
+    timeout: "10s"
+    # Database name that will be used on the MongoDB server.
+    database: "docker_auth"
+    # The username with which to connect to the MongoDB server.
+    user: ""
+    # Path to the text file with the password in it.
+    password_file: ""
+  # Name of the collection in which ACLs will be stored in MongoDB.
+  collection: "users"
+  # Unlike acl_mongo we don't cache the full user set. We just query mongo for
+  # an exact match for each authorization
+
 # Authorization methods. All are tried, any one returning success is sufficient.
 # At least one must be configured.
 

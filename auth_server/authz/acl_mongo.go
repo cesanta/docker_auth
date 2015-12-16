@@ -1,79 +1,37 @@
 package authz
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"strings"
 	"sync"
 	"time"
 
+	"github.com/cesanta/docker_auth/auth_server/mgo_session"
 	"github.com/golang/glog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
-// ACLMongoConfig stores how to connect to the MongoDB server and how long
-// an ACL remains valid until new ones will be fetched.
 type ACLMongoConfig struct {
-	DialInfo   ACLMongoDialConfig `yaml:"dial_info,omitempty"`
-	Collection string             `yaml:"collection,omitempty"`
-	CacheTTL   time.Duration      `yaml:"cache_ttl,omitempty"`
-}
-
-// ACLMongoDialConfig stores how we connect to the MongoDB server
-type ACLMongoDialConfig struct {
-	mgo.DialInfo `yaml:",inline"`
-	PasswordFile string `yaml:"password_file,omitempty"`
-}
-
-// Validate ensures the most common fields inside the mgo.DialInfo portion of
-// an ACLMongoDialInfo are set correctly as well as other fields inside the
-// ACLMongoConfig itself.
-func (c *ACLMongoConfig) Validate() error {
-	if len(c.DialInfo.DialInfo.Addrs) == 0 {
-		return errors.New("At least one element in acl_mongo.dial_info.addrs is required")
-	}
-	if c.DialInfo.DialInfo.Timeout == 0 {
-		c.DialInfo.DialInfo.Timeout = 10 * time.Second
-	}
-	if c.DialInfo.DialInfo.Database == "" {
-		return errors.New("acl_mongo.dial_info.database is required")
-	}
-	if c.Collection == "" {
-		return errors.New("acl_mongo.collection is required")
-	}
-	if c.CacheTTL < 0 {
-		return errors.New(`acl_mongo.cache_ttl is required (e.g. "1m" for 1 minute)`)
-	}
-	return nil
+	MongoConfig *mgo_session.Config `yaml:"dial_info,omitempty"`
+	Collection  string              `yaml:"collection,omitempty"`
+	CacheTTL    time.Duration       `yaml:"cache_ttl,omitempty"`
 }
 
 type aclMongoAuthorizer struct {
 	lastCacheUpdate  time.Time
 	lock             sync.RWMutex
-	config           ACLMongoConfig
+	config           *ACLMongoConfig
 	staticAuthorizer Authorizer
 	session          *mgo.Session
 	updateTicker     *time.Ticker
+	Collection       string        `yaml:"collection,omitempty"`
+	CacheTTL         time.Duration `yaml:"cache_ttl,omitempty"`
 }
 
 // NewACLMongoAuthorizer creates a new ACL Mongo authorizer
-func NewACLMongoAuthorizer(c ACLMongoConfig) (Authorizer, error) {
-	// Attempt to create a MongoDB session which we can re-use when handling
-	// multiple auth requests.
-
-	// Read in the password (if any)
-	if c.DialInfo.PasswordFile != "" {
-		passBuf, err := ioutil.ReadFile(c.DialInfo.PasswordFile)
-		if err != nil {
-			return nil, fmt.Errorf(`Failed to read password file "%s": %s`, c.DialInfo.PasswordFile, err)
-		}
-		c.DialInfo.DialInfo.Password = strings.TrimSpace(string(passBuf))
-	}
-
-	glog.V(2).Infof("Creating MongoDB session (operation timeout %s)", c.DialInfo.DialInfo.Timeout)
-	session, err := mgo.DialWithInfo(&c.DialInfo.DialInfo)
+func NewACLMongoAuthorizer(c *ACLMongoConfig) (Authorizer, error) {
+	// Attempt to create new mongo session.
+	session, err := mgo_session.New(c.MongoConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +62,25 @@ func (ma *aclMongoAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {
 	}
 
 	return ma.staticAuthorizer.Authorize(ai)
+}
+
+// Validate ensures that any custom config options
+// in a Config are set correctly.
+func (c *ACLMongoConfig) Validate(configKey string) error {
+	//First validate the mongo config.
+	if err := c.MongoConfig.Validate(configKey); err != nil {
+		return err
+	}
+
+	// Now check additional config fields.
+	if c.Collection == "" {
+		return fmt.Errorf("%s.collection is required", configKey)
+	}
+	if c.CacheTTL < 0 {
+		return fmt.Errorf("%s.cache_ttl is required (e.g. \"1m\" for 1 minute)", configKey)
+	}
+
+	return nil
 }
 
 func (ma *aclMongoAuthorizer) Stop() {
@@ -143,7 +120,14 @@ func (ma *aclMongoAuthorizer) continuouslyUpdateACLCache() {
 func (ma *aclMongoAuthorizer) updateACLCache() error {
 	// Get ACL from MongoDB
 	var newACL ACL
-	collection := ma.session.DB(ma.config.DialInfo.DialInfo.Database).C(ma.config.Collection)
+
+	// Copy our session
+	tmp_session := ma.session.Copy()
+
+	// Close up when we are done
+	defer tmp_session.Close()
+
+	collection := tmp_session.DB(ma.config.MongoConfig.DialInfo.Database).C(ma.config.Collection)
 	err := collection.Find(bson.M{}).All(&newACL)
 	if err != nil {
 		return err

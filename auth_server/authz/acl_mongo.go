@@ -15,6 +15,7 @@ type ACLMongoConfig struct {
 	MongoConfig *mgo_session.Config `yaml:"dial_info,omitempty"`
 	Collection  string              `yaml:"collection,omitempty"`
 	CacheTTL    time.Duration       `yaml:"cache_ttl,omitempty"`
+	SortKeys    []string            `yaml:"sort_keys",omitempty`
 }
 
 type aclMongoAuthorizer struct {
@@ -128,7 +129,7 @@ func (ma *aclMongoAuthorizer) updateACLCache() error {
 	defer tmp_session.Close()
 
 	collection := tmp_session.DB(ma.config.MongoConfig.DialInfo.Database).C(ma.config.Collection)
-	err := collection.Find(bson.M{}).All(&newACL)
+	err := collection.Find(bson.M{}).Sort(ma.config.SortKeys...).All(&newACL)
 	if err != nil {
 		return err
 	}

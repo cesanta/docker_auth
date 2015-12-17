@@ -173,3 +173,7 @@ acl_mongo:
   # the MongoDB server.
   # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
   cache_ttl: "1m"
+  # Specify a list of keys to sort results on. If the list is empty or this config option is 
+  # omitted then the results will returned in natural order which can be unreliable.
+  # (See https://godoc.org/gopkg.in/mgo.v2#Query.Sort for details)
+  sort_keys: ["priority"]

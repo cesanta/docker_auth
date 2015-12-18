@@ -28,6 +28,8 @@ type aclMongoAuthorizer struct {
 	CacheTTL         time.Duration `yaml:"cache_ttl,omitempty"`
 }
 
+var aclSortKey = "sequence"
+
 // NewACLMongoAuthorizer creates a new ACL Mongo authorizer
 func NewACLMongoAuthorizer(c *ACLMongoConfig) (Authorizer, error) {
 	// Attempt to create new mongo session.
@@ -128,10 +130,29 @@ func (ma *aclMongoAuthorizer) updateACLCache() error {
 	defer tmp_session.Close()
 
 	collection := tmp_session.DB(ma.config.MongoConfig.DialInfo.Database).C(ma.config.Collection)
-	err := collection.Find(bson.M{}).All(&newACL)
-	if err != nil {
+
+	// Create sequence index obj
+	index := mgo.Index{
+		Key:    []string{aclSortKey},
+		Unique: true,
+		DropDups: false, // Error on duplicate key document instead of drop.
+		Sparse: true,    // When key is hinted and sorted query will exclude documents without the key
+	}
+
+	// Enforce a sequence index. This is fine to do frequently per the docs:
+	// https://godoc.org/gopkg.in/mgo.v2#Collection.EnsureIndex:
+	//    Once EnsureIndex returns successfully, following requests for the same index
+	//    will not contact the server unless Collection.DropIndex is used to drop the same
+	//    index, or Session.ResetIndexCache is called.
+	if err := collection.EnsureIndex(index); err != nil {
 		return err
 	}
+
+	// Get all ACLs that have the required key
+	if err := collection.Find(bson.M{}).Hint(aclSortKey).Sort(aclSortKey).All(&newACL); err != nil {
+		return err
+	}
+
 	glog.V(2).Infof("Number of new ACL entries from MongoDB: %d", len(newACL))
 
 	newStaticAuthorizer, err := NewACLAuthorizer(newACL)

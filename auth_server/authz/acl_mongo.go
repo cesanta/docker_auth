@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -10,6 +11,13 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
+
+type MongoACL []MongoACLEntry
+
+type MongoACLEntry struct {
+	ACLEntry `bson:",inline"`
+	Seq      *int
+}
 
 type ACLMongoConfig struct {
 	MongoConfig *mgo_session.Config `yaml:"dial_info,omitempty"`
@@ -28,9 +36,9 @@ type aclMongoAuthorizer struct {
 	CacheTTL         time.Duration `yaml:"cache_ttl,omitempty"`
 }
 
-// NewACLMongoAuthorizer creates a new ACL Mongo authorizer
+// NewACLMongoAuthorizer creates a new ACL MongoDB authorizer
 func NewACLMongoAuthorizer(c *ACLMongoConfig) (Authorizer, error) {
-	// Attempt to create new mongo session.
+	// Attempt to create new MongoDB session.
 	session, err := mgo_session.New(c.MongoConfig)
 	if err != nil {
 		return nil, err
@@ -67,7 +75,7 @@ func (ma *aclMongoAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {
 // Validate ensures that any custom config options
 // in a Config are set correctly.
 func (c *ACLMongoConfig) Validate(configKey string) error {
-	//First validate the mongo config.
+	//First validate the MongoDB config.
 	if err := c.MongoConfig.Validate(configKey); err != nil {
 		return err
 	}
@@ -119,7 +127,7 @@ func (ma *aclMongoAuthorizer) continuouslyUpdateACLCache() {
 
 func (ma *aclMongoAuthorizer) updateACLCache() error {
 	// Get ACL from MongoDB
-	var newACL ACL
+	var newACL MongoACL
 
 	// Copy our session
 	tmp_session := ma.session.Copy()
@@ -128,13 +136,48 @@ func (ma *aclMongoAuthorizer) updateACLCache() error {
 	defer tmp_session.Close()
 
 	collection := tmp_session.DB(ma.config.MongoConfig.DialInfo.Database).C(ma.config.Collection)
-	err := collection.Find(bson.M{}).All(&newACL)
-	if err != nil {
+
+	// Create sequence index obj
+	index := mgo.Index{
+		Key:      []string{"seq"},
+		Unique:   true,
+		DropDups: false, // Error on duplicate key document instead of drop.
+	}
+
+	// Enforce a sequence index. This is fine to do frequently per the docs:
+	// https://godoc.org/gopkg.in/mgo.v2#Collection.EnsureIndex:
+	//    Once EnsureIndex returns successfully, following requests for the same index
+	//    will not contact the server unless Collection.DropIndex is used to drop the same
+	//    index, or Session.ResetIndexCache is called.
+	if err := collection.EnsureIndex(index); err != nil {
 		return err
 	}
+
+	// Get all ACLs that have the required key
+	if err := collection.Find(bson.M{}).Sort("seq").All(&newACL); err != nil {
+		return err
+	}
+
 	glog.V(2).Infof("Number of new ACL entries from MongoDB: %d", len(newACL))
 
-	newStaticAuthorizer, err := NewACLAuthorizer(newACL)
+	// It is possible that the top document in the collection exists with a nil Seq.
+	// if that's true we pull it out of the slice and complain about it.
+	if len(newACL) > 0 && newACL[0].Seq == nil {
+		topACL := newACL[0]
+		if ma.lastCacheUpdate.IsZero() {
+			return errors.New(fmt.Sprintf("Seq not set for ACL entry: %+v", topACL))
+		} else {
+			glog.Errorf("WARNING: Seq not set for ACL entry: %+v. As a result cached acls will be used until this issue is resolved", topACL)
+			return nil
+		}
+	}
+
+	var retACL ACL
+	for _, e := range newACL {
+		retACL = append(retACL, e.ACLEntry)
+	}
+
+	newStaticAuthorizer, err := NewACLAuthorizer(retACL)
 	if err != nil {
 		return err
 	}
@@ -144,7 +187,7 @@ func (ma *aclMongoAuthorizer) updateACLCache() error {
 	ma.staticAuthorizer = newStaticAuthorizer
 	ma.lock.Unlock()
 
-	glog.V(2).Infof("Got new ACL from MongoDB: %s", newACL)
-	glog.V(1).Infof("Installed new ACL from MongoDB (%d entries)", len(newACL))
+	glog.V(2).Infof("Got new ACL from MongoDB: %s", retACL)
+	glog.V(1).Infof("Installed new ACL from MongoDB (%d entries)", len(retACL))
 	return nil
 }

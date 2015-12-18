@@ -38,15 +38,20 @@ MongoDB quite easily. Below you can find a list of ACL entries that are ready to
 be imported into MongoDB. Those ACL entries reflect what's specified in the
 `example/reference.yml` file under the `acl` section (aka static ACL).
 
+The added field of sequence is used to provide a reliable order which MongoDB does not
+guarantee by default, i.e. [Natural Sorting](https://docs.mongodb.org/manual/reference/method/cursor.sort/#return-natural-order).
+
+Sequence is a required field in all MongoDB ACL documents. Any documents without this key will be excluded. Sequence uniqeness is also enforced.
+
 **reference_acl.json**
 
 ```json
-{"match" : {"account" : "admin"}, "actions" : ["*"], "comment" : "Admin has full access to everything."}
-{"match" : {"account" : "test", "name" : "test-*"}, "actions" : ["*"], "comment" : "User \"test\" has full access to test-* images but nothing else. (1)"}
-{"match" : {"account" : "test"}, "actions" : [], "comment" : "User \"test\" has full access to test-* images but nothing else. (2)"}
-{"match" : {"account" : "/.+/"}, "actions" : ["pull"], "comment" : "All logged in users can pull all images."}
-{"match" : {"account" : "/.+/", "name" : "${account}/*"}, "actions" : ["*"], "comment" : "All logged in users can push all images that are in a namespace beginning with their name"}
-{"match" : {"account" : "", "name" : "hello-world"}, "actions" : ["pull"], "comment" : "Anonymous users can pull \"hello-world\"."}
+{"sequence": 10, "match" : {"account" : "admin"}, "actions" : ["*"], "comment" : "Admin has full access to everything."}
+{"sequence": 20, "match" : {"account" : "test", "name" : "test-*"}, "actions" : ["*"], "comment" : "User \"test\" has full access to test-* images but nothing else. (1)"}
+{"sequence": 30, "match" : {"account" : "test"}, "actions" : [], "comment" : "User \"test\" has full access to test-* images but nothing else. (2)"}
+{"sequence": 40, "match" : {"account" : "/.+/"}, "actions" : ["pull"], "comment" : "All logged in users can pull all images."}
+{"sequence": 50, "match" : {"account" : "/.+/", "name" : "${account}/*"}, "actions" : ["*"], "comment" : "All logged in users can push all images that are in a namespace beginning with their name"}
+{"sequence": 60, "match" : {"account" : "", "name" : "hello-world"}, "actions" : ["pull"], "comment" : "Anonymous users can pull \"hello-world\"."}
 ```
 
 **Note** that each document entry must span exactly one line or otherwise the

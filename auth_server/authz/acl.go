@@ -14,9 +14,10 @@ import (
 type ACL []ACLEntry
 
 type ACLEntry struct {
-	Match   *MatchConditions `yaml:"match"`
-	Actions *[]string        `yaml:"actions,flow"`
-	Comment *string          `yaml:"comment,omitempty"`
+	Match    *MatchConditions `yaml:"match"`
+	Actions  *[]string        `yaml:"actions,flow"`
+	Comment  *string          `yaml:"comment,omitempty"`
+	Sequence *int             `yaml:"sequence,omitempty"`
 }
 
 type MatchConditions struct {

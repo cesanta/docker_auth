@@ -49,6 +49,30 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 		return nil, err
 	}
 
+	// Copy our session
+	tmp_session := session.Copy()
+	// Close up when we are done
+	defer tmp_session.Close()
+
+	// determine collection
+	collection := tmp_session.DB(c.MongoConfig.DialInfo.Database).C(c.Collection)
+
+	// Create sequence index obj
+	index := mgo.Index{
+		Key:      []string{"username"},
+		Unique:   true,
+		DropDups: false, // Error on duplicate key document instead of drop.
+	}
+
+	// Enforce a sequence index. This is fine to do frequently per the docs:
+	// https://godoc.org/gopkg.in/mgo.v2#Collection.EnsureIndex:
+	//    Once EnsureIndex returns successfully, following requests for the same index
+	//    will not contact the server unless Collection.DropIndex is used to drop the same
+	//    index, or Session.ResetIndexCache is called.
+	if err := collection.EnsureIndex(index); err != nil {
+		return nil, err
+	}
+
 	return &MongoAuth{
 		config:  c,
 		session: session,

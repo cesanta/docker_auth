@@ -1,4 +1,4 @@
-Docker Registry 2.0 authentication server
+Docker Registry 2 authentication server
 =========================================
 
 The original Docker Registry server (v1) did not provide any support for authentication or authorization.
@@ -34,7 +34,7 @@ $ docker run \
     --rm -it --name docker_auth -p 5001:5001 \
     -v /path/to/config_dir:/config:ro \
     -v /var/log/docker_auth:/logs \
-    cesanta/docker_auth /config/auth_config.yml
+    cesanta/docker_auth:stable /config/auth_config.yml
 ```
 
 See the [example config files](https://github.com/cesanta/docker_auth/tree/master/examples/) to get an idea of what is possible.
@@ -43,7 +43,7 @@ See the [example config files](https://github.com/cesanta/docker_auth/tree/maste
 
 Run with increased verbosity:
 ```{r, engine='bash', count_lines}
-docker run ... cesanta/docker_auth --v=2 --alsologtostderr /config/auth_config.yml
+docker run ... cesanta/docker_auth:stable --v=2 --alsologtostderr /config/auth_config.yml
 ```
 
 ## Contributing

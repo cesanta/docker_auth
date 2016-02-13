@@ -123,13 +123,15 @@ mongo_auth:
 #  * ${type} - the type of the entity, normally "repository".
 #  * ${name} - the name of the repository (i.e. image), e.g. centos.
 acl:
-  # Any manipulations from localhost are allowed.
   - match: {ip: "127.0.0.0/8"}
     actions: ["*"]
     comment: "Allow everything from localhost (IPv4)"
   - match: {ip: "::1"}
     actions: ["*"]
     comment: "Allow everything from localhost (IPv6)"
+  - match: {ip: "172.17.0.1"}
+    actions: ["*"]
+    comment: "Allow everything from the local Docker bridge address"
   - match: {account: "admin"}
     actions: ["*"]
     comment: "Admin has full access to everything."

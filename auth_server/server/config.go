@@ -38,7 +38,7 @@ type Config struct {
 	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
 	MongoAuth  *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
 	ACL        authz.ACL                      `yaml:"acl"`
-	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo"`
+	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
 }
 
 type ServerConfig struct {

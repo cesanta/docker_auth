@@ -55,6 +55,7 @@ type TokenConfig struct {
 	CertFile   string `yaml:"certificate,omitempty"`
 	KeyFile    string `yaml:"key,omitempty"`
 	Expiration int64  `yaml:"expiration,omitempty"`
+	NotBefore  int64  `yaml:"notbefore,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey

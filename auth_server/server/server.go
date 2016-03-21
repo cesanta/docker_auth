@@ -241,7 +241,7 @@ func (as *AuthServer) CreateToken(ar *authRequest, ares []authzResult) (string, 
 	}
 
 	notBeforeThreshold := int64(1)
-	if tc.NotBefore != 0 {
+	if tc.NotBefore > 0 {
 		notBeforeThreshold = tc.NotBefore
 	}
 	claims := token.ClaimSet{

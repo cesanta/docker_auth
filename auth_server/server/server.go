@@ -240,9 +240,9 @@ func (as *AuthServer) CreateToken(ar *authRequest, ares []authzResult) (string, 
 		return "", fmt.Errorf("failed to marshal header: %s", err)
 	}
 
-	notBeforeThreshold := 1
-	if tc.NotBefore != null {
-		notBeforeThreshold := tc.NotBefore
+	notBeforeThreshold := int64(1)
+	if tc.NotBefore != 0 {
+		notBeforeThreshold = tc.NotBefore
 	}
 	claims := token.ClaimSet{
 		Issuer:     tc.Issuer,

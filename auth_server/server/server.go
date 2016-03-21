@@ -241,8 +241,10 @@ func (as *AuthServer) CreateToken(ar *authRequest, ares []authzResult) (string, 
 	}
 
 	notBeforeThreshold := int64(1)
-	if tc.NotBefore > 0 {
+	if tc.NotBefore > 0 &&  tc.NotBefore <= 10 {
 		notBeforeThreshold = tc.NotBefore
+	} else if tc.NotBefore > 10 {
+		notBeforeThreshold = 10
 	}
 	claims := token.ClaimSet{
 		Issuer:     tc.Issuer,

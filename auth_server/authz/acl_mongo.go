@@ -3,13 +3,13 @@ package authz
 import (
 	"errors"
 	"fmt"
-	"sync"
-	"time"
-
 	"github.com/cesanta/docker_auth/auth_server/mgo_session"
 	"github.com/golang/glog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"io"
+	"sync"
+	"time"
 )
 
 type MongoACL []MongoACLEntry
@@ -115,13 +115,20 @@ func (ma *aclMongoAuthorizer) continuouslyUpdateACLCache() {
 		aclAge := time.Now().Sub(ma.lastCacheUpdate)
 		glog.V(2).Infof("Updating ACL at %s (ACL age: %s. CacheTTL: %s)", tick, aclAge, ma.config.CacheTTL)
 
-		err := ma.updateACLCache()
-		if err == nil {
-			continue
+		for true {
+			err := ma.updateACLCache()
+			if err == nil {
+				break
+			} else if err == io.EOF {
+				glog.Warningf("EOF error received from Mongo. Retrying connection")
+				time.Sleep(time.Second)
+				continue
+			} else {
+				glog.Errorf("Failed to update ACL. ERROR: %s", err)
+				glog.Warningf("Using stale ACL (Age: %s, TTL: %s)", aclAge, ma.config.CacheTTL)
+				break
+			}
 		}
-
-		glog.Errorf("Failed to update ACL. ERROR: %s", err)
-		glog.Warningf("Using stale ACL (Age: %s, TTL: %s)", aclAge, ma.config.CacheTTL)
 	}
 }
 

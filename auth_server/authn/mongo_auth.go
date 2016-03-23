@@ -17,7 +17,10 @@
 package authn
 
 import (
+	"errors"
 	"fmt"
+	"io"
+	"time"
 
 	"github.com/cesanta/docker_auth/auth_server/mgo_session"
 	"github.com/golang/glog"
@@ -80,6 +83,20 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 }
 
 func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, error) {
+	for true {
+		result, err := mauth.authenticate(account, password)
+		if err == io.EOF {
+			glog.Warningf("EOF error received from Mongo. Retrying connection")
+			time.Sleep(time.Second)
+			continue
+		}
+		return result, err
+	}
+
+	return false, errors.New("Unable to communicate with Mongo.")
+}
+
+func (mauth *MongoAuth) authenticate(account string, password PasswordString) (bool, error) {
 	// Copy our session
 	tmp_session := mauth.session.Copy()
 	// Close up when we are done

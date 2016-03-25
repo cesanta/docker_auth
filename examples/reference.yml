@@ -100,8 +100,7 @@ mongo_auth:
 # and a ticket will be issued only for those of the requested actions that are
 # allowed by the rule.
 #  * It is possible to match on user's name ("account"), subject type ("type")
-#    and name ("name"; for type=repository which, at the timeof writing, is the
-#    only known subject type, this is the image name).
+#    and name ("name"; for type=repository this is the image name).
 #  * Matches are evaluated as shell file name patterns ("globs") by default,
 #    so "foobar", "f??bar", "f*bar" are all valid. For even more flexibility
 #    match patterns can be evaluated as regexes by enclosing them in //, e.g.
@@ -144,6 +143,9 @@ acl:
   - match: {account: "/.+/", name: "${account}/*"}
     actions: ["*"]
     comment: "Logged in users have full access to images that are in their 'namespace'"
+  - match: {account: "/.+/", type: "registry", name: "catalog"}
+    actions: ["*"]
+    comment: "Logged in users can query the catalog."
   - match: {account: "/.+/"}
     actions: ["pull"]
     comment: "Logged in users can pull all images."

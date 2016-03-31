@@ -84,7 +84,7 @@ mongo_auth:
     # Database name that will be used on the MongoDB server.
     database: "docker_auth"
     # The username with which to connect to the MongoDB server.
-    user: ""
+    username: ""
     # Path to the text file with the password in it.
     password_file: ""
   # Name of the collection in which ACLs will be stored in MongoDB.
@@ -168,7 +168,7 @@ acl_mongo:
     # Database name that will be used on the MongoDB server.
     database: "docker_auth"
     # The username with which to connect to the MongoDB server.
-    user: ""
+    username: ""
     # Path to the text file with the password in it.
     password_file: ""
   # Name of the collection in which ACLs will be stored in MongoDB.

@@ -6,14 +6,20 @@ token:
   issuer: Acme auth server
   expiration: 900
 ldap_auth:
+  # Addr is the hostname:port or ip:port
   addr: ldap.example.com:636
   # Setup tls connection method to be
   # "" or "none": the communication won't be encrypted
   # "always": setup LDAP over SSL/TLS
   # "starttls": sets StartTLS as the encryption method
   tls: always
+  # set to true to allow insecure tls
+  insecure_tls_skip_verify: false
+  # In case bind DN and password is required for querying user information,
+  # specify them here. Plain text password is read from the file.
   bind_dn:
   bind_password_file:
+  # User query settings. ${account} is expanded from auth request 
   base: o=example.com
   filter: (&(uid=${account})(objectClass=person))
 acl:

@@ -88,13 +88,14 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 }
 
 type authRequest struct {
-	RemoteAddr string
-	RemoteIP   net.IP
-	User       string
-	Password   authn.PasswordString
-	Account    string
-	Service    string
-	Scopes     []authScope
+	RemoteConnAddr string
+	RemoteAddr     string
+	RemoteIP       net.IP
+	User           string
+	Password       authn.PasswordString
+	Account        string
+	Service        string
+	Scopes         []authScope
 }
 
 type authScope struct {
@@ -114,10 +115,9 @@ func (ar authRequest) String() string {
 
 func parseRemoteAddr(ra string) net.IP {
 	colonIndex := strings.LastIndex(ra, ":")
-	if colonIndex == -1 {
-		return nil
+	if colonIndex > 0 && ra[colonIndex-1] >= 0x30 && ra[colonIndex-1] <= 0x39 {
+		ra = ra[:colonIndex]
 	}
-	ra = ra[:colonIndex]
 	if ra[0] == '[' && ra[len(ra)-1] == ']' { // IPv6
 		ra = ra[1 : len(ra)-1]
 	}
@@ -126,10 +126,18 @@ func parseRemoteAddr(ra string) net.IP {
 }
 
 func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
-	ar := &authRequest{RemoteAddr: req.RemoteAddr}
-	ar.RemoteIP = parseRemoteAddr(req.RemoteAddr)
+	ar := &authRequest{RemoteConnAddr: req.RemoteAddr, RemoteAddr: req.RemoteAddr}
+	if as.config.Server.RealIPHeader != "" {
+		hv := req.Header.Get(as.config.Server.RealIPHeader)
+		ar.RemoteAddr = strings.TrimSpace(strings.Split(hv, ",")[0])
+		glog.V(3).Infof("Conn ip %s, %s: %s, addr: %s", ar.RemoteAddr, as.config.Server.RealIPHeader, hv, ar.RemoteAddr)
+		if ar.RemoteAddr == "" {
+			return nil, fmt.Errorf("client address not provided")
+		}
+	}
+	ar.RemoteIP = parseRemoteAddr(ar.RemoteAddr)
 	if ar.RemoteIP == nil {
-		return nil, fmt.Errorf("unable to parse remote addr %s", req.RemoteAddr)
+		return nil, fmt.Errorf("unable to parse remote addr %s", ar.RemoteAddr)
 	}
 	user, password, haveBasicAuth := req.BasicAuth()
 	if haveBasicAuth {

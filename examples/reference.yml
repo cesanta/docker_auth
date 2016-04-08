@@ -15,6 +15,10 @@ server:  # Server settings.
   # TLS certificate and key.
   certificate: "/path/to/server.pem"
   key: "/path/to/server.key"
+  # Take client's address from the specified HTTP header instead of connection.
+  # May be useful if the server is behind a proxy or load balancer.
+  # If configured, this header must be present, requests without it will be rejected.
+  # real_ip_header: "X-Forwarded-For"
 
 token:  # Settings for the tokens.
   issuer: "Acme auth server"  # Must match issuer in the Registry config.

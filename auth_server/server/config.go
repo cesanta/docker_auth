@@ -37,12 +37,13 @@ type Config struct {
 	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
 	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
 	MongoAuth  *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
-	ACL        authz.ACL                      `yaml:"acl"`
+	ACL        authz.ACL                      `yaml:"acl,omitempty"`
 	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
 }
 
 type ServerConfig struct {
 	ListenAddress string `yaml:"addr,omitempty"`
+	RealIPHeader  string `yaml:"real_ip_header,omitempty"`
 	CertFile      string `yaml:"certificate,omitempty"`
 	KeyFile       string `yaml:"key,omitempty"`
 

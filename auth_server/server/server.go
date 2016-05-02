@@ -84,6 +84,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authenticators = append(as.authenticators, ma)
 	}
+	if c.BitbucketAuth != nil {
+ 		ba, err := authn.NewBitbucketAuth(c.BitbucketAuth)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+ 		as.authenticators = append(as.authenticators, ba)
+ 	}
 	return as, nil
 }
 

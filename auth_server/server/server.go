@@ -141,7 +141,17 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	ar := &authRequest{RemoteConnAddr: req.RemoteAddr, RemoteAddr: req.RemoteAddr}
 	if as.config.Server.RealIPHeader != "" {
 		hv := req.Header.Get(as.config.Server.RealIPHeader)
-		ar.RemoteAddr = strings.TrimSpace(strings.Split(hv, ",")[0])
+		ips := strings.Split(hv, ",")
+
+		realIPPos := as.config.Server.RealIPPos
+		if realIPPos < 0 {
+			realIPPos = len(ips) + realIPPos
+			if realIPPos < 0 {
+				realIPPos = 0
+			}
+		}
+
+		ar.RemoteAddr = strings.TrimSpace(ips[realIPPos])
 		glog.V(3).Infof("Conn ip %s, %s: %s, addr: %s", ar.RemoteAddr, as.config.Server.RealIPHeader, hv, ar.RemoteAddr)
 		if ar.RemoteAddr == "" {
 			return nil, fmt.Errorf("client address not provided")

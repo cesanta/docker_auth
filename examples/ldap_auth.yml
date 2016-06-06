@@ -1,3 +1,6 @@
+# LDAP server authentication example.
+# See reference.yml for additional options.
+
 server:
   addr: :5001
   certificate: /path/to/server.pem

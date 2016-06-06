@@ -75,10 +75,16 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 	if uSearchErr != nil {
 		return false, uSearchErr
 	}
+	if accountEntryDN == "" {
+		return false, nil // User does not exist
+	}
 	// Bind as the user to verify their password
 	if len(accountEntryDN) > 0 {
 		err := l.Bind(accountEntryDN, string(password))
 		if err != nil {
+			if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
+				return false, nil
+			}
 			return false, err
 		}
 	}
@@ -173,7 +179,9 @@ func (la *LDAPAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, att
 		return "", err
 	}
 
-	if len(sr.Entries) != 1 {
+	if len(sr.Entries) == 0 {
+		return "", nil // User does not exist
+	} else if len(sr.Entries) > 1 {
 		return "", fmt.Errorf("User does not exist or too many entries returned.")
 	}
 

@@ -79,6 +79,9 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 	if len(accountEntryDN) > 0 {
 		err := l.Bind(accountEntryDN, string(password))
 		if err != nil {
+			if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
+				return false, nil
+			}
 			return false, err
 		}
 	}

@@ -62,6 +62,9 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 	if c.Users != nil {
 		as.authenticators = append(as.authenticators, authn.NewStaticUserAuth(c.Users))
 	}
+	if c.ExtAuth != nil {
+		as.authenticators = append(as.authenticators, authn.NewExtAuth(c.ExtAuth))
+	}
 	if c.GoogleAuth != nil {
 		ga, err := authn.NewGoogleAuth(c.GoogleAuth)
 		if err != nil {

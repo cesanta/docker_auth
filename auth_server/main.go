@@ -30,6 +30,7 @@ import (
 	"github.com/facebookgo/httpdown"
 	"github.com/golang/glog"
 	fsnotify "gopkg.in/fsnotify.v1"
+	"rsc.io/letsencrypt"
 )
 
 type RestartableServer struct {
@@ -70,10 +71,36 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 		}
 		glog.Infof("Cert file: %s", c.Server.CertFile)
 		glog.Infof("Key file : %s", c.Server.KeyFile)
+
 		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(c.Server.CertFile, c.Server.KeyFile)
 		if err != nil {
 			glog.Exitf("Failed to load certificate and key: %s", err)
 		}
+	} else if c.Server.LetsEncrypt.CacheFile != "" {
+		var m letsencrypt.Manager
+		if err := m.CacheFile(c.Server.LetsEncrypt.CacheFile); err != nil {
+			glog.Exitf("Failed to load LetsEncrypt cache file: %s", err)
+		}
+		if !m.Registered() {
+			m.Register(c.Server.LetsEncrypt.Email, nil)
+		}
+		tlsConfig = &tls.Config{
+			MinVersion:               tls.VersionTLS10,
+			PreferServerCipherSuites: true,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+				tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			},
+			NextProtos:     []string{"http/1.1"},
+			GetCertificate: m.GetCertificate,
+		}
+		glog.Infof("Using LetsEncrypt with cache file %s", c.Server.LetsEncrypt.CacheFile)
 	} else {
 		glog.Warning("Running without TLS")
 	}

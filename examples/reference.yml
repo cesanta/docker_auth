@@ -103,6 +103,13 @@ mongo_auth:
   # Unlike acl_mongo we don't cache the full user set. We just query mongo for
   # an exact match for each authorization
 
+# External authentication - call an external progam to authenticate user.
+# Username and password are passed to command's stdin and exit code is examined.
+# 0 - allow, 1 - deny, 2 - no match, other - error.
+ext_auth:
+  command: "/usr/local/bin/my_auth"  # Can be a relative path too; $PATH works.
+  args: ["--flag", "--more", "--flags"]
+
 # Authorization methods. All are tried, any one returning success is sufficient.
 # At least one must be configured.
 

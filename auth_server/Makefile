@@ -40,7 +40,7 @@ docker-tag-%:
 	docker tag $(IMAGE):latest $(IMAGE):$*
 
 docker-push:
-	docker push $(IMAGE):latest $(IMAGE):$(VERSION)
+	docker push $(IMAGE):$(VERSION)
 
 docker-push-%: docker-tag-%
 	docker push $(IMAGE):$*

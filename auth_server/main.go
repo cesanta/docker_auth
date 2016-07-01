@@ -14,6 +14,8 @@
    limitations under the License.
 */
 
+//go:generate ./gen_version.py
+
 package main // import "github.com/cesanta/docker_auth/auth_server"
 
 import (
@@ -157,6 +159,8 @@ func main() {
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	glog.CopyStandardLogTo("INFO")
+
+	glog.Infof("docker_auth %s build %s", Version, BuildId)
 
 	cf := flag.Arg(0)
 	if cf == "" {

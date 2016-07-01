@@ -2,6 +2,7 @@ MAKEFLAGS += --warn-undefined-variables
 IMAGE ?= cesanta/docker_auth
 COMPRESS_BINARY ?= false
 CA_BUNDLE = /etc/ssl/certs/ca-certificates.crt
+VERSION = $(shell cat version.txt)
 
 BUILDER_IMAGE ?= centurylink/golang-builder
 BUILDER_IMAGE_EXTRA-build-cross = -cross
@@ -15,12 +16,12 @@ local: build-local
 
 update-deps:
 	go get -v -u -f github.com/tools/godep github.com/jteeuwen/go-bindata/...
+	go generate ./...
 
 godep:
 	godep save
 
 build-local: update-deps
-	go generate ./...
 	go build
 
 ca-certificates.crt:
@@ -28,11 +29,18 @@ ca-certificates.crt:
 
 docker-build:
 	docker run --rm -v $(PWD):/src -e COMPRESS_BINARY=$(COMPRESS_BINARY) $(BUILDER_OPTS-$@) $(BUILDER_IMAGE)$(BUILDER_IMAGE_EXTRA-$@) $(IMAGE)
+	@echo === Built version $(VERSION) ===
 
 build build-cross: update-deps godep ca-certificates.crt docker-build
 
+docker-tag:
+	docker tag $(IMAGE):latest $(IMAGE):$(VERSION)
+
 docker-tag-%:
-	docker tag -f $(IMAGE):latest $(IMAGE):$*
+	docker tag $(IMAGE):latest $(IMAGE):$*
+
+docker-push:
+	docker push $(IMAGE):latest $(IMAGE):$(VERSION)
 
 docker-push-%: docker-tag-%
 	docker push $(IMAGE):$*

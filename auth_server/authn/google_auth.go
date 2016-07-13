@@ -119,22 +119,6 @@ type ProfileResponse struct {
 	// There are more fields, but we only need email.
 }
 
-// Database-related stuff.
-const (
-	tokenDBPrefix = "t:" // Keys in the database are t:email@example.com
-)
-
-// TokenDBValue is stored in the database, JSON-serialized.
-type TokenDBValue struct {
-	TokenType    string    `json:"token_type,omitempty"` // Usually "Bearer"
-	AccessToken  string    `json:"access_token,omitempty"`
-	RefreshToken string    `json:"refresh_token,omitempty"`
-	ValidUntil   time.Time `json:"valid_until,omitempty"`
-	// DockerPassword is the temporary password we use to authenticate Docker users.
-	// Gneerated at the time of token creation, stored here as a BCrypt hash.
-	DockerPassword string `json:"docker_password,omitempty"`
-}
-
 type GoogleAuth struct {
 	config *GoogleAuthConfig
 	db     *TokenDB

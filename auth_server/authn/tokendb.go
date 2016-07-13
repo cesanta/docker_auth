@@ -115,6 +115,8 @@ func (db *TokenDB) RetrieveToken(user string, password PasswordString) (*TokenDB
 // DeleteToken takes a username
 // and deletes the corresponding token from the DB
 func (db *TokenDB) DeleteToken(user string) error {
-	return nil
-
+	glog.V(1).Infof("deleting token for %s", user)
+	if err := db.Delete(getDBKey(user), nil); err != nil {
+		return fmt.Errorf("failed to delete %s: %s", user, err)
+	}
 }

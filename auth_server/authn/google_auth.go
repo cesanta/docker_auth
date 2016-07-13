@@ -368,13 +368,6 @@ func (ga *GoogleAuth) validateServerToken(user string) (*TokenDBValue, error) {
 	return v, nil
 }
 
-func (ga *GoogleAuth) deleteServerToken(user string) {
-	glog.V(1).Infof("deleting token for %s", user)
-	if err := ga.db.Delete(getDBKey(user), nil); err != nil {
-		glog.Errorf("failed to delete %s: %s", user, err)
-	}
-}
-
 func (ga *GoogleAuth) doGoogleAuthCheck(rw http.ResponseWriter, token string) {
 	// First, authenticate web user.
 	ti, err := ga.getIDTokenInfo(token)
@@ -400,7 +393,10 @@ func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) 
 		http.Error(rw, fmt.Sprintf("Could not verify user token: %s", err), http.StatusBadRequest)
 		return
 	}
-	ga.deleteServerToken(ti.Email)
+	err = ga.db.DeleteToken(ti.Email)
+	if err != nil {
+		glog.Error(err)
+	}
 	fmt.Fprint(rw, "signed out")
 }
 

@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/dchest/uniuri"
 	"github.com/golang/glog"
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -73,4 +76,38 @@ func (db *TokenDB) GetValue(user string) (*TokenDBValue, error) {
 		return nil, fmt.Errorf("bad DB value", err)
 	}
 	return &dbv, nil
+}
+
+// StoreToken takes a username and token, stores them in the DB
+// and returns a password and error
+func (db *TokenDB) StoreToken(user string, v *TokenDBValue, updatePassword bool) (dp string, err error) {
+	if updatePassword {
+		dp = uniuri.New()
+		dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
+		v.DockerPassword = string(dph)
+	}
+
+	data, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	err = db.Put(getDBKey(user), data, nil)
+	if err != nil {
+		glog.Errorf("failed to set token data for %s: %s", user, err)
+	}
+	glog.V(2).Infof("Server tokens for %s: %s", user, string(data))
+	return
+}
+
+// RetrieveToken takes a username and password
+// and returns the corresponding token from the DB
+func (db *TokenDB) RetrieveToken(user, password string) (*TokenDBValue, error) {
+	return nil, nil
+}
+
+// DeleteToken takes a username
+// and deletes the corresponding token from the DB
+func (db *TokenDB) DeleteToken(user string) error {
+	return nil
+
 }

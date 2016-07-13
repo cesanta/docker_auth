@@ -27,7 +27,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dchest/uniuri"
 	"github.com/golang/glog"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -223,17 +222,13 @@ func (ga *GoogleAuth) doGoogleAuthCreateToken(rw http.ResponseWriter, code strin
 
 	glog.Infof("New Google auth token for %s (exp %d)", user, c2t.ExpiresIn)
 
-	dp := uniuri.New()
-	dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
-
 	v := &TokenDBValue{
-		TokenType:      c2t.TokenType,
-		AccessToken:    c2t.AccessToken,
-		RefreshToken:   c2t.RefreshToken,
-		ValidUntil:     time.Now().Add(time.Duration(c2t.ExpiresIn-30) * time.Second),
-		DockerPassword: string(dph),
+		TokenType:    c2t.TokenType,
+		AccessToken:  c2t.AccessToken,
+		RefreshToken: c2t.RefreshToken,
+		ValidUntil:   time.Now().Add(time.Duration(c2t.ExpiresIn-30) * time.Second),
 	}
-	err = ga.setServerToken(user, v)
+	dp, err := ga.db.StoreToken(user, v, true)
 	if err != nil {
 		glog.Errorf("Failed to record server token: %s", err)
 		http.Error(rw, "Failed to record server token: %s", http.StatusInternalServerError)
@@ -353,7 +348,7 @@ func (ga *GoogleAuth) validateServerToken(user string) (*TokenDBValue, error) {
 		v.AccessToken = rtr.AccessToken
 		v.ValidUntil = time.Now().Add(time.Duration(rtr.ExpiresIn-30) * time.Second)
 		glog.Infof("Refreshed auth token for %s (exp %d)", user, rtr.ExpiresIn)
-		err = ga.setServerToken(user, v)
+		_, err = ga.db.StoreToken(user, v, false)
 		if err != nil {
 			glog.Errorf("Failed to record refreshed token: %s", err)
 			return nil, fmt.Errorf("failed to record refreshed token: %s", err)
@@ -371,19 +366,6 @@ func (ga *GoogleAuth) validateServerToken(user string) (*TokenDBValue, error) {
 	texp := v.ValidUntil.Sub(time.Now())
 	glog.V(1).Infof("Validated Google auth token for %s (exp %d)", user, int(texp.Seconds()))
 	return v, nil
-}
-
-func (ga *GoogleAuth) setServerToken(user string, v *TokenDBValue) error {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	err = ga.db.Put(getDBKey(user), data, nil)
-	if err != nil {
-		glog.Errorf("failed to set token data for %s: %s", user, err)
-	}
-	glog.V(2).Infof("Server tokens for %s: %s", user, string(data))
-	return err
 }
 
 func (ga *GoogleAuth) deleteServerToken(user string) {

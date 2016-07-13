@@ -29,7 +29,6 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/dchest/uniuri"
 	"github.com/golang/glog"
 	"github.com/syndtr/goleveldb/leveldb"
 )
@@ -135,15 +134,11 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 
 	glog.Infof("New GitHub auth token for %s", user)
 
-	dp := uniuri.New()
-	dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
-
 	v := &TokenDBValue{
-		TokenType:      c2t.TokenType,
-		AccessToken:    c2t.AccessToken,
-		DockerPassword: string(dph),
+		TokenType:   c2t.TokenType,
+		AccessToken: c2t.AccessToken,
 	}
-	err = gha.setServerToken(user, v)
+	dp, err := gha.db.StoreToken(user, v, true)
 	if err != nil {
 		glog.Errorf("Failed to record server token: %s", err)
 		http.Error(rw, "Failed to record server token: %s", http.StatusInternalServerError)
@@ -176,19 +171,6 @@ func (gha *GitHubAuth) getTokenUser(token string) (string, error) {
 	glog.V(2).Infof("Token user info: %+v", strings.Replace(string(body), "\n", " ", -1))
 
 	return ti.Login, nil
-}
-
-func (gha *GitHubAuth) setServerToken(user string, v *TokenDBValue) error {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	err = gha.db.Put(getDBKey(user), data, nil)
-	if err != nil {
-		glog.Errorf("failed to set token data for %s: %s", user, err)
-	}
-	glog.V(2).Infof("Server tokens for %s: %s", user, string(data))
-	return err
 }
 
 func (gha *GitHubAuth) getDBValue(user string) (*TokenDBValue, error) {

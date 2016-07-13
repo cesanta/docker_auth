@@ -405,12 +405,9 @@ func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) 
 }
 
 func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	dbv, err := ga.db.GetValue(user)
+	dbv, err := ga.db.RetrieveToken(user, password)
 	if err != nil {
 		return false, err
-	}
-	if dbv == nil {
-		return false, NoMatch
 	}
 	if time.Now().After(dbv.ValidUntil) {
 		dbv, err = ga.validateServerToken(user)

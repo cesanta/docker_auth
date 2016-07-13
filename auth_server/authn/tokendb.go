@@ -101,8 +101,15 @@ func (db *TokenDB) StoreToken(user string, v *TokenDBValue, updatePassword bool)
 
 // RetrieveToken takes a username and password
 // and returns the corresponding token from the DB
-func (db *TokenDB) RetrieveToken(user, password string) (*TokenDBValue, error) {
-	return nil, nil
+func (db *TokenDB) RetrieveToken(user string, password PasswordString) (*TokenDBValue, error) {
+	dbv, err := db.GetValue(user)
+	if err != nil {
+		return nil, err
+	}
+	if dbv == nil {
+		return nil, NoMatch
+	}
+	return dbv, nil
 }
 
 // DeleteToken takes a username

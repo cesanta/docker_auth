@@ -173,12 +173,9 @@ func (gha *GitHubAuth) getTokenUser(token string) (string, error) {
 }
 
 func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	dbv, err := gha.db.GetValue(user)
+	dbv, err := gha.db.RetrieveToken(user, password)
 	if err != nil {
 		return false, err
-	}
-	if dbv == nil {
-		return false, NoMatch
 	}
 	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
 		return false, nil

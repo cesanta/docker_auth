@@ -29,7 +29,6 @@ import (
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/glog"
-	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -138,13 +137,13 @@ type TokenDBValue struct {
 
 type GoogleAuth struct {
 	config *GoogleAuthConfig
-	db     *leveldb.DB
+	db     *TokenDB
 	client *http.Client
 	tmpl   *template.Template
 }
 
 func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
-	db, err := leveldb.OpenFile(c.TokenDB, nil)
+	db, err := NewTokenDB(c.TokenDB)
 	if err != nil {
 		return nil, err
 	}
@@ -307,10 +306,6 @@ func (ga *GoogleAuth) checkDomain(email string) error {
 	return nil
 }
 
-func getDBKey(user string) []byte {
-	return []byte(fmt.Sprintf("%s%s", tokenDBPrefix, user))
-}
-
 // https://developers.google.com/identity/protocols/OAuth2WebServer#refresh
 func (ga *GoogleAuth) refreshAccessToken(refreshToken string) (rtr RefreshTokenResponse, err error) {
 	resp, err := ga.client.PostForm(
@@ -356,26 +351,8 @@ func (ga *GoogleAuth) validateAccessToken(toktype, token string) (user string, e
 	return pr.Email, nil
 }
 
-func (ga *GoogleAuth) getDBValue(user string) (*TokenDBValue, error) {
-	valueStr, err := ga.db.Get(getDBKey(user), nil)
-	switch {
-	case err == leveldb.ErrNotFound:
-		return nil, nil
-	case err != nil:
-		glog.Errorf("error accessing token db: %s", err)
-		return nil, fmt.Errorf("error accessing token db: %s", err)
-	}
-	var dbv TokenDBValue
-	err = json.Unmarshal(valueStr, &dbv)
-	if err != nil {
-		glog.Errorf("bad DB value for %q (%q): %s", user, string(valueStr), err)
-		return nil, fmt.Errorf("bad DB value", err)
-	}
-	return &dbv, nil
-}
-
 func (ga *GoogleAuth) validateServerToken(user string) (*TokenDBValue, error) {
-	v, err := ga.getDBValue(user)
+	v, err := ga.db.GetValue(user)
 	if err != nil || v == nil {
 		if err == nil {
 			err = errors.New("no db value, please sign out and sign in again.")
@@ -462,7 +439,7 @@ func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) 
 }
 
 func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	dbv, err := ga.getDBValue(user)
+	dbv, err := ga.db.GetValue(user)
 	if err != nil {
 		return false, err
 	}

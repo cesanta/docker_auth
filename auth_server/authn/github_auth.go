@@ -55,13 +55,13 @@ type GitHubTokenUser struct {
 
 type GitHubAuth struct {
 	config *GitHubAuthConfig
-	db     *leveldb.DB
+	db     *TokenDB
 	client *http.Client
 	tmpl   *template.Template
 }
 
 func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
-	db, err := leveldb.OpenFile(c.TokenDB, nil)
+	db, err := NewTokenDB(c.TokenDB)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func (gha *GitHubAuth) getDBValue(user string) (*TokenDBValue, error) {
 }
 
 func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	dbv, err := gha.getDBValue(user)
+	dbv, err := gha.db.GetValue(user)
 	if err != nil {
 		return false, err
 	}

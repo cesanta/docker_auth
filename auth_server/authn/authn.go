@@ -24,6 +24,7 @@ type Authenticator interface {
 	// Error should only be reported if request could not be serviced, not if it should be denied.
 	// A special NoMatch error is returned if the authorizer could not reach a decision,
 	// e.g. none of the rules matched.
+	// Another special WrongPass error is returned if the authorizer failed to authenticate.
 	// Implementations must be goroutine-safe.
 	Authenticate(user string, password PasswordString) (bool, error)
 
@@ -37,6 +38,7 @@ type Authenticator interface {
 }
 
 var NoMatch = errors.New("did not match any rule")
+var WrongPass = errors.New("wrong password for user")
 
 //go:generate go-bindata -pkg authn -modtime 1 -mode 420 data/
 

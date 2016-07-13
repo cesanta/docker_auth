@@ -27,10 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dchest/uniuri"
 	"github.com/golang/glog"
-	"github.com/syndtr/goleveldb/leveldb"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type GoogleAuthConfig struct {
@@ -120,31 +117,15 @@ type ProfileResponse struct {
 	// There are more fields, but we only need email.
 }
 
-// Database-related stuff.
-const (
-	tokenDBPrefix = "t:" // Keys in the database are t:email@example.com
-)
-
-// TokenDBValue is stored in the database, JSON-serialized.
-type TokenDBValue struct {
-	TokenType    string    `json:"token_type,omitempty"` // Usually "Bearer"
-	AccessToken  string    `json:"access_token,omitempty"`
-	RefreshToken string    `json:"refresh_token,omitempty"`
-	ValidUntil   time.Time `json:"valid_until,omitempty"`
-	// DockerPassword is the temporary password we use to authenticate Docker users.
-	// Gneerated at the time of token creation, stored here as a BCrypt hash.
-	DockerPassword string `json:"docker_password,omitempty"`
-}
-
 type GoogleAuth struct {
 	config *GoogleAuthConfig
-	db     *leveldb.DB
+	db     TokenDB
 	client *http.Client
 	tmpl   *template.Template
 }
 
 func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
-	db, err := leveldb.OpenFile(c.TokenDB, nil)
+	db, err := NewTokenDB(c.TokenDB)
 	if err != nil {
 		return nil, err
 	}
@@ -240,17 +221,13 @@ func (ga *GoogleAuth) doGoogleAuthCreateToken(rw http.ResponseWriter, code strin
 
 	glog.Infof("New Google auth token for %s (exp %d)", user, c2t.ExpiresIn)
 
-	dp := uniuri.New()
-	dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
-
 	v := &TokenDBValue{
-		TokenType:      c2t.TokenType,
-		AccessToken:    c2t.AccessToken,
-		RefreshToken:   c2t.RefreshToken,
-		ValidUntil:     time.Now().Add(time.Duration(c2t.ExpiresIn-30) * time.Second),
-		DockerPassword: string(dph),
+		TokenType:    c2t.TokenType,
+		AccessToken:  c2t.AccessToken,
+		RefreshToken: c2t.RefreshToken,
+		ValidUntil:   time.Now().Add(time.Duration(c2t.ExpiresIn-30) * time.Second),
 	}
-	err = ga.setServerToken(user, v)
+	dp, err := ga.db.StoreToken(user, v, true)
 	if err != nil {
 		glog.Errorf("Failed to record server token: %s", err)
 		http.Error(rw, "Failed to record server token: %s", http.StatusInternalServerError)
@@ -307,10 +284,6 @@ func (ga *GoogleAuth) checkDomain(email string) error {
 	return nil
 }
 
-func getDBKey(user string) []byte {
-	return []byte(fmt.Sprintf("%s%s", tokenDBPrefix, user))
-}
-
 // https://developers.google.com/identity/protocols/OAuth2WebServer#refresh
 func (ga *GoogleAuth) refreshAccessToken(refreshToken string) (rtr RefreshTokenResponse, err error) {
 	resp, err := ga.client.PostForm(
@@ -356,26 +329,8 @@ func (ga *GoogleAuth) validateAccessToken(toktype, token string) (user string, e
 	return pr.Email, nil
 }
 
-func (ga *GoogleAuth) getDBValue(user string) (*TokenDBValue, error) {
-	valueStr, err := ga.db.Get(getDBKey(user), nil)
-	switch {
-	case err == leveldb.ErrNotFound:
-		return nil, nil
-	case err != nil:
-		glog.Errorf("error accessing token db: %s", err)
-		return nil, fmt.Errorf("error accessing token db: %s", err)
-	}
-	var dbv TokenDBValue
-	err = json.Unmarshal(valueStr, &dbv)
-	if err != nil {
-		glog.Errorf("bad DB value for %q (%q): %s", user, string(valueStr), err)
-		return nil, fmt.Errorf("bad DB value", err)
-	}
-	return &dbv, nil
-}
-
 func (ga *GoogleAuth) validateServerToken(user string) (*TokenDBValue, error) {
-	v, err := ga.getDBValue(user)
+	v, err := ga.db.GetValue(user)
 	if err != nil || v == nil {
 		if err == nil {
 			err = errors.New("no db value, please sign out and sign in again.")
@@ -392,7 +347,7 @@ func (ga *GoogleAuth) validateServerToken(user string) (*TokenDBValue, error) {
 		v.AccessToken = rtr.AccessToken
 		v.ValidUntil = time.Now().Add(time.Duration(rtr.ExpiresIn-30) * time.Second)
 		glog.Infof("Refreshed auth token for %s (exp %d)", user, rtr.ExpiresIn)
-		err = ga.setServerToken(user, v)
+		_, err = ga.db.StoreToken(user, v, false)
 		if err != nil {
 			glog.Errorf("Failed to record refreshed token: %s", err)
 			return nil, fmt.Errorf("failed to record refreshed token: %s", err)
@@ -410,26 +365,6 @@ func (ga *GoogleAuth) validateServerToken(user string) (*TokenDBValue, error) {
 	texp := v.ValidUntil.Sub(time.Now())
 	glog.V(1).Infof("Validated Google auth token for %s (exp %d)", user, int(texp.Seconds()))
 	return v, nil
-}
-
-func (ga *GoogleAuth) setServerToken(user string, v *TokenDBValue) error {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	err = ga.db.Put(getDBKey(user), data, nil)
-	if err != nil {
-		glog.Errorf("failed to set token data for %s: %s", user, err)
-	}
-	glog.V(2).Infof("Server tokens for %s: %s", user, string(data))
-	return err
-}
-
-func (ga *GoogleAuth) deleteServerToken(user string) {
-	glog.V(1).Infof("deleting token for %s", user)
-	if err := ga.db.Delete(getDBKey(user), nil); err != nil {
-		glog.Errorf("failed to delete %s: %s", user, err)
-	}
 }
 
 func (ga *GoogleAuth) doGoogleAuthCheck(rw http.ResponseWriter, token string) {
@@ -457,26 +392,23 @@ func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) 
 		http.Error(rw, fmt.Sprintf("Could not verify user token: %s", err), http.StatusBadRequest)
 		return
 	}
-	ga.deleteServerToken(ti.Email)
+	err = ga.db.DeleteToken(ti.Email)
+	if err != nil {
+		glog.Error(err)
+	}
 	fmt.Fprint(rw, "signed out")
 }
 
 func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	dbv, err := ga.getDBValue(user)
+	dbv, err := ga.db.RetrieveToken(user, password)
 	if err != nil {
 		return false, err
-	}
-	if dbv == nil {
-		return false, NoMatch
 	}
 	if time.Now().After(dbv.ValidUntil) {
 		dbv, err = ga.validateServerToken(user)
 		if err != nil {
 			return false, err
 		}
-	}
-	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return false, nil
 	}
 	return true, nil
 }

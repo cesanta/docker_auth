@@ -27,11 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
-	"github.com/dchest/uniuri"
 	"github.com/golang/glog"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type GitHubAuthConfig struct {
@@ -57,13 +53,13 @@ type GitHubTokenUser struct {
 
 type GitHubAuth struct {
 	config *GitHubAuthConfig
-	db     *leveldb.DB
+	db     TokenDB
 	client *http.Client
 	tmpl   *template.Template
 }
 
 func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
-	db, err := leveldb.OpenFile(c.TokenDB, nil)
+	db, err := NewTokenDB(c.TokenDB)
 	if err != nil {
 		return nil, err
 	}
@@ -137,15 +133,12 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 
 	glog.Infof("New GitHub auth token for %s", user)
 
-	dp := uniuri.New()
-	dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
-
 	v := &TokenDBValue{
 		TokenType:   c2t.TokenType,
 		AccessToken: c2t.AccessToken,
 		ValidUntil:  time.Now().Add(time.Duration(gha.config.ExpireAfter) * time.Second),
 	}
-	err = gha.setServerToken(user, v)
+	dp, err := gha.db.StoreToken(user, v, true)
 	if err != nil {
 		glog.Errorf("Failed to record server token: %s", err)
 		http.Error(rw, "Failed to record server token: %s", http.StatusInternalServerError)
@@ -180,47 +173,10 @@ func (gha *GitHubAuth) validateAccessToken(token string) (string, error) {
 	return ti.Login, nil
 }
 
-func (gha *GitHubAuth) setServerToken(user string, v *TokenDBValue) error {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	err = gha.db.Put(getDBKey(user), data, nil)
-	if err != nil {
-		glog.Errorf("failed to set token data for %s: %s", user, err)
-	}
-	glog.V(2).Infof("Server tokens for %s: %s", user, string(data))
-	return err
-}
-
-func (gha *GitHubAuth) getDBValue(user string) (*TokenDBValue, error) {
-	valueStr, err := gha.db.Get(getDBKey(user), nil)
-	switch {
-	case err == leveldb.ErrNotFound:
-		return nil, nil
-	case err != nil:
-		glog.Errorf("error accessing token db: %s", err)
-		return nil, fmt.Errorf("error accessing token db: %s", err)
-	}
-	var dbv TokenDBValue
-	err = json.Unmarshal(valueStr, &dbv)
-	if err != nil {
-		glog.Errorf("bad DB value for %q (%q): %s", user, string(valueStr), err)
-		return nil, fmt.Errorf("bad DB value", err)
-	}
-	return &dbv, nil
-}
-
 func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	dbv, err := gha.getDBValue(user)
+	_, err := gha.db.RetrieveToken(user, password)
 	if err != nil {
 		return false, err
-	}
-	if dbv == nil {
-		return false, NoMatch
-	}
-	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return false, nil
 	}
 	return true, nil
 }

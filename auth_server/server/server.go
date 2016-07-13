@@ -38,6 +38,7 @@ type AuthServer struct {
 	authenticators []authn.Authenticator
 	authorizers    []authz.Authorizer
 	ga             *authn.GoogleAuth
+	gha            *authn.GitHubAuth
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
@@ -86,6 +87,14 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 			return nil, err
 		}
 		as.authenticators = append(as.authenticators, ma)
+	}
+	if c.GitHubAuth != nil {
+		gha, err := authn.NewGitHubAuth(c.GitHubAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, gha)
+		as.gha = gha
 	}
 	return as, nil
 }
@@ -297,6 +306,8 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		as.doAuth(rw, req)
 	case req.URL.Path == "/google_auth" && as.ga != nil:
 		as.ga.DoGoogleAuth(rw, req)
+	case req.URL.Path == "/github_auth" && as.gha != nil:
+		as.gha.DoGitHubAuth(rw, req)
 	default:
 		http.Error(rw, "Not found", http.StatusNotFound)
 		return
@@ -308,7 +319,10 @@ func (as *AuthServer) doIndex(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", "text-html; charset=utf-8")
 	fmt.Fprintf(rw, "<h1>%s</h1>\n", as.config.Token.Issuer)
 	if as.ga != nil {
-		fmt.Fprint(rw, `<a href="/google_auth">Login with Google account</a>`)
+		fmt.Fprint(rw, `<p><a href="/google_auth">Login with Google account</a></p>`)
+	}
+	if as.gha != nil {
+		fmt.Fprint(rw, `<p><a href="/github_auth">Login with GitHub account</a></p>`)
 	}
 }
 

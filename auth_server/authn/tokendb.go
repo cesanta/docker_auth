@@ -44,7 +44,7 @@ type TokenDBValue struct {
 	RefreshToken string    `json:"refresh_token,omitempty"`
 	ValidUntil   time.Time `json:"valid_until,omitempty"`
 	// DockerPassword is the temporary password we use to authenticate Docker users.
-	// Gneerated at the time of token creation, stored here as a BCrypt hash.
+	// Generated at the time of token creation, stored here as a BCrypt hash.
 	DockerPassword string `json:"docker_password,omitempty"`
 }
 

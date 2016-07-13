@@ -27,8 +27,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/golang/glog"
 )
 
@@ -176,9 +174,6 @@ func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool,
 	dbv, err := gha.db.RetrieveToken(user, password)
 	if err != nil {
 		return false, err
-	}
-	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return false, nil
 	}
 	return true, nil
 }

@@ -122,4 +122,5 @@ func (db *TokenDB) DeleteToken(user string) error {
 	if err := db.Delete(getDBKey(user), nil); err != nil {
 		return fmt.Errorf("failed to delete %s: %s", user, err)
 	}
+	return nil
 }

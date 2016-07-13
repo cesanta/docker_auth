@@ -35,6 +35,7 @@ type Config struct {
 	Token      TokenConfig                    `yaml:"token"`
 	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
 	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	GitHubAuth *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
 	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
 	MongoAuth  *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
 	ExtAuth    *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
@@ -73,7 +74,7 @@ func validate(c *Config) error {
 	if c.Token.Expiration <= 0 {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
-	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil {
+	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if c.MongoAuth != nil {
@@ -94,6 +95,25 @@ func validate(c *Config) error {
 		}
 		if gac.HTTPTimeout <= 0 {
 			gac.HTTPTimeout = 10
+		}
+	}
+	if ghac := c.GitHubAuth; ghac != nil {
+		if ghac.ClientSecretFile != "" {
+			contents, err := ioutil.ReadFile(ghac.ClientSecretFile)
+			if err != nil {
+				return fmt.Errorf("could not read %s: %s", ghac.ClientSecretFile, err)
+			}
+			ghac.ClientSecret = strings.TrimSpace(string(contents))
+		}
+		if ghac.ClientId == "" || ghac.ClientSecret == "" || ghac.TokenDB == "" {
+			return errors.New("github_auth.{client_id,client_secret,token_db} are required.")
+		}
+		if ghac.HTTPTimeout <= 0 {
+			ghac.HTTPTimeout = 10
+		}
+		if ghac.ExpireAfter <= 0 {
+			// Token expires after 1 hour by default
+			ghac.ExpireAfter = 3600
 		}
 	}
 	if c.ExtAuth != nil {

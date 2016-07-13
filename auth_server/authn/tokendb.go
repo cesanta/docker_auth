@@ -28,14 +28,14 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
+const (
+	tokenDBPrefix = "t:" // Keys in the database are t:email@example.com
+)
+
 // TokenDB stores tokens using LevelDB
 type TokenDB struct {
 	*leveldb.DB
 }
-
-const (
-	tokenDBPrefix = "t:" // Keys in the database are t:email@example.com
-)
 
 // TokenDBValue is stored in the database, JSON-serialized.
 type TokenDBValue struct {

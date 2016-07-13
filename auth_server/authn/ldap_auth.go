@@ -76,7 +76,7 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 		return false, uSearchErr
 	}
 	if accountEntryDN == "" {
-		return false, nil // User does not exist
+		return false, NoMatch // User does not exist
 	}
 	// Bind as the user to verify their password
 	if len(accountEntryDN) > 0 {

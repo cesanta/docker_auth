@@ -37,6 +37,7 @@ type Authenticator interface {
 }
 
 var NoMatch = errors.New("did not match any rule")
+var WrongPass = errors.New("wrong password for user")
 
 //go:generate go-bindata -pkg authn -modtime 1 -mode 420 data/
 

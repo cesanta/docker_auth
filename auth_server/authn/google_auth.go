@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type GoogleAuthConfig struct {
@@ -410,9 +409,6 @@ func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, 
 		if err != nil {
 			return false, err
 		}
-	}
-	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return false, nil
 	}
 	return true, nil
 }

@@ -109,6 +109,9 @@ func (db *TokenDB) RetrieveToken(user string, password PasswordString) (*TokenDB
 	if dbv == nil {
 		return nil, NoMatch
 	}
+	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
+		return nil, WrongPass
+	}
 	return dbv, nil
 }
 

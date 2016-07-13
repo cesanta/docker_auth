@@ -171,7 +171,7 @@ func (gha *GitHubAuth) getTokenUser(token string) (string, error) {
 }
 
 func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	dbv, err := gha.db.RetrieveToken(user, password)
+	_, err := gha.db.RetrieveToken(user, password)
 	if err != nil {
 		return false, err
 	}

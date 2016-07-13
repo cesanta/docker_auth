@@ -61,6 +61,27 @@ google_auth:
   # How long to wait when talking to Google servers. Optional.
   http_timeout: 10
 
+# GitHub authentication.
+# ==! NB: DO NOT ENTER YOUR GITHUB PASSWORD AT "docker login". IT WILL NOT WORK.
+# Instead, Auth server maintains a database of GitHub authentication tokens.
+# Go to the server's port with you browser and follow the "Login with GitHub account" link.
+# Once signed in, you will get a throw-away password which you can use for Docker login.
+google_auth:
+  # client_id and client_secret for API access. Required.
+  # You can register a new application here: https://github.com/settings/developers
+  # NB: Make sure JavaScript origins are configured correcly.
+  client_id: "1223123456"
+  # Either client_secret or client_secret_file is required. Use client_secret_file if you don't
+  # want to have sensitive information checked in.
+  # client_secret: "verysecret"
+  client_secret_file: "/path/to/client_secret.txt"
+  # Where to store server tokens. Required.
+  token_db: "/somewhere/to/put/github_tokens.ldb"
+  # How long to wait when talking to GitHub servers. Optional.
+  http_timeout: "10s"
+  # How long to wait before revalidating the GitHub token. Optional.
+  revalidate_after: "1h"
+
 # LDAP authentication.
 # Authentication is performed by first binding to the server, looking up the user entry
 # by using the specified filter, and then re-binding using the matched DN and the password provided.

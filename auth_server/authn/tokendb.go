@@ -48,7 +48,7 @@ type TokenDBValue struct {
 	DockerPassword string `json:"docker_password,omitempty"`
 }
 
-// NewTokenDB
+// NewTokenDB returns a new TokenDB structure
 func NewTokenDB(file string) (*TokenDB, error) {
 	db, err := leveldb.OpenFile(file, nil)
 	return &TokenDB{
@@ -56,10 +56,7 @@ func NewTokenDB(file string) (*TokenDB, error) {
 	}, err
 }
 
-func getDBKey(user string) []byte {
-	return []byte(fmt.Sprintf("%s%s", tokenDBPrefix, user))
-}
-
+// GetValue takes a username returns the corresponding token
 func (db *TokenDB) GetValue(user string) (*TokenDBValue, error) {
 	valueStr, err := db.Get(getDBKey(user), nil)
 	switch {
@@ -123,4 +120,8 @@ func (db *TokenDB) DeleteToken(user string) error {
 		return fmt.Errorf("failed to delete %s: %s", user, err)
 	}
 	return nil
+}
+
+func getDBKey(user string) []byte {
+	return []byte(fmt.Sprintf("%s%s", tokenDBPrefix, user))
 }

@@ -30,7 +30,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/golang/glog"
-	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type GitHubAuthConfig struct {
@@ -171,24 +170,6 @@ func (gha *GitHubAuth) getTokenUser(token string) (string, error) {
 	glog.V(2).Infof("Token user info: %+v", strings.Replace(string(body), "\n", " ", -1))
 
 	return ti.Login, nil
-}
-
-func (gha *GitHubAuth) getDBValue(user string) (*TokenDBValue, error) {
-	valueStr, err := gha.db.Get(getDBKey(user), nil)
-	switch {
-	case err == leveldb.ErrNotFound:
-		return nil, nil
-	case err != nil:
-		glog.Errorf("error accessing token db: %s", err)
-		return nil, fmt.Errorf("error accessing token db: %s", err)
-	}
-	var dbv TokenDBValue
-	err = json.Unmarshal(valueStr, &dbv)
-	if err != nil {
-		glog.Errorf("bad DB value for %q (%q): %s", user, string(valueStr), err)
-		return nil, fmt.Errorf("bad DB value", err)
-	}
-	return &dbv, nil
 }
 
 func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, error) {

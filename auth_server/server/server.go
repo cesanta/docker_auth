@@ -190,7 +190,7 @@ func (as *AuthServer) Authenticate(ar *authRequest) (bool, error) {
 			if err == authn.NoMatch {
 				continue
 			} else if err == authn.WrongPass {
-				glog.Warningf("Failed authenticateion with %s: %s", err)
+				glog.Warningf("Failed authentication with %s: %s", err)
 				return false, nil
 			}
 			err = fmt.Errorf("authn #%d returned error: %s", i+1, err)

@@ -18,6 +18,7 @@ package authn
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -32,11 +33,13 @@ const (
 	tokenDBPrefix = "t:" // Keys in the database are t:email@example.com
 )
 
+var ExpiredToken = errors.New("expired token")
+
 // TokenDB stores tokens using LevelDB
 type TokenDB interface {
 	GetValue(string) (*TokenDBValue, error)
 	StoreToken(string, *TokenDBValue, bool) (string, error)
-	RetrieveToken(string, PasswordString) (*TokenDBValue, error)
+	ValidateToken(string, PasswordString) error
 	DeleteToken(string) error
 
 	// Composed from leveldb.DB
@@ -107,20 +110,23 @@ func (db *TokenDBImpl) StoreToken(user string, v *TokenDBValue, updatePassword b
 	return
 }
 
-// RetrieveToken takes a username and password
-// and returns the corresponding token from the DB
-func (db *TokenDBImpl) RetrieveToken(user string, password PasswordString) (*TokenDBValue, error) {
+// ValidateTOken takes a username and password
+// and returns an error
+func (db *TokenDBImpl) ValidateToken(user string, password PasswordString) error {
 	dbv, err := db.GetValue(user)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if dbv == nil {
-		return nil, NoMatch
+		return NoMatch
 	}
 	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return nil, WrongPass
+		return WrongPass
 	}
-	return dbv, nil
+	if time.Now().After(dbv.ValidUntil) {
+		return ExpiredToken
+	}
+	return nil
 }
 
 // DeleteToken takes a username

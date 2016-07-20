@@ -198,15 +198,14 @@ func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
 }
 
 func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	dbv, err := gha.db.RetrieveToken(user, password)
-	if err != nil {
-		return false, err
-	}
-	if time.Now().After(dbv.ValidUntil) {
-		dbv, err = gha.validateServerToken(user)
+	err := gha.db.ValidateToken(user, password)
+	if err == ExpiredToken {
+		_, err = gha.validateServerToken(user)
 		if err != nil {
 			return false, err
 		}
+	} else if err != nil {
+		return false, err
 	}
 	return true, nil
 }

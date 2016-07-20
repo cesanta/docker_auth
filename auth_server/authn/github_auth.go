@@ -124,7 +124,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		return
 	}
 
-	user, err := gha.validateToken(c2t.AccessToken)
+	user, err := gha.validateAccessToken(c2t.AccessToken)
 	if err != nil {
 		glog.Errorf("Newly-acquired token is invalid: %+v %s", c2t, err)
 		http.Error(rw, "Newly-acquired token is invalid", http.StatusInternalServerError)
@@ -148,7 +148,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 	fmt.Fprintf(rw, `Server logged in; now run "docker login", use %s as login and %s as password.`, user, dp)
 }
 
-func (gha *GitHubAuth) validateToken(token string) (string, error) {
+func (gha *GitHubAuth) validateAccessToken(token string) (string, error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
 	if err != nil {
 		return "", fmt.Errorf("could not create request to get information for token %s: %s", token, err)

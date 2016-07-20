@@ -37,6 +37,7 @@ type GitHubAuthConfig struct {
 	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
 	TokenDB          string `yaml:"token_db,omitempty"`
 	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
+	ExpireAfter      int    `yaml:"expire_after,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -135,6 +136,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 	v := &TokenDBValue{
 		TokenType:   c2t.TokenType,
 		AccessToken: c2t.AccessToken,
+		ValidUntil:  time.Now().Add(time.Duration(gha.config.ExpireAfter) * time.Second),
 	}
 	dp, err := gha.db.StoreToken(user, v, true)
 	if err != nil {

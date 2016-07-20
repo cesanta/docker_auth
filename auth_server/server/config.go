@@ -111,6 +111,10 @@ func validate(c *Config) error {
 		if ghac.HTTPTimeout <= 0 {
 			ghac.HTTPTimeout = 10
 		}
+		if ghac.ExpireAfter <= 0 {
+			// Token expires after 1 hour by default
+			ghac.ExpireAfter = 3600
+		}
 	}
 	if c.ExtAuth != nil {
 		if err := c.ExtAuth.Validate(); err != nil {

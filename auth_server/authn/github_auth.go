@@ -19,6 +19,7 @@ package authn
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -173,10 +174,39 @@ func (gha *GitHubAuth) validateAccessToken(token string) (string, error) {
 	return ti.Login, nil
 }
 
+func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
+	v, err := gha.db.GetValue(user)
+	if err != nil || v == nil {
+		if err == nil {
+			err = errors.New("no db value, please sign out and sign in again.")
+		}
+		return nil, err
+	}
+	tokenUser, err := gha.validateAccessToken(v.AccessToken)
+	if err != nil {
+		glog.Warningf("Token for %q failed validation: %s", user, err)
+		return nil, fmt.Errorf("server token invalid: %s", err)
+	}
+	if tokenUser != user {
+		glog.Errorf("token for wrong user: expected %s, found %s", user, tokenUser)
+		return nil, fmt.Errorf("found token for wrong user")
+	}
+	v.ValidUntil = time.Now().Add(time.Duration(gha.config.ExpireAfter) * time.Second)
+	texp := v.ValidUntil.Sub(time.Now())
+	glog.V(1).Infof("Validated GitHub auth token for %s (exp %d)", user, int(texp.Seconds()))
+	return v, nil
+}
+
 func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, error) {
-	_, err := gha.db.RetrieveToken(user, password)
+	dbv, err := gha.db.RetrieveToken(user, password)
 	if err != nil {
 		return false, err
+	}
+	if time.Now().After(dbv.ValidUntil) {
+		dbv, err = gha.validateServerToken(user)
+		if err != nil {
+			return false, err
+		}
 	}
 	return true, nil
 }

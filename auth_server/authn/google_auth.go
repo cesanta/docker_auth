@@ -119,7 +119,7 @@ type ProfileResponse struct {
 
 type GoogleAuth struct {
 	config *GoogleAuthConfig
-	db     *TokenDB
+	db     TokenDB
 	client *http.Client
 	tmpl   *template.Template
 }

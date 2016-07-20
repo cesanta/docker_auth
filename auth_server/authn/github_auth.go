@@ -53,7 +53,7 @@ type GitHubTokenUser struct {
 
 type GitHubAuth struct {
 	config *GitHubAuthConfig
-	db     *TokenDB
+	db     TokenDB
 	client *http.Client
 	tmpl   *template.Template
 }

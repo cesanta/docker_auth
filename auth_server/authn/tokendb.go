@@ -33,7 +33,18 @@ const (
 )
 
 // TokenDB stores tokens using LevelDB
-type TokenDB struct {
+type TokenDB interface {
+	GetValue(string) (*TokenDBValue, error)
+	StoreToken(string, *TokenDBValue, bool) (string, error)
+	RetrieveToken(string, PasswordString) (*TokenDBValue, error)
+	DeleteToken(string) error
+
+	// Composed from leveldb.DB
+	Close() error
+}
+
+// TokenDB stores tokens using LevelDB
+type TokenDBImpl struct {
 	*leveldb.DB
 }
 
@@ -49,15 +60,15 @@ type TokenDBValue struct {
 }
 
 // NewTokenDB returns a new TokenDB structure
-func NewTokenDB(file string) (*TokenDB, error) {
+func NewTokenDB(file string) (TokenDB, error) {
 	db, err := leveldb.OpenFile(file, nil)
-	return &TokenDB{
+	return &TokenDBImpl{
 		DB: db,
 	}, err
 }
 
 // GetValue takes a username returns the corresponding token
-func (db *TokenDB) GetValue(user string) (*TokenDBValue, error) {
+func (db *TokenDBImpl) GetValue(user string) (*TokenDBValue, error) {
 	valueStr, err := db.Get(getDBKey(user), nil)
 	switch {
 	case err == leveldb.ErrNotFound:
@@ -77,7 +88,7 @@ func (db *TokenDB) GetValue(user string) (*TokenDBValue, error) {
 
 // StoreToken takes a username and token, stores them in the DB
 // and returns a password and error
-func (db *TokenDB) StoreToken(user string, v *TokenDBValue, updatePassword bool) (dp string, err error) {
+func (db *TokenDBImpl) StoreToken(user string, v *TokenDBValue, updatePassword bool) (dp string, err error) {
 	if updatePassword {
 		dp = uniuri.New()
 		dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
@@ -98,7 +109,7 @@ func (db *TokenDB) StoreToken(user string, v *TokenDBValue, updatePassword bool)
 
 // RetrieveToken takes a username and password
 // and returns the corresponding token from the DB
-func (db *TokenDB) RetrieveToken(user string, password PasswordString) (*TokenDBValue, error) {
+func (db *TokenDBImpl) RetrieveToken(user string, password PasswordString) (*TokenDBValue, error) {
 	dbv, err := db.GetValue(user)
 	if err != nil {
 		return nil, err
@@ -114,7 +125,7 @@ func (db *TokenDB) RetrieveToken(user string, password PasswordString) (*TokenDB
 
 // DeleteToken takes a username
 // and deletes the corresponding token from the DB
-func (db *TokenDB) DeleteToken(user string) error {
+func (db *TokenDBImpl) DeleteToken(user string) error {
 	glog.V(1).Infof("deleting token for %s", user)
 	if err := db.Delete(getDBKey(user), nil); err != nil {
 		return fmt.Errorf("failed to delete %s: %s", user, err)

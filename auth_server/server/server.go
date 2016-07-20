@@ -357,7 +357,7 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	} else {
-		// Authenticaltion-only request ("docker login"), pass through.
+		// Authentication-only request ("docker login"), pass through.
 	}
 	token, err := as.CreateToken(ar, ares)
 	if err != nil {

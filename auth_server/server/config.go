@@ -97,6 +97,21 @@ func validate(c *Config) error {
 			gac.HTTPTimeout = 10
 		}
 	}
+	if ghac := c.GitHubAuth; ghac != nil {
+		if ghac.ClientSecretFile != "" {
+			contents, err := ioutil.ReadFile(ghac.ClientSecretFile)
+			if err != nil {
+				return fmt.Errorf("could not read %s: %s", ghac.ClientSecretFile, err)
+			}
+			ghac.ClientSecret = strings.TrimSpace(string(contents))
+		}
+		if ghac.ClientId == "" || ghac.ClientSecret == "" || ghac.TokenDB == "" {
+			return errors.New("github_auth.{client_id,client_secret,token_db} are required.")
+		}
+		if ghac.HTTPTimeout <= 0 {
+			ghac.HTTPTimeout = 10
+		}
+	}
 	if c.ExtAuth != nil {
 		if err := c.ExtAuth.Validate(); err != nil {
 			return fmt.Errorf("bad ext_auth config: %s", err)

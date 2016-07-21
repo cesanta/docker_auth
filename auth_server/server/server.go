@@ -74,6 +74,14 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		as.authenticators = append(as.authenticators, ga)
 		as.ga = ga
 	}
+	if c.GitHubAuth != nil {
+		gha, err := authn.NewGitHubAuth(c.GitHubAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, gha)
+		as.gha = gha
+	}
 	if c.LDAPAuth != nil {
 		la, err := authn.NewLDAPAuth(c.LDAPAuth)
 		if err != nil {
@@ -87,14 +95,6 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 			return nil, err
 		}
 		as.authenticators = append(as.authenticators, ma)
-	}
-	if c.GitHubAuth != nil {
-		gha, err := authn.NewGitHubAuth(c.GitHubAuth)
-		if err != nil {
-			return nil, err
-		}
-		as.authenticators = append(as.authenticators, gha)
-		as.gha = gha
 	}
 	return as, nil
 }

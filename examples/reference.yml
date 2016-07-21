@@ -39,6 +39,8 @@ users:
     password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC"  # badmin
   "test":
     password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya"  # 123
+    teams:
+      - "acme"
   "": {}  # Allow anonymous (no "docker login") access.
 
 # Google authentication.
@@ -161,6 +163,9 @@ acl:
   - match: {account: "/.+/", name: "${account}/*"}
     actions: ["*"]
     comment: "Logged in users have full access to images that are in their 'namespace'"
+  - match: {account: "/.+/", name: "${team}/*"}
+    actions: ["*"]
+    comment: "Logged in users have full access to images that are in the 'namespace' of one of their teams"
   - match: {account: "/.+/", type: "registry", name: "catalog"}
     actions: ["*"]
     comment: "Logged in users can query the catalog."

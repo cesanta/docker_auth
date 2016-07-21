@@ -32,13 +32,13 @@ import (
 )
 
 type GitHubAuthConfig struct {
-	Organization     string `yaml:"organization,omitempty"`
-	ClientId         string `yaml:"client_id,omitempty"`
-	ClientSecret     string `yaml:"client_secret,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-	TokenDB          string `yaml:"token_db,omitempty"`
-	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
-	RevalidateAfter  int    `yaml:"revalidate_after,omitempty"`
+	Organization     string        `yaml:"organization,omitempty"`
+	ClientId         string        `yaml:"client_id,omitempty"`
+	ClientSecret     string        `yaml:"client_secret,omitempty"`
+	ClientSecretFile string        `yaml:"client_secret_file,omitempty"`
+	TokenDB          string        `yaml:"token_db,omitempty"`
+	HTTPTimeout      time.Duration `yaml:"http_timeout,omitempty"`
+	RevalidateAfter  time.Duration `yaml:"revalidate_after,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -137,7 +137,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 	v := &TokenDBValue{
 		TokenType:   c2t.TokenType,
 		AccessToken: c2t.AccessToken,
-		ValidUntil:  time.Now().Add(time.Duration(gha.config.RevalidateAfter) * time.Second),
+		ValidUntil:  time.Now().Add(gha.config.RevalidateAfter),
 	}
 	dp, err := gha.db.StoreToken(user, v, true)
 	if err != nil {
@@ -229,7 +229,7 @@ func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
 		glog.Errorf("token for wrong user: expected %s, found %s", user, tokenUser)
 		return nil, fmt.Errorf("found token for wrong user")
 	}
-	v.ValidUntil = time.Now().Add(time.Duration(gha.config.RevalidateAfter) * time.Second)
+	v.ValidUntil = time.Now().Add(gha.config.RevalidateAfter)
 	texp := v.ValidUntil.Sub(time.Now())
 	glog.V(1).Infof("Validated GitHub auth token for %s (exp %d)", user, int(texp.Seconds()))
 	return v, nil

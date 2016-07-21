@@ -78,9 +78,9 @@ google_auth:
   # Where to store server tokens. Required.
   token_db: "/somewhere/to/put/github_tokens.ldb"
   # How long to wait when talking to GitHub servers. Optional.
-  http_timeout: 10
+  http_timeout: "10s"
   # How long to wait before revalidating the GitHub token. Optional.
-  revalidate_after: 3600
+  revalidate_after: "1h"
 
 # LDAP authentication.
 # Authentication is performed by first binding to the server, looking up the user entry

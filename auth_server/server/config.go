@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/docker_auth/auth_server/authz"
@@ -109,11 +110,11 @@ func validate(c *Config) error {
 			return errors.New("github_auth.{client_id,client_secret,token_db} are required.")
 		}
 		if ghac.HTTPTimeout <= 0 {
-			ghac.HTTPTimeout = 10
+			ghac.HTTPTimeout = time.Duration(10 * time.Second)
 		}
-		if ghac.RevalidateAfter <= 0 {
+		if ghac.RevalidateAfter == 0 {
 			// Tokens are revalidated every hour by default
-			ghac.RevalidateAfter = 3600
+			ghac.RevalidateAfter = time.Duration(1 * time.Hour)
 		}
 	}
 	if c.ExtAuth != nil {

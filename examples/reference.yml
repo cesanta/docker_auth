@@ -44,7 +44,7 @@ users:
 # Google authentication.
 # ==! NB: DO NOT ENTER YOUR GOOGLE PASSWORD AT "docker login". IT WILL NOT WORK.
 # Instead, Auth server maintains a database of Google authentication tokens.
-# Go to the server's port with you browser and follow the "Login with Google account" link.
+# Go to the server's port as HTTPS with your browser and follow the "Login with Google account" link.
 # Once signed in, you will get a throw-away password which you can use for Docker login.
 google_auth:
   domain: "example.com"  # Optional. If set, only logins from this domain are accepted.
@@ -64,7 +64,7 @@ google_auth:
 # GitHub authentication.
 # ==! NB: DO NOT ENTER YOUR GITHUB PASSWORD AT "docker login". IT WILL NOT WORK.
 # Instead, Auth server maintains a database of GitHub authentication tokens.
-# Go to the server's port with you browser and follow the "Login with GitHub account" link.
+# Go to the server's port as HTTPS with your browser and follow the "Login with GitHub account" link.
 # Once signed in, you will get a throw-away password which you can use for Docker login.
 github_auth:
   organization: "acme"   # Optional. If set, only logins from this organization are accepted.

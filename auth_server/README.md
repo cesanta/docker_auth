@@ -1,4 +1,4 @@
-### build local image
+### building local image
 
 ```
 git clone https://github.com/cesanta/docker_auth.git docker_auth/auth_server

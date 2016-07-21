@@ -13,7 +13,7 @@ This server fills the gap and implements the protocol described [here](https://g
 Supported authentication methods:
  * Static list of users
  * Google Sign-In (incl. Google for Work / GApps for domain) (documented [here](https://github.com/cesanta/docker_auth/blob/master/examples/reference.yml))
- * LDAP bind - A demo by [kwk/docker-registry-setup](https://github.com/kwk/docker-registry-setup)
+ * LDAP bind ([demo](https://github.com/kwk/docker-registry-setup))
  * MongoDB user collection
  * External program
 

@@ -32,7 +32,7 @@ import (
 )
 
 type GitHubAuthConfig struct {
-	Domain           string `yaml:"domain,omitempty"`
+	Organization     string `yaml:"organization,omitempty"`
 	ClientId         string `yaml:"client_id,omitempty"`
 	ClientSecret     string `yaml:"client_secret,omitempty"`
 	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
@@ -149,17 +149,19 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 	fmt.Fprintf(rw, `Server logged in; now run "docker login", use %s as login and %s as password.`, user, dp)
 }
 
-func (gha *GitHubAuth) validateAccessToken(token string) (string, error) {
+func (gha *GitHubAuth) validateAccessToken(token string) (user string, err error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
 	if err != nil {
-		return "", fmt.Errorf("could not create request to get information for token %s: %s", token, err)
+		err = fmt.Errorf("could not create request to get information for token %s: %s", token, err)
+		return
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("token %s", token))
 	req.Header.Add("Accept", "application/json")
 
 	resp, err := gha.client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("could not verify token %s: %s", token, err)
+		err = fmt.Errorf("could not verify token %s: %s", token, err)
+		return
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
@@ -167,11 +169,47 @@ func (gha *GitHubAuth) validateAccessToken(token string) (string, error) {
 	var ti GitHubTokenUser
 	err = json.Unmarshal(body, &ti)
 	if err != nil {
-		return "", fmt.Errorf("could not unmarshal token user info %q: %s", string(body), err)
+		err = fmt.Errorf("could not unmarshal token user info %q: %s", string(body), err)
+		return
 	}
 	glog.V(2).Infof("Token user info: %+v", strings.Replace(string(body), "\n", " ", -1))
 
+	err = gha.checkOrganization(token, ti.Login)
+	if err != nil {
+		err = fmt.Errorf("could not validate organization: %s", err)
+		return
+	}
+
 	return ti.Login, nil
+}
+
+func (gha *GitHubAuth) checkOrganization(token, user string) (err error) {
+	if gha.config.Organization == "" {
+		return nil
+	}
+	url := fmt.Sprintf("https://api.github.com/orgs/%s/members/%s", gha.config.Organization, user)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		err = fmt.Errorf("could not create request to get organization membership: %s", err)
+		return
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("token %s", token))
+
+	resp, err := gha.client.Do(req)
+	if err != nil {
+		return
+	}
+
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	case http.StatusNotFound:
+		return fmt.Errorf("%s is not a member of organization %s", user, gha.config.Organization)
+	case http.StatusFound:
+		return fmt.Errorf("token %s could not get membership for organization %s", token, gha.config.Organization)
+	}
+
+	return fmt.Errorf("Unknown status for membership of organization %s: %s", gha.config.Organization, resp.Status)
 }
 
 func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {

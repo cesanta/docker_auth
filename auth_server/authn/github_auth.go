@@ -37,7 +37,7 @@ type GitHubAuthConfig struct {
 	ClientSecret     string        `yaml:"client_secret,omitempty"`
 	ClientSecretFile string        `yaml:"client_secret_file,omitempty"`
 	TokenDB          string        `yaml:"token_db,omitempty"`
-	HTTPTimeout      int           `yaml:"http_timeout,omitempty"`
+	HTTPTimeout      time.Duration `yaml:"http_timeout,omitempty"`
 	RevalidateAfter  time.Duration `yaml:"revalidate_after,omitempty"`
 }
 

@@ -110,7 +110,7 @@ func validate(c *Config) error {
 			return errors.New("github_auth.{client_id,client_secret,token_db} are required.")
 		}
 		if ghac.HTTPTimeout <= 0 {
-			ghac.HTTPTimeout = 10
+			ghac.HTTPTimeout = time.Duration(10 * time.Second)
 		}
 		if ghac.RevalidateAfter == 0 {
 			// Tokens are revalidated every hour by default

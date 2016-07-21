@@ -47,7 +47,7 @@ users:
 # Go to the server's port with you browser and follow the "Login with Google account" link.
 # Once signed in, you will get a throw-away password which you can use for Docker login.
 google_auth:
-  domain: "example.com"  # Optional. If set, only logins fromt his domain are accepted.
+  domain: "example.com"  # Optional. If set, only logins from this domain are accepted.
   # client_id and client_secret for API access. Required.
   # Follow instructions here: https://developers.google.com/identity/sign-in/web/devconsole-project
   # NB: Make sure JavaScript origins are configured correctly.

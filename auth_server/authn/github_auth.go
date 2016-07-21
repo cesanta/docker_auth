@@ -32,14 +32,13 @@ import (
 )
 
 type GitHubAuthConfig struct {
-	Organization       string `yaml:"organization,omitempty"`
-	ClientId           string `yaml:"client_id,omitempty"`
-	ClientSecret       string `yaml:"client_secret,omitempty"`
-	ClientSecretFile   string `yaml:"client_secret_file,omitempty"`
-	TokenDB            string `yaml:"token_db,omitempty"`
-	HTTPTimeout        int    `yaml:"http_timeout,omitempty"`
-	RevalidateAfterStr string `yaml:"revalidate_after,omitempty"`
-	RevalidateAfter    time.Duration
+	Organization     string        `yaml:"organization,omitempty"`
+	ClientId         string        `yaml:"client_id,omitempty"`
+	ClientSecret     string        `yaml:"client_secret,omitempty"`
+	ClientSecretFile string        `yaml:"client_secret_file,omitempty"`
+	TokenDB          string        `yaml:"token_db,omitempty"`
+	HTTPTimeout      int           `yaml:"http_timeout,omitempty"`
+	RevalidateAfter  time.Duration `yaml:"revalidate_after,omitempty"`
 }
 
 type GitHubAuthRequest struct {

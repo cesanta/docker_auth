@@ -112,15 +112,9 @@ func validate(c *Config) error {
 		if ghac.HTTPTimeout <= 0 {
 			ghac.HTTPTimeout = 10
 		}
-		if ghac.RevalidateAfterStr == "" {
+		if ghac.RevalidateAfter == 0 {
 			// Tokens are revalidated every hour by default
 			ghac.RevalidateAfter = time.Duration(1 * time.Hour)
-		} else {
-			revalidateAfter, err := time.ParseDuration(ghac.RevalidateAfterStr)
-			if err != nil {
-				return fmt.Errorf("could not read %s as a duration: %s", ghac.RevalidateAfterStr, err)
-			}
-			ghac.RevalidateAfter = revalidateAfter
 		}
 	}
 	if c.ExtAuth != nil {

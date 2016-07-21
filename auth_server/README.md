@@ -1,7 +1,7 @@
-### building local image
+### Building local image
 
 ```
-git clone https://github.com/cesanta/docker_auth.git docker_auth/auth_server
+git clone https://github.com/cesanta/docker_auth.git
 cd docker_auth/auth_server
 # copy ca certificate to /etc/ssl/certs/ca-certificates.crt
 pip install gitpython

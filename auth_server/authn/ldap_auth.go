@@ -53,19 +53,19 @@ func NewLDAPAuth(c *LDAPAuthConfig) (*LDAPAuth, error) {
 }
 
 //How to authenticate user, please refer to https://github.com/go-ldap/ldap/blob/master/example_test.go#L166
-func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool, error) {
+func (la *LDAPAuth) Authenticate(account string, password PasswordString) (*AuthUser, error) {
 	if account == "" {
-		return false, NoMatch
+		return nil, NoMatch
 	}
 	l, err := la.ldapConnection()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer l.Close()
 
 	// First bind with a read only user, to prevent the following search won't perform any write action
 	if bindErr := la.bindReadOnlyUser(l); bindErr != nil {
-		return false, bindErr
+		return nil, bindErr
 	}
 
 	account = la.escapeAccountInput(account)
@@ -73,27 +73,27 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 	filter := la.getFilter(account)
 	accountEntryDN, uSearchErr := la.ldapSearch(l, &la.config.Base, &filter, &[]string{})
 	if uSearchErr != nil {
-		return false, uSearchErr
+		return nil, uSearchErr
 	}
 	if accountEntryDN == "" {
-		return false, NoMatch // User does not exist
+		return nil, NoMatch // User does not exist
 	}
 	// Bind as the user to verify their password
 	if len(accountEntryDN) > 0 {
 		err := l.Bind(accountEntryDN, string(password))
 		if err != nil {
 			if ldap.IsErrorWithCode(err, ldap.LDAPResultInvalidCredentials) {
-				return false, nil
+				return nil, nil
 			}
-			return false, err
+			return nil, err
 		}
 	}
 	// Rebind as the read only user for any futher queries
 	if bindErr := la.bindReadOnlyUser(l); bindErr != nil {
-		return false, bindErr
+		return nil, bindErr
 	}
 
-	return true, nil
+	return &AuthUser{}, nil
 }
 
 func (la *LDAPAuth) bindReadOnlyUser(l *ldap.Conn) error {

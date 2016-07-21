@@ -77,7 +77,7 @@ func NewExtAuth(cfg *ExtAuthConfig) *extAuth {
 	return &extAuth{cfg: cfg}
 }
 
-func (ea *extAuth) Authenticate(user string, password PasswordString) (bool, error) {
+func (ea *extAuth) Authenticate(user string, password PasswordString) (*AuthUser, error) {
 	cmd := exec.Command(ea.cfg.Command, ea.cfg.Args...)
 	cmd.Stdin = strings.NewReader(fmt.Sprintf("%s %s", user, string(password)))
 	_, err := cmd.Output()
@@ -94,15 +94,15 @@ func (ea *extAuth) Authenticate(user string, password PasswordString) (bool, err
 	glog.V(2).Infof("%s %s -> %d", cmd.Path, cmd.Args, es)
 	switch ExtAuthStatus(es) {
 	case ExtAuthAllowed:
-		return true, nil
+		return &AuthUser{}, nil
 	case ExtAuthDenied:
-		return false, nil
+		return nil, nil
 	case ExtAuthNoMatch:
-		return false, NoMatch
+		return nil, NoMatch
 	default:
 		glog.Errorf("Ext command error: %d %s", es, et)
 	}
-	return false, fmt.Errorf("bad return code from command: %d", es)
+	return nil, fmt.Errorf("bad return code from command: %d", es)
 }
 
 func (sua *extAuth) Stop() {

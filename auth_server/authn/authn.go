@@ -25,7 +25,7 @@ type Authenticator interface {
 	// A special NoMatch error is returned if the authorizer could not reach a decision,
 	// e.g. none of the rules matched.
 	// Implementations must be goroutine-safe.
-	Authenticate(user string, password PasswordString) (bool, error)
+	Authenticate(user string, password PasswordString) (*AuthUser, error)
 
 	// Finalize resources in preparation for shutdown.
 	// When this call is made there are guaranteed to be no Authenticate requests in flight
@@ -34,6 +34,12 @@ type Authenticator interface {
 
 	// Human-readable name of the authenticator.
 	Name() string
+}
+
+type AuthUser struct {
+	Name  string
+	Email string
+	Teams []string
 }
 
 var NoMatch = errors.New("did not match any rule")

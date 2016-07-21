@@ -82,7 +82,7 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 	}, nil
 }
 
-func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, error) {
+func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (*AuthUser, error) {
 	for true {
 		result, err := mauth.authenticate(account, password)
 		if err == io.EOF {
@@ -93,10 +93,10 @@ func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (b
 		return result, err
 	}
 
-	return false, errors.New("Unable to communicate with Mongo.")
+	return nil, errors.New("Unable to communicate with Mongo.")
 }
 
-func (mauth *MongoAuth) authenticate(account string, password PasswordString) (bool, error) {
+func (mauth *MongoAuth) authenticate(account string, password PasswordString) (*AuthUser, error) {
 	// Copy our session
 	tmp_session := mauth.session.Copy()
 	// Close up when we are done
@@ -111,20 +111,20 @@ func (mauth *MongoAuth) authenticate(account string, password PasswordString) (b
 
 	// If we connect and get no results we return a NoMatch so auth can fall-through
 	if err == mgo.ErrNotFound {
-		return false, NoMatch
+		return nil, NoMatch
 	} else if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	// Validate db password against passed password
 	if dbUserRecord.Password != nil {
 		if bcrypt.CompareHashAndPassword([]byte(*dbUserRecord.Password), []byte(password)) != nil {
-			return false, nil
+			return nil, nil
 		}
 	}
 
 	// Auth success
-	return true, nil
+	return &AuthUser{}, nil
 }
 
 // Validate ensures that any custom config options

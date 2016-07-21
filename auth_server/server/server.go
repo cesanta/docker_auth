@@ -173,7 +173,7 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	return ar, nil
 }
 
-func (as *AuthServer) Authenticate(ar *authRequest) (bool, error) {
+func (as *AuthServer) Authenticate(ar *authRequest) (*authn.AuthUser, error) {
 	for i, a := range as.authenticators {
 		result, err := a.Authenticate(ar.Account, ar.Password)
 		glog.V(2).Infof("Authn %s %s -> %t, %s", a.Name(), ar.Account, result, err)
@@ -183,13 +183,13 @@ func (as *AuthServer) Authenticate(ar *authRequest) (bool, error) {
 			}
 			err = fmt.Errorf("authn #%d returned error: %s", i+1, err)
 			glog.Errorf("%s: %s", ar, err)
-			return false, err
+			return nil, err
 		}
 		return result, nil
 	}
 	// Deny by default.
 	glog.Warningf("%s did not match any authn rule", ar)
-	return false, nil
+	return nil, nil
 }
 
 func (as *AuthServer) authorizeScope(ai *authz.AuthRequestInfo) ([]string, error) {
@@ -327,7 +327,7 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 			http.Error(rw, fmt.Sprintf("Authentication failed (%s)", err), http.StatusInternalServerError)
 			return
 		}
-		if !authnResult {
+		if authnResult == nil {
 			glog.Warningf("Auth failed: %s", *ar)
 			http.Error(rw, "Auth failed.", http.StatusUnauthorized)
 			return

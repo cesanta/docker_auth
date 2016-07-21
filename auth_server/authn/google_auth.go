@@ -461,24 +461,24 @@ func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) 
 	fmt.Fprint(rw, "signed out")
 }
 
-func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, error) {
+func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (*AuthUser, error) {
 	dbv, err := ga.getDBValue(user)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	if dbv == nil {
-		return false, NoMatch
+		return nil, NoMatch
 	}
 	if time.Now().After(dbv.ValidUntil) {
 		dbv, err = ga.validateServerToken(user)
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 	}
 	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return false, nil
+		return nil, nil
 	}
-	return true, nil
+	return &AuthUser{}, nil
 }
 
 func (ga *GoogleAuth) Stop() {

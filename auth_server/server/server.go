@@ -211,15 +211,17 @@ func (as *AuthServer) authorizeScope(ai *authz.AuthRequestInfo) ([]string, error
 	return nil, nil
 }
 
-func (as *AuthServer) Authorize(ar *authRequest) ([]authzResult, error) {
+func (as *AuthServer) Authorize(ar *authRequest, au *authn.AuthUser) ([]authzResult, error) {
 	ares := []authzResult{}
 	for _, scope := range ar.Scopes {
 		ai := &authz.AuthRequestInfo{
 			Account: ar.Account,
 			Type:    scope.Type,
 			Name:    scope.Name,
+			Email:   au.Email,
 			Service: ar.Service,
 			IP:      ar.RemoteIP,
+			Teams:   au.Teams,
 			Actions: scope.Actions,
 		}
 		actions, err := as.authorizeScope(ai)
@@ -321,20 +323,18 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	glog.V(2).Infof("Auth request: %+v", ar)
-	{
-		authnResult, err := as.Authenticate(ar)
-		if err != nil {
-			http.Error(rw, fmt.Sprintf("Authentication failed (%s)", err), http.StatusInternalServerError)
-			return
-		}
-		if authnResult == nil {
-			glog.Warningf("Auth failed: %s", *ar)
-			http.Error(rw, "Auth failed.", http.StatusUnauthorized)
-			return
-		}
+	authnResult, err := as.Authenticate(ar)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("Authentication failed (%s)", err), http.StatusInternalServerError)
+		return
+	}
+	if authnResult == nil {
+		glog.Warningf("Auth failed: %s", *ar)
+		http.Error(rw, "Auth failed.", http.StatusUnauthorized)
+		return
 	}
 	if len(ar.Scopes) > 0 {
-		ares, err = as.Authorize(ar)
+		ares, err = as.Authorize(ar, authnResult)
 		if err != nil {
 			http.Error(rw, fmt.Sprintf("Authorization failed (%s)", err), http.StatusInternalServerError)
 			return

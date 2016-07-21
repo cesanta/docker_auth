@@ -36,8 +36,10 @@ type AuthRequestInfo struct {
 	Account string
 	Type    string
 	Name    string
+	Email   string
 	Service string
 	IP      net.IP
+	Teams   []string
 	Actions []string
 }
 

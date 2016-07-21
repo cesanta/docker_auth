@@ -23,6 +23,8 @@ type MatchConditions struct {
 	Account *string `yaml:"account,omitempty" json:"account,omitempty"`
 	Type    *string `yaml:"type,omitempty" json:"type,omitempty"`
 	Name    *string `yaml:"name,omitempty" json:"name,omitempty"`
+	Email   *string `yaml:"email,omitempty" json:"email,omitempty"`
+	Team    *string `yaml:"team,omitempty" json:"team,omitempty"`
 	IP      *string `yaml:"ip,omitempty" json:"ip,omitempty"`
 }
 
@@ -150,11 +152,18 @@ func matchIP(ipp *string, ip net.IP) bool {
 }
 
 func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
+	var quotedTeams []string
+	for _, t := range ai.Teams {
+		quotedTeams = append(quotedTeams, regexp.QuoteMeta(t))
+	}
+
 	vars := []string{
 		"${account}", regexp.QuoteMeta(ai.Account),
 		"${type}", regexp.QuoteMeta(ai.Type),
 		"${name}", regexp.QuoteMeta(ai.Name),
+		"${email}", regexp.QuoteMeta(ai.Email),
 		"${service}", regexp.QuoteMeta(ai.Service),
+		"${team}", strings.Join(quotedTeams, "|"),
 	}
 	return matchString(mc.Account, ai.Account, vars) &&
 		matchString(mc.Type, ai.Type, vars) &&

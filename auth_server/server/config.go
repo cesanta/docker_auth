@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/docker_auth/auth_server/authz"
@@ -111,9 +112,15 @@ func validate(c *Config) error {
 		if ghac.HTTPTimeout <= 0 {
 			ghac.HTTPTimeout = 10
 		}
-		if ghac.RevalidateAfter <= 0 {
+		if ghac.RevalidateAfterStr == "" {
 			// Tokens are revalidated every hour by default
-			ghac.RevalidateAfter = 3600
+			ghac.RevalidateAfter = time.Duration(1 * time.Hour)
+		} else {
+			revalidateAfter, err := time.ParseDuration(ghac.RevalidateAfterStr)
+			if err != nil {
+				return fmt.Errorf("could not read %s as a duration: %s", ghac.RevalidateAfterStr, err)
+			}
+			ghac.RevalidateAfter = revalidateAfter
 		}
 	}
 	if c.ExtAuth != nil {

@@ -80,7 +80,7 @@ github_auth:
   # How long to wait when talking to Google servers. Optional.
   http_timeout: 10
   # How long to wait before revalidating the GitHub token. Optional.
-  revalidate_after: 3600
+  revalidate_after: "1h"
 
 # LDAP authentication.
 # Authentication is performed by first binding to the server, looking up the user entry

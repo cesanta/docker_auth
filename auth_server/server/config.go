@@ -112,7 +112,7 @@ func validate(c *Config) error {
 			ghac.HTTPTimeout = 10
 		}
 		if ghac.RevalidateAfter <= 0 {
-			// Token expires after 1 hour by default
+			// Tokens are revalidated every hour by default
 			ghac.RevalidateAfter = 3600
 		}
 	}

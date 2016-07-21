@@ -37,9 +37,19 @@ var ExpiredToken = errors.New("expired token")
 
 // TokenDB stores tokens using LevelDB
 type TokenDB interface {
+	// GetValue takes a username returns the corresponding token
 	GetValue(string) (*TokenDBValue, error)
+
+	// StoreToken takes a username and token, stores them in the DB
+	// and returns a password and error
 	StoreToken(string, *TokenDBValue, bool) (string, error)
+
+	// ValidateTOken takes a username and password
+	// and returns an error
 	ValidateToken(string, PasswordString) error
+
+	// DeleteToken takes a username
+	// and deletes the corresponding token from the DB
 	DeleteToken(string) error
 
 	// Composed from leveldb.DB
@@ -70,7 +80,6 @@ func NewTokenDB(file string) (TokenDB, error) {
 	}, err
 }
 
-// GetValue takes a username returns the corresponding token
 func (db *TokenDBImpl) GetValue(user string) (*TokenDBValue, error) {
 	valueStr, err := db.Get(getDBKey(user), nil)
 	switch {
@@ -89,8 +98,6 @@ func (db *TokenDBImpl) GetValue(user string) (*TokenDBValue, error) {
 	return &dbv, nil
 }
 
-// StoreToken takes a username and token, stores them in the DB
-// and returns a password and error
 func (db *TokenDBImpl) StoreToken(user string, v *TokenDBValue, updatePassword bool) (dp string, err error) {
 	if updatePassword {
 		dp = uniuri.New()
@@ -110,8 +117,6 @@ func (db *TokenDBImpl) StoreToken(user string, v *TokenDBValue, updatePassword b
 	return
 }
 
-// ValidateTOken takes a username and password
-// and returns an error
 func (db *TokenDBImpl) ValidateToken(user string, password PasswordString) error {
 	dbv, err := db.GetValue(user)
 	if err != nil {
@@ -129,8 +134,6 @@ func (db *TokenDBImpl) ValidateToken(user string, password PasswordString) error
 	return nil
 }
 
-// DeleteToken takes a username
-// and deletes the corresponding token from the DB
 func (db *TokenDBImpl) DeleteToken(user string) error {
 	glog.V(1).Infof("deleting token for %s", user)
 	if err := db.Delete(getDBKey(user), nil); err != nil {

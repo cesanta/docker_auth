@@ -77,7 +77,7 @@ github_auth:
   client_secret_file: "/path/to/client_secret.txt"
   # Where to store server tokens. Required.
   token_db: "/somewhere/to/put/github_tokens.ldb"
-  # How long to wait when talking to Google servers. Optional.
+  # How long to wait when talking to GitHub servers. Optional.
   http_timeout: 10
   # How long to wait before revalidating the GitHub token. Optional.
   revalidate_after: "1h"

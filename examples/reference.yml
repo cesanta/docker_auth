@@ -13,6 +13,7 @@ server:  # Server settings.
   # Address to listen on.
   addr: ":5001"
   # TLS certificate and key.
+  # If not specified, server will open a plain HTTP listener. In that case token.certificate and key must be provided.
   certificate: "/path/to/server.pem"
   key: "/path/to/server.key"
   # Take client's address from the specified HTTP header instead of connection.

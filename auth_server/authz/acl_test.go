@@ -64,7 +64,7 @@ func TestMatching(t *testing.T) {
 		{MatchConditions{Name: sp("${account}")}, AuthRequestInfo{Account: "foo", Name: "foo"}, true}, // Var subst
 		{MatchConditions{Name: sp("/${account}_.*/")}, AuthRequestInfo{Account: "foo", Name: "foo_x"}, true},
 		{MatchConditions{Name: sp("/${account}_.*/")}, AuthRequestInfo{Account: ".*", Name: "foo_x"}, false}, // Quoting
-		{MatchConditions{Account: sp(`/(.+)@test\.com/`), Name: sp(`${account:1}/*`)}, AuthRequestInfo{Account: "john.smith@test.com", Name: "john.smith/test"}, true},
+		{MatchConditions{Account: sp(`/^(.+)@test\.com$/`), Name: sp(`${account:1}/*`)}, AuthRequestInfo{Account: "john.smith@test.com", Name: "john.smith/test"}, true},
 		// IP matching
 		{MatchConditions{IP: sp("127.0.0.1")}, AuthRequestInfo{IP: nil}, false},
 		{MatchConditions{IP: sp("127.0.0.1")}, AuthRequestInfo{IP: net.IPv4(127, 0, 0, 1)}, true},

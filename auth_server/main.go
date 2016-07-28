@@ -47,28 +47,27 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 		glog.Exitf("Failed to create auth server: %s", err)
 	}
 
-	var tlsConfig *tls.Config
+	tlsConfig := &tls.Config{
+		MinVersion:               tls.VersionTLS10,
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+		NextProtos: []string{"http/1.1"},
+	}
 	if c.Server.CertFile != "" || c.Server.KeyFile != "" {
 		// Check for partial configuration.
 		if c.Server.CertFile == "" || c.Server.KeyFile == "" {
 			glog.Exitf("Failed to load certificate and key: both were not provided")
 		}
-		tlsConfig = &tls.Config{
-			MinVersion:               tls.VersionTLS10,
-			PreferServerCipherSuites: true,
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			},
-			NextProtos:   []string{"http/1.1"},
-			Certificates: make([]tls.Certificate, 1),
-		}
+		tlsConfig.Certificates = make([]tls.Certificate, 1)
 		glog.Infof("Cert file: %s", c.Server.CertFile)
 		glog.Infof("Key file : %s", c.Server.KeyFile)
 
@@ -82,24 +81,11 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 			glog.Exitf("Failed to load LetsEncrypt cache file: %s", err)
 		}
 		if !m.Registered() {
-			m.Register(c.Server.LetsEncrypt.Email, nil)
+			if err := m.Register(c.Server.LetsEncrypt.Email, nil); err != nil {
+				glog.Exitf("Failed to register with LetsEncrypt: %s", err)
+			}
 		}
-		tlsConfig = &tls.Config{
-			MinVersion:               tls.VersionTLS10,
-			PreferServerCipherSuites: true,
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			},
-			NextProtos:     []string{"http/1.1"},
-			GetCertificate: m.GetCertificate,
-		}
+		tlsConfig.GetCertificate = m.GetCertificate
 		glog.Infof("Using LetsEncrypt with cache file %s", c.Server.LetsEncrypt.CacheFile)
 	} else {
 		glog.Warning("Running without TLS")

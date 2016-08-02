@@ -151,7 +151,7 @@ func matchIP(ipp *string, ip net.IP) bool {
 	return ipnet.Contains(ip)
 }
 
-var cap_group_regex = regexp.MustCompile(`\$\{(.+):(\d+)\}`)
+var captureGroupRegex = regexp.MustCompile(`\$\{(.+?):(\d+)\}`)
 
 func getField(i interface{}, name string) (string, bool) {
 	s := reflect.Indirect(reflect.ValueOf(i))
@@ -170,25 +170,22 @@ func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 		"${service}", regexp.QuoteMeta(ai.Service),
 	}
 	for _, x := range []string{"Account", "Type", "Name"} {
-		// check if there is a ${account:xx}
 		field, _ := getField(mc, x)
-		found := cap_group_regex.FindStringSubmatch(field)
-		if len(found) == 0 {
-			continue
+		for _, found := range captureGroupRegex.FindAllStringSubmatch(field, -1) {
+			key := strings.Title(found[1])
+			index, _ := strconv.Atoi(found[2])
+			field, has := getField(mc, key)
+			if !has {
+				continue
+			}
+			regex, _ := regexp.Compile(field[1 : len(field)-1])
+			info, has := getField(ai, key)
+			if !has {
+				continue
+			}
+			text := regex.FindStringSubmatch(info)
+			vars = append(vars, found[0], text[index])
 		}
-		key := strings.Title(found[1])
-		index, _ := strconv.Atoi(found[2])
-		field, has := getField(mc, key)
-		if !has {
-			continue
-		}
-		regex, _ := regexp.Compile(field[1 : len(field)-1])
-		info, has := getField(ai, key)
-		if !has {
-			continue
-		}
-		text := regex.FindStringSubmatch(info)
-		vars = append(vars, found[0], text[index])
 	}
 	return matchString(mc.Account, ai.Account, vars) &&
 		matchString(mc.Type, ai.Type, vars) &&

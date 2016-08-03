@@ -176,14 +176,27 @@ func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 			index, _ := strconv.Atoi(found[2])
 			field, has := getField(mc, key)
 			if !has {
+				glog.Errorf("No field in '%s' in MatchConditions", key)
 				continue
 			}
-			regex, _ := regexp.Compile(field[1 : len(field)-1])
+			if len(field) < 2 || field[0] != '/' || field[len(field)-1] != '/' {
+				continue
+			}
+			regex, err := regexp.Compile(field[1 : len(field)-1])
+			if err != nil {
+				glog.Errorf("Invalid regex in '%s' of MatchConditions", key)
+				continue
+			}
 			info, has := getField(ai, key)
 			if !has {
+				glog.Errorf("No field in '%s' in AuthRequestInfo", key)
 				continue
 			}
 			text := regex.FindStringSubmatch(info)
+			if index < 1 || index > len(text)-1 {
+				glog.Errorf("Capture group index out of range")
+				continue
+			}
 			vars = append(vars, found[0], text[index])
 		}
 	}

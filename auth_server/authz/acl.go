@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -149,12 +151,54 @@ func matchIP(ipp *string, ip net.IP) bool {
 	return ipnet.Contains(ip)
 }
 
+var captureGroupRegex = regexp.MustCompile(`\$\{(.+?):(\d+)\}`)
+
+func getField(i interface{}, name string) (string, bool) {
+	s := reflect.Indirect(reflect.ValueOf(i))
+	f := reflect.Indirect(s.FieldByName(name))
+	if !f.IsValid() {
+		return "", false
+	}
+	return f.String(), true
+}
+
 func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 	vars := []string{
 		"${account}", regexp.QuoteMeta(ai.Account),
 		"${type}", regexp.QuoteMeta(ai.Type),
 		"${name}", regexp.QuoteMeta(ai.Name),
 		"${service}", regexp.QuoteMeta(ai.Service),
+	}
+	for _, x := range []string{"Account", "Type", "Name"} {
+		field, _ := getField(mc, x)
+		for _, found := range captureGroupRegex.FindAllStringSubmatch(field, -1) {
+			key := strings.Title(found[1])
+			index, _ := strconv.Atoi(found[2])
+			field, has := getField(mc, key)
+			if !has {
+				glog.Errorf("No field in '%s' in MatchConditions", key)
+				continue
+			}
+			if len(field) < 2 || field[0] != '/' || field[len(field)-1] != '/' {
+				continue
+			}
+			regex, err := regexp.Compile(field[1 : len(field)-1])
+			if err != nil {
+				glog.Errorf("Invalid regex in '%s' of MatchConditions", key)
+				continue
+			}
+			info, has := getField(ai, key)
+			if !has {
+				glog.Errorf("No field in '%s' in AuthRequestInfo", key)
+				continue
+			}
+			text := regex.FindStringSubmatch(info)
+			if index < 1 || index > len(text)-1 {
+				glog.Errorf("%s: Capture group index out of range", key)
+				continue
+			}
+			vars = append(vars, found[0], text[index])
+		}
 	}
 	return matchString(mc.Account, ai.Account, vars) &&
 		matchString(mc.Type, ai.Type, vars) &&

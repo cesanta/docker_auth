@@ -193,6 +193,9 @@ acl:
   - match: {account: "", name: "hello-world"}
     actions: ["pull"]
     comment: "Anonymous users can pull \"hello-world\"."
+  - match: {account: "/^(.+)@test.com$/", name: "${account:1}/*"}
+    actions: []
+    comment: "Emit domain part of account to make it a correct repo name"
   # Access is denied by default.
 
 # (optional) Define to query ACL from a MongoDB server.

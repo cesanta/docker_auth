@@ -194,7 +194,7 @@ func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 			}
 			text := regex.FindStringSubmatch(info)
 			if index < 1 || index > len(text)-1 {
-				glog.Errorf("Capture group index out of range")
+				glog.Errorf("%s: Capture group index out of range", key)
 				continue
 			}
 			vars = append(vars, found[0], text[index])

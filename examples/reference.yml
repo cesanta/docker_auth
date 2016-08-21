@@ -24,8 +24,9 @@ server:  # Server settings.
 token:  # Settings for the tokens.
   issuer: "Acme auth server"  # Must match issuer in the Registry config.
   expiration: 900
-  # It is possible configure a different certificate for tokens.
-  # If not specified, server certificate is used.
+  # Token must be signed by a certificate that registry trusts, i.e. by a certificate to which a trust chain
+  # can be constructed from one of the certificates in registry's auth.token.rootcertbundle.
+  # If not specified, server's TLS certificate and key are used.
   # certificate: "..."
   # key: "..."
 

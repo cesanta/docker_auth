@@ -36,7 +36,7 @@ version = None
 if not dirty:
     version = get_tag_for_commit(repo, repo.head.commit)
 if version is None:
-    version = ts.strftime('%Y%m%d%H%M%S')
+    version = ts.strftime('%Y%m%d%H')
 
 
 if len(sys.argv) == 1 or sys.argv[1] == '-':

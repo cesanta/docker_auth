@@ -20,6 +20,9 @@ server:  # Server settings.
   # May be useful if the server is behind a proxy or load balancer.
   # If configured, this header must be present, requests without it will be rejected.
   # real_ip_header: "X-Forwarded-For"
+  # Optional position of client ip in X-Forwarded-For, negative starts from
+  # end of addresses.
+  # real_ip_pos: -2
 
 token:  # Settings for the tokens.
   issuer: "Acme auth server"  # Must match issuer in the Registry config.

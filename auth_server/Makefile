@@ -28,6 +28,7 @@ ca-certificates.crt:
 	cp $(CA_BUNDLE) .
 
 docker-build:
+	go generate ./...
 	docker run --rm -v $(PWD):/src -e COMPRESS_BINARY=$(COMPRESS_BINARY) $(BUILDER_OPTS-$@) $(BUILDER_IMAGE)$(BUILDER_IMAGE_EXTRA-$@) $(IMAGE)
 	@echo === Built version $(VERSION) ===
 

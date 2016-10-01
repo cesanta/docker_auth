@@ -39,6 +39,7 @@ type GitHubAuthConfig struct {
 	TokenDB          string        `yaml:"token_db,omitempty"`
 	HTTPTimeout      time.Duration `yaml:"http_timeout,omitempty"`
 	RevalidateAfter  time.Duration `yaml:"revalidate_after,omitempty"`
+	GHEHost          string        `yaml:"ghe_host,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -90,13 +91,25 @@ func (gha *GitHubAuth) DoGitHubAuth(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (gha *GitHubAuth) getAPIHost() string {
+	if gha.config.GHEHost != "" {
+		return gha.config.GHEHost
+	} else {
+		return "api.github.com"
+	}
+}
+
 func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code string) {
 	data := url.Values{
 		"code":          []string{string(code)},
 		"client_id":     []string{gha.config.ClientId},
 		"client_secret": []string{gha.config.ClientSecret},
 	}
-	req, err := http.NewRequest("POST", "https://github.com/login/oauth/access_token", bytes.NewBufferString(data.Encode()))
+	h := gha.config.GHEHost
+	if h == "" {
+		h = "github.com"
+	}
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/login/oauth/access_token", h), bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("Error creating request to GitHub auth backend: %s", err), http.StatusServiceUnavailable)
 		return
@@ -150,7 +163,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 }
 
 func (gha *GitHubAuth) validateAccessToken(token string) (user string, err error) {
-	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/user", gha.getAPIHost()), nil)
 	if err != nil {
 		err = fmt.Errorf("could not create request to get information for token %s: %s", token, err)
 		return
@@ -187,7 +200,7 @@ func (gha *GitHubAuth) checkOrganization(token, user string) (err error) {
 	if gha.config.Organization == "" {
 		return nil
 	}
-	url := fmt.Sprintf("https://api.github.com/orgs/%s/members/%s", gha.config.Organization, user)
+	url := fmt.Sprintf("https://%s/orgs/%s/members/%s", gha.getAPIHost(), gha.config.Organization, user)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		err = fmt.Errorf("could not create request to get organization membership: %s", err)

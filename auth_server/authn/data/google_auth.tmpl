@@ -38,7 +38,7 @@
 		$('#signinButton').click(function() {
 			// signInCallback defined in step 6.
 			var auth2 = gapi.auth2.getAuthInstance();
-			auth2.grantOfflineAccess({'redirect_uri': 'postmessage'}).then(function(authResult) {
+			auth2.grantOfflineAccess({'redirect_uri': 'postmessage', 'prompt': 'consent'}).then(function(authResult) {
 				console.log(authResult);
 				$.ajax({
 					type: 'POST',

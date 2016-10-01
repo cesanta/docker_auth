@@ -45,13 +45,19 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	ListenAddress string `yaml:"addr,omitempty"`
-	RealIPHeader  string `yaml:"real_ip_header,omitempty"`
-	CertFile      string `yaml:"certificate,omitempty"`
-	KeyFile       string `yaml:"key,omitempty"`
+	ListenAddress string            `yaml:"addr,omitempty"`
+	RealIPHeader  string            `yaml:"real_ip_header,omitempty"`
+	CertFile      string            `yaml:"certificate,omitempty"`
+	KeyFile       string            `yaml:"key,omitempty"`
+	LetsEncrypt   LetsEncryptConfig `yaml:"letsencrypt,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
+}
+
+type LetsEncryptConfig struct {
+	CacheFile string `yaml:"cachefile,omitempty"`
+	Email     string `yaml:"email,omitempty"`
 }
 
 type TokenConfig struct {

@@ -1,4 +1,4 @@
-FROM busybox
+FROM golang
 EXPOSE 5001
 ENTRYPOINT ["/auth_server"]
 CMD ["/config/auth_config.yml"]

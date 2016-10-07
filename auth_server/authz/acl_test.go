@@ -29,6 +29,7 @@ func TestValidation(t *testing.T) {
 		{MatchConditions{IP: sp("192.168.0.0/16")}, true},
 		{MatchConditions{IP: sp("2001:db8::1")}, true},
 		{MatchConditions{IP: sp("2001:db8::/48")}, true},
+		{MatchConditions{Labels: map[string]string{"foo": "bar"}}, true},
 		// Invalid stuff
 		{MatchConditions{Account: sp("/foo?*/")}, false},
 		{MatchConditions{Type: sp("/foo?*/")}, false},
@@ -37,6 +38,7 @@ func TestValidation(t *testing.T) {
 		{MatchConditions{IP: sp("192.168.0.*")}, false},
 		{MatchConditions{IP: sp("foo")}, false},
 		{MatchConditions{IP: sp("2001:db8::/222")}, false},
+		{MatchConditions{Labels: map[string]string{"foo": "/bar?*/"}}, false},
 	}
 	for i, c := range cases {
 		result := validateMatchConditions(&c.mc)
@@ -50,6 +52,8 @@ func TestValidation(t *testing.T) {
 
 func TestMatching(t *testing.T) {
 	ai1 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz"}
+	ai2 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz",
+		Labels: map[string][]string{"group": []string{"admins", "VIP"}}}
 	cases := []struct {
 		mc      MatchConditions
 		ai      AuthRequestInfo
@@ -80,6 +84,14 @@ func TestMatching(t *testing.T) {
 		{MatchConditions{IP: sp("2001:db8::2")}, AuthRequestInfo{IP: net.ParseIP("2001:db8::1")}, false},
 		{MatchConditions{IP: sp("2001:db8::/48")}, AuthRequestInfo{IP: net.ParseIP("2001:db8::1")}, true},
 		{MatchConditions{IP: sp("2001:db8::/48")}, AuthRequestInfo{IP: net.ParseIP("2001:db8::2")}, true},
+		// Label matching
+		{MatchConditions{Labels: map[string]string{"foo": "bar"}}, ai1, false},
+		{MatchConditions{Labels: map[string]string{"foo": "bar"}}, ai2, false},
+		{MatchConditions{Labels: map[string]string{"group": "admins"}}, ai2, true},
+		{MatchConditions{Labels: map[string]string{"foo": "bar", "group": "admins"}}, ai2, false}, // "and" logic
+		{MatchConditions{Labels: map[string]string{"group": "VIP"}}, ai2, true},
+		{MatchConditions{Labels: map[string]string{"group": "a*"}}, ai2, true},
+		{MatchConditions{Labels: map[string]string{"group": "/(admins|VIP)/"}}, ai2, true},
 	}
 	for i, c := range cases {
 		if result := c.mc.Matches(&c.ai); result != c.matches {

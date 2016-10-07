@@ -31,11 +31,6 @@ type ExtAuthConfig struct {
 	Args    []string `yaml:"args"`
 }
 
-type ExtAuthRequest struct {
-	User     string `json:"user"`
-	Password string `json:"password"`
-}
-
 type ExtAuthStatus int
 
 const (
@@ -46,8 +41,7 @@ const (
 )
 
 type ExtAuthResponse struct {
-	Status  int    `json:"status"`
-	Message string `json:"message,omitempty"`
+	Labels Labels `json:"labels,omitempty"`
 }
 
 func (c *ExtAuthConfig) Validate() error {
@@ -64,23 +58,15 @@ type extAuth struct {
 	cfg *ExtAuthConfig
 }
 
-func (r ExtAuthRequest) String() string {
-	if r.Password != "" {
-		r.Password = "***"
-	}
-	b, _ := json.Marshal(r)
-	return string(b)
-}
-
 func NewExtAuth(cfg *ExtAuthConfig) *extAuth {
 	glog.Infof("External authenticator: %s %s", cfg.Command, strings.Join(cfg.Args, " "))
 	return &extAuth{cfg: cfg}
 }
 
-func (ea *extAuth) Authenticate(user string, password PasswordString) (bool, error) {
+func (ea *extAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
 	cmd := exec.Command(ea.cfg.Command, ea.cfg.Args...)
 	cmd.Stdin = strings.NewReader(fmt.Sprintf("%s %s", user, string(password)))
-	_, err := cmd.Output()
+	output, err := cmd.Output()
 	es := 0
 	et := ""
 	if err == nil {
@@ -91,18 +77,24 @@ func (ea *extAuth) Authenticate(user string, password PasswordString) (bool, err
 		es = int(ExtAuthError)
 		et = fmt.Sprintf("cmd run error: %s", err)
 	}
-	glog.V(2).Infof("%s %s -> %d", cmd.Path, cmd.Args, es)
+	glog.V(2).Infof("%s %s -> %d %s", cmd.Path, cmd.Args, es, output)
 	switch ExtAuthStatus(es) {
 	case ExtAuthAllowed:
-		return true, nil
+		var resp ExtAuthResponse
+		if len(output) > 0 {
+			if err = json.Unmarshal(output, &resp); err != nil {
+				return false, nil, err
+			}
+		}
+		return true, resp.Labels, nil
 	case ExtAuthDenied:
-		return false, nil
+		return false, nil, nil
 	case ExtAuthNoMatch:
-		return false, NoMatch
+		return false, nil, NoMatch
 	default:
 		glog.Errorf("Ext command error: %d %s", es, et)
 	}
-	return false, fmt.Errorf("bad return code from command: %d", es)
+	return false, nil, fmt.Errorf("bad return code from command: %d", es)
 }
 
 func (sua *extAuth) Stop() {

@@ -124,6 +124,10 @@ func validate(c *Config) error {
 	}
 	if c.ACL == nil && c.ACLMongo == nil {
 		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions")
+	} else {
+		if err := authz.ValidateACL(c.ACL); err != nil {
+			return fmt.Errorf("invalid ACL: %s", err)
+		}
 	}
 	if c.ACLMongo != nil {
 		if err := c.ACLMongo.Validate("acl_mongo"); err != nil {

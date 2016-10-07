@@ -235,17 +235,17 @@ func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
 	return v, nil
 }
 
-func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, error) {
+func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
 	err := gha.db.ValidateToken(user, password)
 	if err == ExpiredToken {
 		_, err = gha.validateServerToken(user)
 		if err != nil {
-			return false, err
+			return false, nil, err
 		}
 	} else if err != nil {
-		return false, err
+		return false, nil, err
 	}
-	return true, nil
+	return true, nil, nil
 }
 
 func (gha *GitHubAuth) Stop() {

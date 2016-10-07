@@ -399,17 +399,17 @@ func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) 
 	fmt.Fprint(rw, "signed out")
 }
 
-func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, error) {
+func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
 	err := ga.db.ValidateToken(user, password)
 	if err == ExpiredToken {
 		_, err = ga.validateServerToken(user)
 		if err != nil {
-			return false, err
+			return false, nil, err
 		}
 	} else if err != nil {
-		return false, err
+		return false, nil, err
 	}
-	return true, nil
+	return true, nil, nil
 }
 
 func (ga *GoogleAuth) Stop() {

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/golang/glog"
 )
 
@@ -22,10 +23,11 @@ type ACLEntry struct {
 }
 
 type MatchConditions struct {
-	Account *string `yaml:"account,omitempty" json:"account,omitempty"`
-	Type    *string `yaml:"type,omitempty" json:"type,omitempty"`
-	Name    *string `yaml:"name,omitempty" json:"name,omitempty"`
-	IP      *string `yaml:"ip,omitempty" json:"ip,omitempty"`
+	Account *string           `yaml:"account,omitempty" json:"account,omitempty"`
+	Type    *string           `yaml:"type,omitempty" json:"type,omitempty"`
+	Name    *string           `yaml:"name,omitempty" json:"name,omitempty"`
+	IP      *string           `yaml:"ip,omitempty" json:"ip,omitempty"`
+	Labels  map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
 }
 
 type aclAuthorizer struct {
@@ -77,16 +79,29 @@ func validateMatchConditions(mc *MatchConditions) error {
 			return fmt.Errorf("invalid IP pattern: %s", err)
 		}
 	}
+	for k, v := range mc.Labels {
+		err := validatePattern(v)
+		if err != nil {
+			return fmt.Errorf("invalid match pattern %q for label %s: %s", v, k, err)
+		}
+	}
+	return nil
+}
+
+func ValidateACL(acl ACL) error {
+	for i, e := range acl {
+		err := validateMatchConditions(e.Match)
+		if err != nil {
+			return fmt.Errorf("entry %d, invalid match conditions: %s", i, err)
+		}
+	}
 	return nil
 }
 
 // NewACLAuthorizer Creates a new static authorizer with ACL that have been read from the config file
 func NewACLAuthorizer(acl ACL) (Authorizer, error) {
-	for i, e := range acl {
-		err := validateMatchConditions(e.Match)
-		if err != nil {
-			return nil, fmt.Errorf("entry %d, invalid match conditions: %s", i, err)
-		}
+	if err := ValidateACL(acl); err != nil {
+		return nil, err
 	}
 	glog.V(1).Infof("Created ACL Authorizer with %d entries", len(acl))
 	return &aclAuthorizer{acl: acl}, nil
@@ -151,6 +166,23 @@ func matchIP(ipp *string, ip net.IP) bool {
 	return ipnet.Contains(ip)
 }
 
+func matchLabels(ml map[string]string, rl authn.Labels, vars []string) bool {
+	for label, pattern := range ml {
+		labelValues := rl[label]
+		matched := false
+		for _, lv := range labelValues {
+			if matchString(&pattern, lv, vars) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
 var captureGroupRegex = regexp.MustCompile(`\$\{(.+?):(\d+)\}`)
 
 func getField(i interface{}, name string) (string, bool) {
@@ -203,7 +235,8 @@ func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 	return matchString(mc.Account, ai.Account, vars) &&
 		matchString(mc.Type, ai.Type, vars) &&
 		matchString(mc.Name, ai.Name, vars) &&
-		matchIP(mc.IP, ai.IP)
+		matchIP(mc.IP, ai.IP) &&
+		matchLabels(mc.Labels, ai.Labels, vars)
 }
 
 func (e *ACLEntry) Matches(ai *AuthRequestInfo) bool {

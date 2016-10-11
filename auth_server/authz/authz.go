@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/cesanta/docker_auth/auth_server/authn"
 )
 
 // Authorizer interface performs authorization of the request.
@@ -39,6 +41,7 @@ type AuthRequestInfo struct {
 	Service string
 	IP      net.IP
 	Actions []string
+	Labels  authn.Labels
 }
 
 func (ai AuthRequestInfo) String() string {

@@ -108,6 +108,7 @@ type authRequest struct {
 	Account        string
 	Service        string
 	Scopes         []authScope
+	Labels         authn.Labels
 }
 
 type authScope struct {
@@ -202,26 +203,26 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	return ar, nil
 }
 
-func (as *AuthServer) Authenticate(ar *authRequest) (bool, error) {
+func (as *AuthServer) Authenticate(ar *authRequest) (bool, authn.Labels, error) {
 	for i, a := range as.authenticators {
-		result, err := a.Authenticate(ar.Account, ar.Password)
-		glog.V(2).Infof("Authn %s %s -> %t, %v", a.Name(), ar.Account, result, err)
+		result, labels, err := a.Authenticate(ar.Account, ar.Password)
+		glog.V(2).Infof("Authn %s %s -> %t, %+v, %v", a.Name(), ar.Account, result, labels, err)
 		if err != nil {
 			if err == authn.NoMatch {
 				continue
 			} else if err == authn.WrongPass {
 				glog.Warningf("Failed authentication with %s: %s", err)
-				return false, nil
+				return false, nil, nil
 			}
 			err = fmt.Errorf("authn #%d returned error: %s", i+1, err)
 			glog.Errorf("%s: %s", ar, err)
-			return false, err
+			return false, nil, err
 		}
-		return result, nil
+		return result, labels, nil
 	}
 	// Deny by default.
 	glog.Warningf("%s did not match any authn rule", ar)
-	return false, nil
+	return false, nil, nil
 }
 
 func (as *AuthServer) authorizeScope(ai *authz.AuthRequestInfo) ([]string, error) {
@@ -253,6 +254,7 @@ func (as *AuthServer) Authorize(ar *authRequest) ([]authzResult, error) {
 			Service: ar.Service,
 			IP:      ar.RemoteIP,
 			Actions: scope.Actions,
+			Labels:  ar.Labels,
 		}
 		actions, err := as.authorizeScope(ai)
 		if err != nil {
@@ -316,7 +318,7 @@ func (as *AuthServer) CreateToken(ar *authRequest, ares []authzResult) (string, 
 	if err != nil || sigAlg2 != sigAlg {
 		return "", fmt.Errorf("failed to sign token: %s", err)
 	}
-	glog.Infof("New token for %s: %s", *ar, claimsJSON)
+	glog.Infof("New token for %s %+v: %s", *ar, ar.Labels, claimsJSON)
 	return fmt.Sprintf("%s%s%s", payload, token.TokenSeparator, joseBase64UrlEncode(sig)), nil
 }
 
@@ -359,7 +361,7 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 	}
 	glog.V(2).Infof("Auth request: %+v", ar)
 	{
-		authnResult, err := as.Authenticate(ar)
+		authnResult, labels, err := as.Authenticate(ar)
 		if err != nil {
 			http.Error(rw, fmt.Sprintf("Authentication failed (%s)", err), http.StatusInternalServerError)
 			return
@@ -369,6 +371,7 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 			http.Error(rw, "Auth failed.", http.StatusUnauthorized)
 			return
 		}
+		ar.Labels = labels
 	}
 	if len(ar.Scopes) > 0 {
 		ares, err = as.Authorize(ar)

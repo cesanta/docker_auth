@@ -143,13 +143,13 @@ func (rs *RestartableServer) WatchConfig() {
 }
 
 func (rs *RestartableServer) MaybeRestart() {
-	glog.Infof("Restarting server")
+	glog.Infof("Validating new config")
 	c, err := server.LoadConfig(rs.configFile)
 	if err != nil {
 		glog.Errorf("Failed to reload config (server not restarted): %s", err)
 		return
 	}
-	glog.Infof("New config loaded")
+	glog.Infof("Config ok, restarting server")
 	rs.hs.Stop()
 	rs.authServer.Stop()
 	rs.authServer, rs.hs = ServeOnce(c, rs.configFile, rs.hd)

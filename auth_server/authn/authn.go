@@ -18,6 +18,8 @@ package authn
 
 import "errors"
 
+type Labels map[string][]string
+
 // Authentication plugin interface.
 type Authenticator interface {
 	// Given a user name and a password (plain text), responds with the result or an error.
@@ -26,7 +28,7 @@ type Authenticator interface {
 	// e.g. none of the rules matched.
 	// Another special WrongPass error is returned if the authorizer failed to authenticate.
 	// Implementations must be goroutine-safe.
-	Authenticate(user string, password PasswordString) (bool, error)
+	Authenticate(user string, password PasswordString) (bool, Labels, error)
 
 	// Finalize resources in preparation for shutdown.
 	// When this call is made there are guaranteed to be no Authenticate requests in flight

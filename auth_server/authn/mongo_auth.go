@@ -82,7 +82,7 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 	}, nil
 }
 
-func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, error) {
+func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, Labels, error) {
 	for true {
 		result, err := mauth.authenticate(account, password)
 		if err == io.EOF {
@@ -90,10 +90,10 @@ func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (b
 			time.Sleep(time.Second)
 			continue
 		}
-		return result, err
+		return result, nil, err
 	}
 
-	return false, errors.New("Unable to communicate with Mongo.")
+	return false, nil, errors.New("Unable to communicate with Mongo.")
 }
 
 func (mauth *MongoAuth) authenticate(account string, password PasswordString) (bool, error) {

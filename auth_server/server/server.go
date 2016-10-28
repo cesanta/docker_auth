@@ -60,8 +60,8 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authorizers = append(as.authorizers, mongoAuthorizer)
 	}
-	if c.ACLExt != nil {
-		extAuthorizer := authz.NewACLExtAuthorizer(c.ACLExt)
+	if c.ExtAuthz != nil {
+		extAuthorizer := authz.NewExtAuthzAuthorizer(c.ExtAuthz)
 		as.authorizers = append(as.authorizers, extAuthorizer)
 	}
 	if c.Users != nil {

@@ -26,20 +26,20 @@ import (
 	"github.com/golang/glog"
 )
 
-type ACLExtConfig struct {
+type ExtAuthzConfig struct {
 	Command string   `yaml:"command"`
 	Args    []string `yaml:"args"`
 }
 
-type ACLExtStatus int
+type ExtAuthzStatus int
 
 const (
-	ACLExtAllowed ACLExtStatus = 0
-	ACLExtDenied  ACLExtStatus = 1
-	ACLExtError   ACLExtStatus = 2
+	ExtAuthzAllowed ExtAuthzStatus = 0
+	ExtAuthzDenied  ExtAuthzStatus = 1
+	ExtAuthzError   ExtAuthzStatus = 2
 )
 
-func (c *ACLExtConfig) Validate() error {
+func (c *ExtAuthzConfig) Validate() error {
 	if c.Command == "" {
 		return fmt.Errorf("command is not set")
 	}
@@ -49,16 +49,16 @@ func (c *ACLExtConfig) Validate() error {
 	return nil
 }
 
-type ACLExt struct {
-	cfg *ACLExtConfig
+type ExtAuthz struct {
+	cfg *ExtAuthzConfig
 }
 
-func NewACLExtAuthorizer(cfg *ACLExtConfig) *ACLExt {
+func NewExtAuthzAuthorizer(cfg *ExtAuthzConfig) *ExtAuthz {
 	glog.Infof("External authorization: %s %s", cfg.Command, strings.Join(cfg.Args, " "))
-	return &ACLExt{cfg: cfg}
+	return &ExtAuthz{cfg: cfg}
 }
 
-func (ea *ACLExt) Authorize(ai *AuthRequestInfo) ([]string, error) {
+func (ea *ExtAuthz) Authorize(ai *AuthRequestInfo) ([]string, error) {
 	aiMarshal, err := json.Marshal(ai)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to json.Marshal AuthRequestInfo: %s", err)
@@ -75,15 +75,15 @@ func (ea *ACLExt) Authorize(ai *AuthRequestInfo) ([]string, error) {
 		es = ee.Sys().(syscall.WaitStatus).ExitStatus()
 		et = string(ee.Stderr)
 	} else {
-		es = int(ACLExtError)
+		es = int(ExtAuthzError)
 		et = fmt.Sprintf("cmd run error: %s", err)
 	}
 	glog.V(2).Infof("%s %s -> %d %s", cmd.Path, cmd.Args, es, output)
 
-	switch ACLExtStatus(es) {
-	case ACLExtAllowed:
+	switch ExtAuthzStatus(es) {
+	case ExtAuthzAllowed:
 		return ai.Actions, nil
-	case ACLExtDenied:
+	case ExtAuthzDenied:
 		return []string{}, nil
 	default:
 		glog.Errorf("Ext command error: %d %s", es, et)
@@ -91,9 +91,9 @@ func (ea *ACLExt) Authorize(ai *AuthRequestInfo) ([]string, error) {
 	return nil, fmt.Errorf("bad return code from command: %d", es)
 }
 
-func (sua *ACLExt) Stop() {
+func (sua *ExtAuthz) Stop() {
 }
 
-func (sua *ACLExt) Name() string {
-	return "external ACL"
+func (sua *ExtAuthz) Name() string {
+	return "external authz"
 }

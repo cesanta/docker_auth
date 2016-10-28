@@ -229,6 +229,6 @@ acl_mongo:
 # External authorization - call an external progam to authorize user.
 # JSON of authz.AuthRequestInfo is passed to command's stdin and exit code is examined.
 # 0 - allow, 1 - deny, other - error.
-acl_ext:
+ext_authz:
   command: "/usr/local/bin/my_authz"  # Can be a relative path too; $PATH works.
   args: ["--flag", "--more", "--flags"]

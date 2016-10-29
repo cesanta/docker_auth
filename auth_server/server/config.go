@@ -42,6 +42,7 @@ type Config struct {
 	ExtAuth    *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
 	ACL        authz.ACL                      `yaml:"acl,omitempty"`
 	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
+	ExtAuthz   *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
 }
 
 type ServerConfig struct {
@@ -123,15 +124,22 @@ func validate(c *Config) error {
 			return fmt.Errorf("bad ext_auth config: %s", err)
 		}
 	}
-	if c.ACL == nil && c.ACLMongo == nil {
+	if c.ACL == nil && c.ACLMongo == nil && c.ExtAuthz == nil {
 		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions")
-	} else {
+	}
+
+	if c.ACL != nil {
 		if err := authz.ValidateACL(c.ACL); err != nil {
 			return fmt.Errorf("invalid ACL: %s", err)
 		}
 	}
 	if c.ACLMongo != nil {
 		if err := c.ACLMongo.Validate("acl_mongo"); err != nil {
+			return err
+		}
+	}
+	if c.ExtAuthz != nil {
+		if err := c.ExtAuthz.Validate(); err != nil {
 			return err
 		}
 	}

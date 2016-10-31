@@ -182,27 +182,29 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 		return nil, fmt.Errorf("invalid form value")
 	}
 	// https://github.com/docker/distribution/blob/1b9ab303a477ded9bdd3fc97e9119fa8f9e58fca/docs/spec/auth/scope.md#resource-scope-grammar
-	for _, scopeStr := range req.Form["scope"] {
-		parts := strings.Split(scopeStr, ":")
-		var scope authScope
-		switch len(parts) {
-		case 3:
-			scope = authScope{
-				Type:    parts[0],
-				Name:    parts[1],
-				Actions: strings.Split(parts[2], ","),
+	if req.FormValue("scope") != "" {
+		for _, scopeStr := range req.Form["scope"] {
+			parts := strings.Split(scopeStr, ":")
+			var scope authScope
+			switch len(parts) {
+			case 3:
+				scope = authScope{
+					Type:    parts[0],
+					Name:    parts[1],
+					Actions: strings.Split(parts[2], ","),
+				}
+			case 4:
+				scope = authScope{
+					Type:    parts[0],
+					Name:    parts[1] + ":" + parts[2],
+					Actions: strings.Split(parts[3], ","),
+				}
+			default:
+				return nil, fmt.Errorf("invalid scope: %q", scopeStr)
 			}
-		case 4:
-			scope = authScope{
-				Type:    parts[0],
-				Name:    parts[1] + ":" + parts[2],
-				Actions: strings.Split(parts[3], ","),
-			}
-		default:
-			return nil, fmt.Errorf("invalid scope: %q", scopeStr)
+			sort.Strings(scope.Actions)
+			ar.Scopes = append(ar.Scopes, scope)
 		}
-		sort.Strings(scope.Actions)
-		ar.Scopes = append(ar.Scopes, scope)
 	}
 	return ar, nil
 }

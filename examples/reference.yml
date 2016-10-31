@@ -133,6 +133,9 @@ mongo_auth:
 # External authentication - call an external progam to authenticate user.
 # Username and password are passed to command's stdin and exit code is examined.
 # 0 - allow, 1 - deny, 2 - no match, other - error.
+# In case of success, if any output is returned, it is parsed as a JSON object.
+# The "labels" key may contain labels to be passed down to authz, where they can
+# be used in matching. See ext_auth.sh for an example.
 ext_auth:
   command: "/usr/local/bin/my_auth"  # Can be a relative path too; $PATH works.
   args: ["--flag", "--more", "--flags"]

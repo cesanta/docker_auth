@@ -39,7 +39,8 @@ type GitHubAuthConfig struct {
 	TokenDB          string        `yaml:"token_db,omitempty"`
 	HTTPTimeout      time.Duration `yaml:"http_timeout,omitempty"`
 	RevalidateAfter  time.Duration `yaml:"revalidate_after,omitempty"`
-	GHEHost          string        `yaml:"ghe_host,omitempty"`
+	GithubWebUri        string     `yaml:"github_web_uri,omitempty"`
+	GithubApiUri        string     `yaml:"github_api_uri,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -91,11 +92,19 @@ func (gha *GitHubAuth) DoGitHubAuth(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (gha *GitHubAuth) getAPIHost() string {
-	if gha.config.GHEHost != "" {
-		return gha.config.GHEHost
+func (gha *GitHubAuth) getGithubApiUri() string {
+	if gha.config.GithubApiUri != "" {
+		return gha.config.GithubApiUri
 	} else {
 		return "api.github.com"
+	}
+}
+
+func (gha *GitHubAuth) getGithubWebUri() string {
+	if gha.config.GithubWebUri != "" {
+		return gha.config.GithubWebUri
+	} else {
+		return "https://github.com"
 	}
 }
 
@@ -105,11 +114,8 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		"client_id":     []string{gha.config.ClientId},
 		"client_secret": []string{gha.config.ClientSecret},
 	}
-	h := gha.config.GHEHost
-	if h == "" {
-		h = "github.com"
-	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/login/oauth/access_token", h), bytes.NewBufferString(data.Encode()))
+	
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/login/oauth/access_token", getGithubWebUri()), bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("Error creating request to GitHub auth backend: %s", err), http.StatusServiceUnavailable)
 		return
@@ -163,7 +169,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 }
 
 func (gha *GitHubAuth) validateAccessToken(token string) (user string, err error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/user", gha.getAPIHost()), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/user", gha.getGithubApiUri()), nil)
 	if err != nil {
 		err = fmt.Errorf("could not create request to get information for token %s: %s", token, err)
 		return
@@ -200,7 +206,7 @@ func (gha *GitHubAuth) checkOrganization(token, user string) (err error) {
 	if gha.config.Organization == "" {
 		return nil
 	}
-	url := fmt.Sprintf("https://%s/orgs/%s/members/%s", gha.getAPIHost(), gha.config.Organization, user)
+	url := fmt.Sprintf("https://%s/orgs/%s/members/%s", gha.getGithubApiUri(), gha.config.Organization, user)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		err = fmt.Errorf("could not create request to get organization membership: %s", err)

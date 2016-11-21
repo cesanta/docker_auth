@@ -84,6 +84,12 @@ github_auth:
   http_timeout: "10s"
   # How long to wait before revalidating the GitHub token. Optional.
   revalidate_after: "1h"
+  # The Github Web URI in case you are using Github Enterprise.
+  # Includes the protocol, without trailing slash.
+  github_web_uri: "https://github.acme.com"
+  # The Github Web URI in case you are using Github Enterprise.
+  # Includes the protocol, without trailing slash.
+  github_api_uri: "https://github.acme.com/api/v3"
 
 # LDAP authentication.
 # Authentication is performed by first binding to the server, looking up the user entry

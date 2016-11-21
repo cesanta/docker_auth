@@ -39,8 +39,8 @@ type GitHubAuthConfig struct {
 	TokenDB          string        `yaml:"token_db,omitempty"`
 	HTTPTimeout      time.Duration `yaml:"http_timeout,omitempty"`
 	RevalidateAfter  time.Duration `yaml:"revalidate_after,omitempty"`
-	GithubWebUri        string     `yaml:"github_web_uri,omitempty"`
-	GithubApiUri        string     `yaml:"github_api_uri,omitempty"`
+	GithubWebUri     string     `yaml:"github_web_uri,omitempty"`
+	GithubApiUri     string     `yaml:"github_api_uri,omitempty"`
 }
 
 type GitHubAuthRequest struct {

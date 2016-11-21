@@ -115,7 +115,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		"client_secret": []string{gha.config.ClientSecret},
 	}
 	
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/login/oauth/access_token", getGithubWebUri()), bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/login/oauth/access_token", gha.getGithubWebUri()), bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("Error creating request to GitHub auth backend: %s", err), http.StatusServiceUnavailable)
 		return

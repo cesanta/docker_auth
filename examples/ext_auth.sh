@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # Example external authenticator program for use with `ext_auth`.
 #

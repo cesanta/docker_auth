@@ -234,7 +234,7 @@ func (ga *GoogleAuth) doGoogleAuthCreateToken(rw http.ResponseWriter, code strin
 		return
 	}
 
-	fmt.Fprintf(rw, `Server logged in; now run "docker login", use %s as login and %s as password.`, user, dp)
+	fmt.Fprintf(rw, `Server logged in; now run "docker login YOUR_REGISTRY_FQDN", use %s as login and %s as password.`, user, dp)
 }
 
 func (ga *GoogleAuth) getIDTokenInfo(token string) (*GoogleTokenInfo, error) {

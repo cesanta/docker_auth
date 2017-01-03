@@ -165,7 +165,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		return
 	}
 
-	fmt.Fprintf(rw, `Server logged in; now run "docker login", use %s as login and %s as password.`, user, dp)
+	fmt.Fprintf(rw, `Server logged in; now run "docker login YOUR_REGISTRY_FQDN", use %s as login and %s as password.`, user, dp)
 }
 
 func (gha *GitHubAuth) validateAccessToken(token string) (user string, err error) {

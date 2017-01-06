@@ -32,17 +32,19 @@ import (
 )
 
 type Config struct {
-	Server     ServerConfig                   `yaml:"server"`
-	Token      TokenConfig                    `yaml:"token"`
-	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
-	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	GitHubAuth *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
-	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
-	MongoAuth  *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
-	ExtAuth    *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
-	ACL        authz.ACL                      `yaml:"acl,omitempty"`
-	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
-	ExtAuthz   *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
+	Server      ServerConfig                   `yaml:"server"`
+	Token       TokenConfig                    `yaml:"token"`
+	Users       map[string]*authn.Requirements `yaml:"users,omitempty"`
+	GoogleAuth  *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	GitHubAuth  *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
+	LDAPAuth    *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
+	MongoAuth   *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
+	CouchDBAuth *authn.CouchDBAuthConfig       `yaml:"couchdb_auth,omitempty"`
+	ExtAuth     *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
+	ACL         authz.ACL                      `yaml:"acl,omitempty"`
+	ACLMongo    *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
+	ACLCouchDB  *authz.ACLCouchDBConfig        `yaml:"acl_couchdb,omitempty"`
+	ExtAuthz    *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
 }
 
 type ServerConfig struct {
@@ -77,11 +79,16 @@ func validate(c *Config) error {
 	if c.Token.Expiration <= 0 {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
-	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil {
+	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.CouchDBAuth == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if c.MongoAuth != nil {
 		if err := c.MongoAuth.Validate("mongo_auth"); err != nil {
+			return err
+		}
+	}
+	if c.CouchDBAuth != nil {
+		if err := c.CouchDBAuth.Validate("couchdb_auth"); err != nil {
 			return err
 		}
 	}
@@ -124,7 +131,7 @@ func validate(c *Config) error {
 			return fmt.Errorf("bad ext_auth config: %s", err)
 		}
 	}
-	if c.ACL == nil && c.ACLMongo == nil && c.ExtAuthz == nil {
+	if c.ACL == nil && c.ACLMongo == nil && c.ACLCouchDB == nil && c.ExtAuthz == nil {
 		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions")
 	}
 
@@ -135,6 +142,11 @@ func validate(c *Config) error {
 	}
 	if c.ACLMongo != nil {
 		if err := c.ACLMongo.Validate("acl_mongo"); err != nil {
+			return err
+		}
+	}
+	if c.ACLCouchDB != nil {
+		if err := c.ACLCouchDB.Validate("acl_couchdb"); err != nil {
 			return err
 		}
 	}

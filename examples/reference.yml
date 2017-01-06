@@ -136,6 +136,32 @@ mongo_auth:
   # Unlike acl_mongo we don't cache the full user set. We just query mongo for
   # an exact match for each authorization
 
+# CouchDB authentication.
+# CouchDB does not have the concept of collection like MongoDB.
+couchdb_auth:
+    # Example to show how to init CouchDB databases, create design and user documents.
+    # https://github.com/zyfdegh/couchdb-init
+  dial_info:
+    # The CouchDB hostnames or IPs to connect to.
+    addrs: ["127.0.0.1:5984"]
+    # The time to wait for a server to respond when first connecting and on
+    # follow up operations in the session. If timeout is zero, the call may
+    # block forever waiting for a connection to be established.
+    # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
+    timeout: "10s"
+    # Database name that will be used on the CouchDB server.
+    database: "user"
+    # Name of Design document in that databse.
+    # http://guide.couchdb.org/draft/design.html
+    design: "user"
+    # Name of View.
+    # http://guide.couchdb.org/draft/views.html
+    view: "getByUsername"
+    # The username with which to connect to the CouchDB server.
+    username: ""
+    # The password with which to connect to the CouchDB server.
+    password: ""
+
 # External authentication - call an external progam to authenticate user.
 # Username and password are passed to command's stdin and exit code is examined.
 # 0 - allow, 1 - deny, 2 - no match, other - error.
@@ -232,6 +258,36 @@ acl_mongo:
   collection: "acl"
   # Specify how long an ACL remains valid before they will be fetched again from
   # the MongoDB server.
+  # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
+  cache_ttl: "1m"
+
+# (optional) Define to query ACL from a CouchDB server.
+# CouchDB does not have the concept of collection like MongoDB.
+acl_couchdb:
+    # Example to show how to init CouchDB databases, create design and user documents.
+    # https://github.com/zyfdegh/couchdb-init
+  dial_info:
+    # The CouchDB hostnames or IPs to connect to.
+    addrs: ["127.0.0.1:5984"]
+    # The time to wait for a server to respond when first connecting and on
+    # follow up operations in the session. If timeout is zero, the call may
+    # block forever waiting for a connection to be established.
+    # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
+    timeout: "10s"
+    # Database name that will be used on the CouchDB server.
+    database: "acl"
+    # Name of Design document in that databse.
+    # http://guide.couchdb.org/draft/design.html
+    design: "acl"
+    # Name of View.
+    # http://guide.couchdb.org/draft/views.html
+    view: "getBySeq"
+    # The username with which to connect to the CouchDB server.
+    username: ""
+    # The password with which to connect to the CouchDB server.
+    password: ""
+  # Specify how long an ACL remains valid before they will be fetched again from
+  # the CouchDB server.
   # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
   cache_ttl: "1m"
 

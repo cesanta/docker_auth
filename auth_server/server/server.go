@@ -60,6 +60,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authorizers = append(as.authorizers, mongoAuthorizer)
 	}
+	if c.ACLCouchDB != nil {
+		couchDBAuthorizer, err := authz.NewACLCouchDBAuthorizer(c.ACLCouchDB)
+		if err != nil {
+			return nil, err
+		}
+		as.authorizers = append(as.authorizers, couchDBAuthorizer)
+	}
 	if c.ExtAuthz != nil {
 		extAuthorizer := authz.NewExtAuthzAuthorizer(c.ExtAuthz)
 		as.authorizers = append(as.authorizers, extAuthorizer)
@@ -99,6 +106,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 			return nil, err
 		}
 		as.authenticators = append(as.authenticators, ma)
+	}
+	if c.CouchDBAuth != nil {
+		ca, err := authn.NewCouchDBAuth(c.CouchDBAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, ca)
 	}
 	return as, nil
 }

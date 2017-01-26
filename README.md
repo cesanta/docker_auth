@@ -15,15 +15,21 @@ Supported authentication methods:
  * Google Sign-In (incl. Google for Work / GApps for domain) (documented [here](https://github.com/cesanta/docker_auth/blob/master/examples/reference.yml))
  * LDAP bind ([demo](https://github.com/kwk/docker-registry-setup))
  * MongoDB user collection
- * External program
+ * [External program](https://github.com/cesanta/docker_auth/blob/master/examples/ext_auth.sh)
 
 Supported authorization methods:
  * Static ACL
  * MongoDB-backed ACL
+ * External program
 
 ## Installation and Examples
 
-A public Docker image is available on Docker Hub: [cesanta/docker_auth:stable](https://registry.hub.docker.com/u/cesanta/docker_auth/).
+A public Docker image is available on Docker Hub: [cesanta/docker](https://registry.hub.docker.com/u/cesanta/docker_auth/).
+
+Tags available:
+ - `:latest` - bleeding edge, usually works but breaking config changes are possible. You probably do not want to use this in production.
+ - `:1` - the `1.x` version, will have fixes, no breaking config changes. Previously known as `:stable`.
+ - `:1.x` - specific release, see [here](https://github.com/cesanta/docker_auth/releases) for the list of current releases.
 
 The binary takes a single argument - path to the config file.
 If no arguments are given, the Dockerfile defaults to `/config/auth_config.yml`.
@@ -35,7 +41,7 @@ $ docker run \
     --rm -it --name docker_auth -p 5001:5001 \
     -v /path/to/config_dir:/config:ro \
     -v /var/log/docker_auth:/logs \
-    cesanta/docker_auth:stable /config/auth_config.yml
+    cesanta/docker_auth:1 /config/auth_config.yml
 ```
 
 See the [example config files](https://github.com/cesanta/docker_auth/tree/master/examples/) to get an idea of what is possible.
@@ -44,7 +50,7 @@ See the [example config files](https://github.com/cesanta/docker_auth/tree/maste
 
 Run with increased verbosity:
 ```{r, engine='bash', count_lines}
-docker run ... cesanta/docker_auth:stable --v=2 --alsologtostderr /config/auth_config.yml
+docker run ... cesanta/docker_auth:1 --v=2 --alsologtostderr /config/auth_config.yml
 ```
 
 ## Contributing

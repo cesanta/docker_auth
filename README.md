@@ -24,7 +24,7 @@ Supported authorization methods:
 
 ## Installation and Examples
 
-A public Docker image is available on Docker Hub: [cesanta/docker](https://registry.hub.docker.com/u/cesanta/docker_auth/).
+A public Docker image is available on Docker Hub: [cesanta/docker_auth](https://registry.hub.docker.com/u/cesanta/docker_auth/).
 
 Tags available:
  - `:latest` - bleeding edge, usually works but breaking config changes are possible. You probably do not want to use this in production.

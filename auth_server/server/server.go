@@ -100,6 +100,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authenticators = append(as.authenticators, ma)
 	}
+	if c.VeritoneAPI != nil {
+		va, err := authn.NewVeritoneAuth(c.VeritoneAPI)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, va)
+	}
 	return as, nil
 }
 
@@ -143,7 +150,9 @@ func parseRemoteAddr(ra string) net.IP {
 }
 
 func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
-	ar := &authRequest{RemoteConnAddr: req.RemoteAddr, RemoteAddr: req.RemoteAddr}
+	//ar := &authRequest{RemoteConnAddr: req.RemoteAddr, RemoteAddr: req.RemoteAddr}
+	// XXX using below for local testing
+	ar := &authRequest{RemoteConnAddr: "0.0.0.0", RemoteAddr: "0.0.0.0"}
 	if as.config.Server.RealIPHeader != "" {
 		hv := req.Header.Get(as.config.Server.RealIPHeader)
 		ips := strings.Split(hv, ",")

@@ -16,6 +16,7 @@ Supported authentication methods:
  * LDAP bind ([demo](https://github.com/kwk/docker-registry-setup))
  * MongoDB user collection
  * [External program](https://github.com/cesanta/docker_auth/blob/master/examples/ext_auth.sh)
+ * Veritone API
 
 Supported authorization methods:
  * Static ACL

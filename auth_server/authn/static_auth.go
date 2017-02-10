@@ -18,6 +18,7 @@ package authn
 
 import (
 	"encoding/json"
+	"github.com/veritone/docker_auth/auth_server/authz"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -44,7 +45,7 @@ func NewStaticUserAuth(users map[string]*Requirements) *staticUsersAuth {
 	return &staticUsersAuth{users: users}
 }
 
-func (sua *staticUsersAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
+func (sua *staticUsersAuth) Authenticate(user string, password PasswordString) (bool, authz.Labels, error) {
 	reqs := sua.users[user]
 	if reqs == nil {
 		return false, nil, NoMatch

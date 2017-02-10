@@ -60,6 +60,11 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authorizers = append(as.authorizers, mongoAuthorizer)
 	}
+	var veritoneACL *authz.VeritoneAuthorizer
+	if c.VeritoneACL {
+		veritoneACL = authz.NewVeritoneAuthorizer()
+		as.authorizers = append(as.authorizers, veritoneACL)
+	}
 	if c.ExtAuthz != nil {
 		extAuthorizer := authz.NewExtAuthzAuthorizer(c.ExtAuthz)
 		as.authorizers = append(as.authorizers, extAuthorizer)
@@ -101,7 +106,7 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		as.authenticators = append(as.authenticators, ma)
 	}
 	if c.VeritoneAPI != nil {
-		va, err := authn.NewVeritoneAuth(c.VeritoneAPI)
+		va, err := authn.NewVeritoneAuth(c.VeritoneAPI, veritoneACL)
 		if err != nil {
 			return nil, err
 		}
@@ -119,7 +124,7 @@ type authRequest struct {
 	Account        string
 	Service        string
 	Scopes         []authScope
-	Labels         authn.Labels
+	Labels         authz.Labels
 }
 
 type authScope struct {
@@ -192,6 +197,7 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	}
 	// https://github.com/docker/distribution/blob/1b9ab303a477ded9bdd3fc97e9119fa8f9e58fca/docs/spec/auth/scope.md#resource-scope-grammar
 	if req.FormValue("scope") != "" {
+		glog.V(2).Info(req.Form["scope"])
 		for _, scopeStr := range req.Form["scope"] {
 			parts := strings.Split(scopeStr, ":")
 			var scope authScope
@@ -218,7 +224,7 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	return ar, nil
 }
 
-func (as *AuthServer) Authenticate(ar *authRequest) (bool, authn.Labels, error) {
+func (as *AuthServer) Authenticate(ar *authRequest) (bool, authz.Labels, error) {
 	for i, a := range as.authenticators {
 		result, labels, err := a.Authenticate(ar.Account, ar.Password)
 		glog.V(2).Infof("Authn %s %s -> %t, %+v, %v", a.Name(), ar.Account, result, labels, err)

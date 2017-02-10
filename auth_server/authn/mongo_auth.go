@@ -22,6 +22,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/veritone/docker_auth/auth_server/authz"
+
 	"github.com/golang/glog"
 	"github.com/veritone/docker_auth/auth_server/mgo_session"
 	"golang.org/x/crypto/bcrypt"
@@ -82,7 +84,7 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 	}, nil
 }
 
-func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, Labels, error) {
+func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, authz.Labels, error) {
 	for true {
 		result, err := mauth.authenticate(account, password)
 		if err == io.EOF {

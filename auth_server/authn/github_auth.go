@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/veritone/docker_auth/auth_server/authz"
 )
 
 type GitHubAuthConfig struct {
@@ -114,7 +115,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		"client_id":     []string{gha.config.ClientId},
 		"client_secret": []string{gha.config.ClientSecret},
 	}
-	
+
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/login/oauth/access_token", gha.getGithubWebUri()), bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("Error creating request to GitHub auth backend: %s", err), http.StatusServiceUnavailable)
@@ -254,7 +255,7 @@ func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
 	return v, nil
 }
 
-func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
+func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, authz.Labels, error) {
 	err := gha.db.ValidateToken(user, password)
 	if err == ExpiredToken {
 		_, err = gha.validateServerToken(user)

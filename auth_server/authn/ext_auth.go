@@ -23,6 +23,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/veritone/docker_auth/auth_server/authz"
+
 	"github.com/golang/glog"
 )
 
@@ -41,7 +43,7 @@ const (
 )
 
 type ExtAuthResponse struct {
-	Labels Labels `json:"labels,omitempty"`
+	Labels authz.Labels `json:"labels,omitempty"`
 }
 
 func (c *ExtAuthConfig) Validate() error {
@@ -63,7 +65,7 @@ func NewExtAuth(cfg *ExtAuthConfig) *extAuth {
 	return &extAuth{cfg: cfg}
 }
 
-func (ea *extAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
+func (ea *extAuth) Authenticate(user string, password PasswordString) (bool, authz.Labels, error) {
 	cmd := exec.Command(ea.cfg.Command, ea.cfg.Args...)
 	cmd.Stdin = strings.NewReader(fmt.Sprintf("%s %s", user, string(password)))
 	output, err := cmd.Output()

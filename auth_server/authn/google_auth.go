@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/veritone/docker_auth/auth_server/authz"
 )
 
 type GoogleAuthConfig struct {
@@ -399,7 +400,7 @@ func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) 
 	fmt.Fprint(rw, "signed out")
 }
 
-func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
+func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, authz.Labels, error) {
 	err := ga.db.ValidateToken(user, password)
 	if err == ExpiredToken {
 		_, err = ga.validateServerToken(user)

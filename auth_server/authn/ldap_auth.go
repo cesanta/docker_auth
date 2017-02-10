@@ -25,6 +25,7 @@ import (
 
 	"github.com/go-ldap/ldap"
 	"github.com/golang/glog"
+	"github.com/veritone/docker_auth/auth_server/authz"
 )
 
 type LDAPAuthConfig struct {
@@ -53,7 +54,7 @@ func NewLDAPAuth(c *LDAPAuthConfig) (*LDAPAuth, error) {
 }
 
 //How to authenticate user, please refer to https://github.com/go-ldap/ldap/blob/master/example_test.go#L166
-func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool, Labels, error) {
+func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool, authz.Labels, error) {
 	if account == "" || password == "" {
 		return false, nil, NoMatch
 	}

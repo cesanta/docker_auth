@@ -16,9 +16,11 @@
 
 package authn
 
-import "errors"
+import (
+	"errors"
 
-type Labels map[string][]string
+	"github.com/veritone/docker_auth/auth_server/authz"
+)
 
 // Authentication plugin interface.
 type Authenticator interface {
@@ -28,7 +30,7 @@ type Authenticator interface {
 	// e.g. none of the rules matched.
 	// Another special WrongPass error is returned if the authorizer failed to authenticate.
 	// Implementations must be goroutine-safe.
-	Authenticate(user string, password PasswordString) (bool, Labels, error)
+	Authenticate(user string, password PasswordString) (bool, authz.Labels, error)
 
 	// Finalize resources in preparation for shutdown.
 	// When this call is made there are guaranteed to be no Authenticate requests in flight
@@ -41,8 +43,6 @@ type Authenticator interface {
 
 var NoMatch = errors.New("did not match any rule")
 var WrongPass = errors.New("wrong password for user")
-
-//go:generate go-bindata -pkg authn -modtime 1 -mode 420 -nocompress data/
 
 type PasswordString string
 

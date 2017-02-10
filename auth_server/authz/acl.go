@@ -11,8 +11,9 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/veritone/docker_auth/auth_server/authn"
 )
+
+type Labels map[string][]string
 
 type ACL []ACLEntry
 
@@ -90,6 +91,7 @@ func validateMatchConditions(mc *MatchConditions) error {
 
 func ValidateACL(acl ACL) error {
 	for i, e := range acl {
+		glog.V(2).Info(e)
 		err := validateMatchConditions(e.Match)
 		if err != nil {
 			return fmt.Errorf("entry %d, invalid match conditions: %s", i, err)
@@ -166,7 +168,7 @@ func matchIP(ipp *string, ip net.IP) bool {
 	return ipnet.Contains(ip)
 }
 
-func matchLabels(ml map[string]string, rl authn.Labels, vars []string) bool {
+func matchLabels(ml map[string]string, rl Labels, vars []string) bool {
 	for label, pattern := range ml {
 		labelValues := rl[label]
 		matched := false

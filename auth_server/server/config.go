@@ -45,6 +45,7 @@ type Config struct {
 	ACLMongo    *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
 	ExtAuthz    *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
 	VeritoneAPI *veritoneAPI.APIConfig         `yaml:"veritone_api,omitempty"`
+	VeritoneACL bool                           `yaml:"veritone_acl,omitempty"`
 }
 
 type ServerConfig struct {
@@ -126,7 +127,7 @@ func validate(c *Config) error {
 			return fmt.Errorf("bad ext_auth config: %s", err)
 		}
 	}
-	if c.ACL == nil && c.ACLMongo == nil && c.ExtAuthz == nil {
+	if c.ACL == nil && c.ACLMongo == nil && c.ExtAuthz == nil && !c.VeritoneACL {
 		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions")
 	}
 

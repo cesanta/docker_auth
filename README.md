@@ -22,6 +22,7 @@ Supported authorization methods:
  * Static ACL
  * MongoDB-backed ACL
  * External program
+ * Veritone API
 
 ## Installation and Examples
 

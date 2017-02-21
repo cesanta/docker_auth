@@ -14,4 +14,4 @@ RUN echo http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositorie
 
 EXPOSE 5001
 
-ENTRYPOINT /go/src/github.com/veritone/docker_auth/auth_server/docker_auth
+ENTRYPOINT ["/go/src/github.com/veritone/docker_auth/auth_server/docker_auth"]

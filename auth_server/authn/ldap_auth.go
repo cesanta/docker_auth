@@ -17,7 +17,6 @@
 package authn
 
 import (
-	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -71,10 +70,20 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 	account = la.escapeAccountInput(account)
 
 	filter := la.getFilter(account)
-	accountEntryDN, uSearchErr := la.ldapSearch(l, &la.config.Base, &filter, &[]string{})
+
+	// dnAndGroupAttr := []string{"DN"} // example of no groups mapping attribute
+	groupAttribute := "memberOf"
+	dnAndGroupAttr := []string{"DN", groupAttribute}
+
+	entryAttrMap, uSearchErr := la.ldapSearch(l, &la.config.Base, &filter, &dnAndGroupAttr)
 	if uSearchErr != nil {
 		return false, nil, uSearchErr
 	}
+	if len(entryAttrMap) < 1 || entryAttrMap["DN"] == nil || len(entryAttrMap["DN"]) != 1 {
+		return false, nil, NoMatch // User does not exist
+	}
+
+	accountEntryDN := entryAttrMap["DN"][0]
 	if accountEntryDN == "" {
 		return false, nil, NoMatch // User does not exist
 	}
@@ -91,6 +100,20 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 	// Rebind as the read only user for any futher queries
 	if bindErr := la.bindReadOnlyUser(l); bindErr != nil {
 		return false, nil, bindErr
+	}
+
+	// Extract group names from the attribute values
+	if entryAttrMap[groupAttribute] != nil {
+		rawGroups := entryAttrMap[groupAttribute]
+		labels := make(map[string][]string)
+		var groups []string
+		for _, value := range rawGroups {
+			cn := la.getCNFromDN(value)
+			groups = append(groups, cn)
+		}
+		labels["groups"] = groups
+
+		return true, labels, nil
 	}
 
 	return true, nil, nil
@@ -170,9 +193,9 @@ func (la *LDAPAuth) getFilter(account string) string {
 
 //ldap search and return required attributes' value from searched entries
 //default return entry's DN value if you leave attrs array empty
-func (la *LDAPAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, attrs *[]string) (string, error) {
+func (la *LDAPAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, attrs *[]string) (map[string][]string, error) {
 	if l == nil {
-		return "", fmt.Errorf("No ldap connection!")
+		return nil, fmt.Errorf("No ldap connection!")
 	}
 	glog.V(2).Infof("Searching...basedDN:%s, filter:%s", *baseDN, *filter)
 	searchRequest := ldap.NewSearchRequest(
@@ -183,30 +206,54 @@ func (la *LDAPAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, att
 		nil)
 	sr, err := l.Search(searchRequest)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(sr.Entries) == 0 {
-		return "", nil // User does not exist
+		return nil, nil // User does not exist
 	} else if len(sr.Entries) > 1 {
-		return "", fmt.Errorf("Too many entries returned.")
+		return nil, fmt.Errorf("Too many entries returned.")
 	}
 
-	var buffer bytes.Buffer
+	result := make(map[string][]string)
 	for _, entry := range sr.Entries {
+
 		if len(*attrs) == 0 {
 			glog.V(2).Infof("Entry DN = %s", entry.DN)
-			buffer.WriteString(entry.DN)
+			result["DN"] = []string{entry.DN}
 		} else {
 			for _, attr := range *attrs {
-				values := strings.Join(entry.GetAttributeValues(attr), " ")
-				glog.V(2).Infof("Entry %s = %s", attr, values)
-				buffer.WriteString(values)
+				var values []string
+				if attr == "DN" {
+					// DN is excluded from attributes
+					values = []string{entry.DN}
+				} else {
+					values = entry.GetAttributeValues(attr)
+				}
+				valuesString := strings.Join(values, "\n")
+				glog.V(2).Infof("Entry %s = %s", attr, valuesString)
+				result[attr] = values
 			}
 		}
 	}
 
-	return buffer.String(), nil
+	return result, nil
+}
+
+func (la *LDAPAuth) getCNFromDN(dn string) string {
+	parsedDN, err := ldap.ParseDN(dn)
+	if err != nil || len(parsedDN.RDNs) > 0 {
+		for _, rdn := range parsedDN.RDNs {
+			for _, rdnAttr := range rdn.Attributes {
+				if rdnAttr.Type == "CN" {
+					return rdnAttr.Value
+				}
+			}
+		}
+	}
+
+	// else try using raw DN
+	return dn
 }
 
 func (la *LDAPAuth) Stop() {

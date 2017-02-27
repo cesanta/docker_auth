@@ -136,18 +136,25 @@ func (la *LDAPAuth) escapeAccountInput(account string) string {
 func (la *LDAPAuth) ldapConnection() (*ldap.Conn, error) {
 	var l *ldap.Conn
 	var err error
+
+	tlsConfig := &tls.Config{InsecureSkipVerify: true}
+	if !la.config.InsecureTLSSkipVerify {
+		addr := strings.Split(la.config.Addr, ":")
+		tlsConfig = &tls.Config{InsecureSkipVerify: false, ServerName: addr[0]}
+	}
+
 	if la.config.TLS == "" || la.config.TLS == "none" || la.config.TLS == "starttls" {
 		glog.V(2).Infof("Dial: starting...%s", la.config.Addr)
 		l, err = ldap.Dial("tcp", fmt.Sprintf("%s", la.config.Addr))
 		if err == nil && la.config.TLS == "starttls" {
 			glog.V(2).Infof("StartTLS...")
-			if tlserr := l.StartTLS(&tls.Config{InsecureSkipVerify: la.config.InsecureTLSSkipVerify}); tlserr != nil {
+			if tlserr := l.StartTLS(tlsConfig); tlserr != nil {
 				return nil, tlserr
 			}
 		}
 	} else if la.config.TLS == "always" {
 		glog.V(2).Infof("DialTLS: starting...%s", la.config.Addr)
-		l, err = ldap.DialTLS("tcp", fmt.Sprintf("%s", la.config.Addr), &tls.Config{InsecureSkipVerify: la.config.InsecureTLSSkipVerify})
+		l, err = ldap.DialTLS("tcp", fmt.Sprintf("%s", la.config.Addr), tlsConfig)
 	}
 	if err != nil {
 		return nil, err

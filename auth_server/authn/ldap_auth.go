@@ -42,8 +42,6 @@ type LDAPAuthConfig struct {
 	BindDN                string              `yaml:"bind_dn,omitempty"`
 	BindPasswordFile      string              `yaml:"bind_password_file,omitempty"`
 	LabelMaps             map[string]LabelMap `yaml:"labels,omitempty"`
-	GroupBaseDN           string              `yaml:"group_base_dn,omitempty"`
-	GroupFilter           string              `yaml:"group_filter,omitempty"`
 }
 
 type LDAPAuth struct {

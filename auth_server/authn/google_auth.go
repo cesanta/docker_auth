@@ -179,6 +179,7 @@ func (ga *GoogleAuth) doGoogleAuthCreateToken(rw http.ResponseWriter, code strin
 			"client_secret": []string{ga.config.ClientSecret},
 			"redirect_uri":  []string{"postmessage"},
 			"grant_type":    []string{"authorization_code"},
+			"access_type":   []string{"online"},
 		})
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("Error talking to Google auth backend: %s", err), http.StatusServiceUnavailable)

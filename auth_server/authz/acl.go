@@ -27,6 +27,7 @@ type MatchConditions struct {
 	Type    *string           `yaml:"type,omitempty" json:"type,omitempty"`
 	Name    *string           `yaml:"name,omitempty" json:"name,omitempty"`
 	IP      *string           `yaml:"ip,omitempty" json:"ip,omitempty"`
+	Service *string           `yaml:"service,omitempty" json:"service,omitempty"`
 	Labels  map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
 }
 
@@ -64,7 +65,7 @@ func parseIPPattern(ipp string) (*net.IPNet, error) {
 }
 
 func validateMatchConditions(mc *MatchConditions) error {
-	for _, p := range []*string{mc.Account, mc.Type, mc.Name} {
+	for _, p := range []*string{mc.Account, mc.Type, mc.Name, mc.Service} {
 		if p == nil {
 			continue
 		}
@@ -201,7 +202,7 @@ func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 		"${name}", regexp.QuoteMeta(ai.Name),
 		"${service}", regexp.QuoteMeta(ai.Service),
 	}
-	for _, x := range []string{"Account", "Type", "Name"} {
+	for _, x := range []string{"Account", "Type", "Name", "Service"} {
 		field, _ := getField(mc, x)
 		for _, found := range captureGroupRegex.FindAllStringSubmatch(field, -1) {
 			key := strings.Title(found[1])
@@ -235,6 +236,7 @@ func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 	return matchString(mc.Account, ai.Account, vars) &&
 		matchString(mc.Type, ai.Type, vars) &&
 		matchString(mc.Name, ai.Name, vars) &&
+		matchString(mc.Service, ai.Service, vars) &&
 		matchIP(mc.IP, ai.IP) &&
 		matchLabels(mc.Labels, ai.Labels, vars)
 }

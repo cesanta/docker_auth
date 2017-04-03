@@ -76,7 +76,11 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 }
 
 func (gha *GitHubAuth) doGitHubAuthPage(rw http.ResponseWriter, req *http.Request) {
-	if err := gha.tmpl.Execute(rw, struct{ ClientId string }{ClientId: gha.config.ClientId}); err != nil {
+	if err := gha.tmpl.Execute(rw, struct {
+		ClientId, GithubWebUri string
+	}{
+		ClientId:     gha.config.ClientId,
+		GithubWebUri: gha.getGithubWebUri()}); err != nil {
 		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
 	}
 }
@@ -114,7 +118,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		"client_id":     []string{gha.config.ClientId},
 		"client_secret": []string{gha.config.ClientSecret},
 	}
-	
+
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/login/oauth/access_token", gha.getGithubWebUri()), bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("Error creating request to GitHub auth backend: %s", err), http.StatusServiceUnavailable)

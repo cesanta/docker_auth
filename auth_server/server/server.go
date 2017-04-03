@@ -376,6 +376,7 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 		}
 		if !authnResult {
 			glog.Warningf("Auth failed: %s", *ar)
+			rw.Header()["WWW-Authenticate"] = []string{fmt.Sprintf(`Basic realm="%s"`, as.config.Token.Issuer)}
 			http.Error(rw, "Auth failed.", http.StatusUnauthorized)
 			return
 		}

@@ -23,6 +23,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -31,6 +32,10 @@ import (
 	"github.com/cesanta/docker_auth/auth_server/authz"
 	"github.com/docker/distribution/registry/auth/token"
 	"github.com/golang/glog"
+)
+
+var (
+	hostPortRegex = regexp.MustCompile(`\[?(.+?)\]?:\d+$`)
 )
 
 type AuthServer struct {
@@ -131,12 +136,9 @@ func (ar authRequest) String() string {
 }
 
 func parseRemoteAddr(ra string) net.IP {
-	colonIndex := strings.LastIndex(ra, ":")
-	if colonIndex > 0 && ra[colonIndex-1] >= 0x30 && ra[colonIndex-1] <= 0x39 {
-		ra = ra[:colonIndex]
-	}
-	if ra[0] == '[' && ra[len(ra)-1] == ']' { // IPv6
-		ra = ra[1 : len(ra)-1]
+	hp := hostPortRegex.FindStringSubmatch(ra)
+	if hp != nil {
+		ra = string(hp[1])
 	}
 	res := net.ParseIP(ra)
 	return res

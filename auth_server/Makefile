@@ -1,14 +1,30 @@
-# BINARY_NAME defaults to the name of the repository
 BINARY_NAME := docker_auth
-LIST_NO_VENDOR := $(go list ./... | grep -v /vendor/)
+BUILD_INFO_FLAGS := -X main.BuildTime=$(shell date -u '+%Y-%m-%d_%H:%M:%S') -X main.BuildCommitHash=$(shell git rev-parse HEAD)
 GOBIN := $(GOPATH)/bin
+LIST_NO_VENDOR := $(go list ./... | grep -v /vendor/)
+OSX_BUILD_FLAGS := -s
+STATIC_BUILD_FLAGS := -linkmode external -extldflags -static -w
 
-default: check fmt deps test build
+# `make` -- run in wercker (golang image uses Debian)
+default: check fmt deps test build.static
+
+# `make dev` / `make osx` -- run when doing local development (on OSX)
+dev: osx
+osx: check fmt deps test.osx build
+
+# `make alpine` / `make docker` -- run when building an Alpine-based Docker image
+docker: alpine
+alpine: check fmt deps test.nocover build.static
 
 .PHONY: build
 build:
 	# Build project
-	go build -a -o $(BINARY_NAME) .
+	go build -ldflags "$(BUILD_INFO_FLAGS) $(OSX_BUILD_FLAGS)" -a -o $(BINARY_NAME) .
+
+.PHONY: build.static
+build.static:
+	# Build statically linked binary
+	go build -ldflags "$(BUILD_INFO_FLAGS) $(STATIC_BUILD_FLAGS)" -a -o $(BINARY_NAME) .
 
 .PHONY: check
 check:
@@ -39,5 +55,15 @@ generate-deps:
 
 .PHONY: test
 test:
+	# Run all tests, with coverage (excluding vendored packages)
+	go test -a -v -cover $(LIST_NO_VENDOR)
+
+.PHONY: test.osx
+test.osx:
+	# Run all tests, with coverage (excluding vendored packages)
+	go test -a -v -cover $(LIST_NO_VENDOR) -ldflags "$(OSX_BUILD_FLAGS)"
+
+.PHONY: test.nocover
+test.nocover:
 	# Run all tests (excluding vendored packages)
 	go test -a -v $(LIST_NO_VENDOR)

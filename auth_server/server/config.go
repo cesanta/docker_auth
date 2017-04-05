@@ -55,6 +55,8 @@ type ServerConfig struct {
 	CertFile      string `yaml:"certificate,omitempty"`
 	KeyFile       string `yaml:"key,omitempty"`
 
+	PrometheusPort string `yaml:"prometheusPort"`
+
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
 }
@@ -70,6 +72,12 @@ type TokenConfig struct {
 }
 
 func validate(c *Config) error {
+	// set default prometheus port
+	if c.Server.PrometheusPort == "" {
+		c.Server.PrometheusPort = "30000"
+	}
+
+	// validate config
 	if c.Server.ListenAddress == "" {
 		return errors.New("server.addr is required")
 	}

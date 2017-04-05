@@ -24,13 +24,16 @@ import (
 	"net"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/docker/distribution/registry/auth/token"
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/veritone/docker_auth/auth_server/authn"
 	"github.com/veritone/docker_auth/auth_server/authz"
+	vMetrics "github.com/veritone/go-metrics"
 )
 
 type AuthServer struct {
@@ -39,6 +42,11 @@ type AuthServer struct {
 	authorizers    []authz.Authorizer
 	ga             *authn.GoogleAuth
 	gha            *authn.GitHubAuth
+	metrics        *AuthServerMetrics
+}
+
+type AuthServerMetrics struct {
+	RequestsCounterVec *prometheus.CounterVec
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
@@ -112,6 +120,14 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authenticators = append(as.authenticators, va)
 	}
+
+	var identifiers map[string]string
+	namespace := "veritone"
+	subsystem := "docker_auth"
+	as.metrics.RequestsCounterVec, _ = vMetrics.CreateCounterVector("requests",
+		"The total number of requests by user, type, and result.", namespace, subsystem, identifiers,
+		[]string{"user", "type", "result"})
+
 	return as, nil
 }
 
@@ -393,6 +409,8 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		ar.Labels = labels
+
+		as.metrics.RequestsCounterVec.WithLabelValues(ar.Account, "authenticate", strconv.FormatBool(authnResult)).Inc()
 	}
 	if len(ar.Scopes) > 0 {
 		ares, err = as.Authorize(ar)
@@ -400,6 +418,8 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 			http.Error(rw, fmt.Sprintf("Authorization failed (%s)", err), http.StatusInternalServerError)
 			return
 		}
+
+		as.metrics.RequestsCounterVec.WithLabelValues(ar.Account, "authorize", strconv.Itoa(len(ares))).Inc()
 	} else {
 		// Authentication-only request ("docker login"), pass through.
 	}

@@ -25,6 +25,9 @@ func TestValidation(t *testing.T) {
 		{MatchConditions{Name: sp("foo")}, true},
 		{MatchConditions{Name: sp("foo?*")}, true},
 		{MatchConditions{Name: sp("/foo.*/")}, true},
+		{MatchConditions{Service: sp("foo")}, true},
+		{MatchConditions{Service: sp("foo?*")}, true},
+		{MatchConditions{Service: sp("/foo.*/")}, true},
 		{MatchConditions{IP: sp("192.168.0.1")}, true},
 		{MatchConditions{IP: sp("192.168.0.0/16")}, true},
 		{MatchConditions{IP: sp("2001:db8::1")}, true},
@@ -34,6 +37,7 @@ func TestValidation(t *testing.T) {
 		{MatchConditions{Account: sp("/foo?*/")}, false},
 		{MatchConditions{Type: sp("/foo?*/")}, false},
 		{MatchConditions{Name: sp("/foo?*/")}, false},
+		{MatchConditions{Service: sp("/foo?*/")}, false},
 		{MatchConditions{IP: sp("192.168.0.1/100")}, false},
 		{MatchConditions{IP: sp("192.168.0.*")}, false},
 		{MatchConditions{IP: sp("foo")}, false},
@@ -51,8 +55,8 @@ func TestValidation(t *testing.T) {
 }
 
 func TestMatching(t *testing.T) {
-	ai1 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz"}
-	ai2 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz",
+	ai1 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz", Service: "notary"}
+	ai2 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz", Service: "notary",
 		Labels: map[string][]string{"group": []string{"admins", "VIP"}}}
 	cases := []struct {
 		mc      MatchConditions
@@ -71,6 +75,9 @@ func TestMatching(t *testing.T) {
 		{MatchConditions{Account: sp(`/^(.+)@test\.com$/`), Name: sp(`${account:1}/*`)}, AuthRequestInfo{Account: "john.smith@test.com", Name: "john.smith/test"}, true},
 		{MatchConditions{Account: sp(`/^(.+)@test\.com$/`), Name: sp(`${account:3}/*`)}, AuthRequestInfo{Account: "john.smith@test.com", Name: "john.smith/test"}, false},
 		{MatchConditions{Account: sp(`/^(.+)@(.+?).test\.com$/`), Name: sp(`${account:1}-${account:2}/*`)}, AuthRequestInfo{Account: "john.smith@it.test.com", Name: "john.smith-it/test"}, true},
+		{MatchConditions{Service: sp("notary"), Type: sp("bar")}, ai1, true},
+		{MatchConditions{Service: sp("notary"), Type: sp("baz")}, ai1, false},
+		{MatchConditions{Service: sp("notary1"), Type: sp("bar")}, ai1, false},
 		// IP matching
 		{MatchConditions{IP: sp("127.0.0.1")}, AuthRequestInfo{IP: nil}, false},
 		{MatchConditions{IP: sp("127.0.0.1")}, AuthRequestInfo{IP: net.IPv4(127, 0, 0, 1)}, true},

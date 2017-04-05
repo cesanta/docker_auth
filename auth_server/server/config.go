@@ -49,12 +49,11 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	ListenAddress string `yaml:"addr,omitempty"`
-	RealIPHeader  string `yaml:"real_ip_header,omitempty"`
-	RealIPPos     int    `yaml:"real_ip_pos,omitempty"`
-	CertFile      string `yaml:"certificate,omitempty"`
-	KeyFile       string `yaml:"key,omitempty"`
-
+	ListenAddress  string `yaml:"addr,omitempty"`
+	RealIPHeader   string `yaml:"real_ip_header,omitempty"`
+	RealIPPos      int    `yaml:"real_ip_pos,omitempty"`
+	CertFile       string `yaml:"certificate,omitempty"`
+	KeyFile        string `yaml:"key,omitempty"`
 	PrometheusPort string `yaml:"prometheusPort"`
 
 	publicKey  libtrust.PublicKey

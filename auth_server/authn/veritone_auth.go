@@ -42,24 +42,24 @@ func (vauth *VeritoneAuth) Authenticate(account string, password PasswordString)
 			}
 			actions := []string{"*"}
 			comment := "User is superadmin"
-			e := authz.ACLEntry{
+			entry := authz.ACLEntry{
 				Match:   match,
 				Actions: &actions,
 				Comment: &comment,
 			}
-			vauth.ACL.Add(e)
+			vauth.ACL.Add(entry)
 		} else if perm, _ := resp.HasPermission("developer.docker.admin"); perm {
 			match := &authz.MatchConditions{
 				Account: &account,
 			}
 			actions := []string{"*"}
 			comment := "User is VDH admin"
-			e := authz.ACLEntry{
+			entry := authz.ACLEntry{
 				Match:   match,
 				Actions: &actions,
 				Comment: &comment,
 			}
-			vauth.ACL.Add(e)
+			vauth.ACL.Add(entry)
 		} else {
 			orgPath := fmt.Sprintf("%d/*", resp.Organization.ID)
 			match := &authz.MatchConditions{
@@ -75,12 +75,12 @@ func (vauth *VeritoneAuth) Authenticate(account string, password PasswordString)
 				actions = append(actions, "pull")
 			}
 			if len(actions) > 0 {
-				e := authz.ACLEntry{
+				entry := authz.ACLEntry{
 					Match:   match,
 					Actions: &actions,
 					Comment: &comment,
 				}
-				vauth.ACL.Add(e)
+				vauth.ACL.Add(entry)
 			}
 		}
 	}

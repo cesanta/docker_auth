@@ -124,7 +124,7 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 	var identifiers map[string]string
 	namespace := "veritone"
 	subsystem := "docker_auth"
-	as.metrics.RequestsCounterVec, _ = vMetrics.CreateCounterVector("requests",
+	as.metrics.RequestsCounterVec, _ = vMetrics.CreateCounterVector("requests_total",
 		"The total number of requests by user, type, and result.", namespace, subsystem, identifiers,
 		[]string{"user", "type", "result"})
 

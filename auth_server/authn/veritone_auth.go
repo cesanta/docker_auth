@@ -7,6 +7,7 @@ import (
 
 	"github.com/veritone/docker_auth/auth_server/authz"
 
+	"github.com/golang/glog"
 	veritoneAPI "github.com/veritone/go-veritone-api"
 )
 
@@ -48,6 +49,7 @@ func (vauth *VeritoneAuth) Authenticate(account string, password PasswordString)
 				Comment: &comment,
 			}
 			vauth.ACL.Add(entry)
+			glog.Infof("Authenticated veritone superadmin %s", account)
 		} else if perm, _ := resp.HasPermission("developer.docker.admin"); perm {
 			match := &authz.MatchConditions{
 				Account: &account,
@@ -60,6 +62,7 @@ func (vauth *VeritoneAuth) Authenticate(account string, password PasswordString)
 				Comment: &comment,
 			}
 			vauth.ACL.Add(entry)
+			glog.Infof("Authenticated veritone docker admin %s", account)
 		} else {
 			orgPath := fmt.Sprintf("%d/*", resp.Organization.ID)
 			match := &authz.MatchConditions{
@@ -81,6 +84,7 @@ func (vauth *VeritoneAuth) Authenticate(account string, password PasswordString)
 					Comment: &comment,
 				}
 				vauth.ACL.Add(entry)
+				glog.Infof("Authenticated veritone docker user %s", account)
 			}
 		}
 	}

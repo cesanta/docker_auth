@@ -30,7 +30,7 @@ import (
 
 	"github.com/cesanta/docker_auth/auth_server/server"
 	"github.com/facebookgo/httpdown"
-	"github.com/golang/glog"
+	"github.com/cesanta/glog"
 	fsnotify "gopkg.in/fsnotify.v1"
 )
 

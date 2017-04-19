@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
-	"github.com/golang/glog"
+	"github.com/cesanta/glog"
 )
 
 type ACL []ACLEntry

@@ -10,6 +10,12 @@
 			"revisionTime": "2017-03-21T17:14:25Z"
 		},
 		{
+			"checksumSHA1": "60hRVfzu19loKucKk/vvBkuRfpg=",
+			"path": "github.com/cesanta/glog",
+			"revision": "22eb27a0ae192b290b25537b8e876556fc25129c",
+			"revisionTime": "2015-05-27T11:16:57Z"
+		},
+		{
 			"checksumSHA1": "drfK6NPoGhSk7ZD6uhL+JjEpKy4=",
 			"path": "github.com/dchest/uniuri",
 			"revision": "8902c56451e9b58ff940bbe5fec35d5f9c04584a",
@@ -80,12 +86,6 @@
 			"path": "github.com/go-ldap/ldap",
 			"revision": "13cedcf58a1ea124045dea529a66c849d3444c8e",
 			"revisionTime": "2017-03-05T04:08:57Z"
-		},
-		{
-			"checksumSHA1": "yUc84k7cfnRi9AlPFuRo77Y18Og=",
-			"path": "github.com/golang/glog",
-			"revision": "23def4e6c14b4da8ac2ed8007337bc5eb5007998",
-			"revisionTime": "2016-01-25T20:49:56Z"
 		},
 		{
 			"checksumSHA1": "IhK3rKOSR3UfWHe5JmYv7Fnmkrk=",

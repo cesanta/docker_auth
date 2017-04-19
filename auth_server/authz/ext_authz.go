@@ -23,7 +23,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/golang/glog"
+	"github.com/cesanta/glog"
 )
 
 type ExtAuthzConfig struct {

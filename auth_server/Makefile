@@ -17,7 +17,7 @@ deps:
 
 build:
 	go generate ./...
-	go build -v -i
+	CGO_ENABLED=0 go build -v -i --ldflags=--s
 
 ca-certificates.crt:
 	cp $(CA_BUNDLE) .

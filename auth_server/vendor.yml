@@ -52,9 +52,9 @@ vendors:
 - path: github.com/syndtr/goleveldb
   rev: 23851d93a2292dcc56e71a18ec9e0624d84a0f65
 - path: github.com/veritone/go-veritone-api
-  rev: 7e03365812233da917a37d79bbab319ec359f46c
+  rev: 25d5ad37f3d007754f8f121d7ae55e6c8509172e
 - path: github.com/veritone/functional-permissions-lib
-  rev: 65b9df0d31d341efe89db552bc5195da1ba5cbe6
+  rev: 29c37126ff36e6939a28091a9fd9e8639336783e
 - path: golang.org/x/crypto
   rev: 453249f01cfeb54c3d549ddb75ff152ca243f9d8
 - path: golang.org/x/net

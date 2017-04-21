@@ -3,10 +3,11 @@ package authn
 import (
 	"context"
 	"errors"
+	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/veritone/docker_auth/auth_server/authz"
 
+	"github.com/golang/glog"
 	veritoneAPI "github.com/veritone/go-veritone-api"
 )
 
@@ -37,19 +38,54 @@ func (vauth *VeritoneAuth) Authenticate(account string, password PasswordString)
 	// add authorizer entries if configured
 	if vauth.ACL != nil {
 		if perm, _ := resp.HasPermission("superadmin"); perm {
-			glog.V(2).Info("superadmin!")
-
 			match := &authz.MatchConditions{
 				Account: &account,
 			}
 			actions := []string{"*"}
 			comment := "User is superadmin"
-			e := authz.ACLEntry{
+			entry := authz.ACLEntry{
 				Match:   match,
 				Actions: &actions,
 				Comment: &comment,
 			}
-			vauth.ACL.Add(e)
+			vauth.ACL.Add(entry)
+			glog.Infof("Authenticated veritone superadmin %s", account)
+		} else if perm, _ := resp.HasPermission("developer.docker.admin"); perm {
+			match := &authz.MatchConditions{
+				Account: &account,
+			}
+			actions := []string{"*"}
+			comment := "User is VDH admin"
+			entry := authz.ACLEntry{
+				Match:   match,
+				Actions: &actions,
+				Comment: &comment,
+			}
+			vauth.ACL.Add(entry)
+			glog.Infof("Authenticated veritone docker admin %s", account)
+		} else {
+			orgPath := fmt.Sprintf("%d/*", resp.Organization.ID)
+			match := &authz.MatchConditions{
+				Account: &account,
+				Name:    &orgPath,
+			}
+			actions := make([]string, 0)
+			comment := "VDH user"
+			if perm, _ = resp.HasPermission("developer.docker.org.push"); perm {
+				actions = append(actions, "push")
+			}
+			if perm, _ = resp.HasPermission("developer.docker.org.pull"); perm {
+				actions = append(actions, "pull")
+			}
+			if len(actions) > 0 {
+				entry := authz.ACLEntry{
+					Match:   match,
+					Actions: &actions,
+					Comment: &comment,
+				}
+				vauth.ACL.Add(entry)
+				glog.Infof("Authenticated veritone docker user %s", account)
+			}
 		}
 	}
 

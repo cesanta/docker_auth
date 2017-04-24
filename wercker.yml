@@ -54,6 +54,7 @@ docker-aws-dev:
       - create-file: *github-access
       - script: *unpack-wercker-output
       - script: *install-deps
+      # TODO: move config to datacenter-config
       # - script:
       #     name: fetch & generate config
       #     code: |

@@ -1,0 +1,77 @@
+box:
+  id: alpine:3.5
+  cmd: /bin/sh
+
+# Define references used in multiple pipelines below
+references:
+  github-access: &github-access # Reference *github-access to reuse
+    name: write netrc
+    filename: $HOME/.netrc
+    content: machine github.com login $GITHUB_ACCESS_TOKEN
+    overwrite: true
+    hide-from-log: true
+
+  # Install Alpine dependencies and set up GOPATH
+  install-deps: &install-deps # Reference *install-deps to reuse
+    name: install deps
+    cwd: auth_server/
+    code: |
+      apk update
+      apk add -U build-base go git bash curl libstdc++ jq
+      mkdir -p /go/src/github.com/veritone/$WERCKER_GIT_REPOSITORY
+      mv * /go/src/github.com/veritone/$WERCKER_GIT_REPOSITORY
+  # Remove unnecessary packages
+  cleanup: &cleanup # Reference *cleanup to reuse
+    name: cleanup
+    code: apk del build-base go git jq
+
+  # Unpack wercker output from build
+  unpack-wercker-output: &unpack-wercker-output # Reference *unpack-wercker-output to reuse
+    name: unpack wercker output
+    code: |
+      mv $WERCKER_GIT_REPOSITORY.tar.gz /$WERCKER_GIT_REPOSITORY.tar.gz
+      cd / && tar -xzf $WERCKER_GIT_REPOSITORY.tar.gz
+# Build - triggered by git commit
+build:
+  steps:
+    - create-file: *github-access
+    - script: *install-deps
+    - script: # Get dependencies, test, and build
+        name: make (deps, test, build)
+        code: |
+          go env
+          cd /go/src/github.com/veritone/$WERCKER_GIT_REPOSITORY/auth_server
+          GOPATH=/go make alpine
+    - script:
+        name: save build to wercker output
+        code: |
+          tar -czf $WERCKER_OUTPUT_DIR/$WERCKER_GIT_REPOSITORY.tar.gz /go
+          git rev-parse --short HEAD > $WERCKER_OUTPUT_DIR/$WERCKER_GIT_REPOSITORY.build
+          git --no-pager show -s --format='%an <%ae>' $(git rev-parse HEAD) > $WERCKER_OUTPUT_DIR/$WERCKER_GIT_REPOSITORY.author
+# Build & push aws-dev container
+docker-aws-dev:
+    steps:
+      - create-file: *github-access
+      - script: *unpack-wercker-output
+      - script: *install-deps
+      # TODO: move config to datacenter-config!
+      # - script:
+      #     name: fetch & generate config
+      #     code: |
+      #       git clone https://github.com/veritone/datacenter-config.git
+      #       cd datacenter-config && git checkout feature/vda-backend-config # TODO: rm after merge
+      #       ./generate_config.sh -n $WERCKER_GIT_REPOSITORY -e aws-dev -d aws-dev.veritone.com
+      #       mkdir -p /config
+      #       mv $WERCKER_GIT_REPOSITORY.json /config/$WERCKER_GIT_REPOSITORY.json
+      #       cat /config/$WERCKER_GIT_REPOSITORY.json
+      #       cd .. && rm -rf datacenter-config
+      - script: *cleanup
+      - internal/docker-push:
+          aws-access-key: $AWS_ACCESS_KEY_ID
+          aws-secret-key: $AWS_SECRET_ACCESS_KEY
+          aws-region: $AWS_REGISTRY_REGION
+          aws-registry-id: $AWS_REGISTRY_ID
+          repository: $WERCKER_GIT_REPOSITORY
+          tag: aws-dev, $WERCKER_GIT_COMMIT
+          entrypoint: "/go/src/github.com/veritone/docker_auth/auth_server/docker_auth"
+          ports: "5001"

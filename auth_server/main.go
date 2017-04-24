@@ -31,6 +31,7 @@ import (
 	"github.com/facebookgo/httpdown"
 	"github.com/golang/glog"
 	"github.com/veritone/docker_auth/auth_server/server"
+	vMetrics "github.com/veritone/go-metrics"
 	fsnotify "gopkg.in/fsnotify.v1"
 )
 
@@ -170,6 +171,9 @@ func main() {
 	if err != nil {
 		glog.Exitf("Failed to load config: %s", err)
 	}
+
+	go vMetrics.StartPrometheusMetricsServer(c.Server.PrometheusPort)
+
 	rs := RestartableServer{
 		configFile: cf,
 		hd:         &httpdown.HTTP{},

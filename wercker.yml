@@ -34,6 +34,18 @@ references:
 # Build - triggered by git commit
 build:
   steps:
+    - create-file:
+        name: write build-manifest
+        filename: $WERCKER_SOURCE_DIR/build-manifest.yml
+        overwrite: true
+        content: |
+            git_repo: $WERCKER_GIT_REPOSITORY
+            git_branch: $WERCKER_GIT_BRANCH
+            git_commit: $WERCKER_GIT_COMMIT
+            git_owner: $WERCKER_GIT_OWNER
+            wercker_run: $WERCKER_RUN_URL
+            wercker_app: $WERCKER_APPLICATION_URL
+
     - create-file: *github-access
     - script: *install-deps
     - script: # Get dependencies, test, and build

@@ -40,7 +40,7 @@ auth_server:
 	@echo
 	@exit 1
 
-docker-build: auth_server
+docker-build: build
 	docker build -t $(IMAGE):latest .
 	docker tag $(IMAGE):latest $(IMAGE):$(VERSION)
 

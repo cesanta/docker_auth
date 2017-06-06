@@ -88,6 +88,7 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 		tlsConfig.GetCertificate = m.GetCertificate
 	} else {
 		glog.Warning("Running without TLS")
+		tlsConfig = nil
 	}
 	hs := &http.Server{
 		Addr:      c.Server.ListenAddress,

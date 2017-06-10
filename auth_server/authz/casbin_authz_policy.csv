@@ -1,0 +1,5 @@
+p, alice, book, book1, bookstore1, 1.2.3.4, read, {"a":["b"]}
+p, alice, book, book1, bookstore1, 1.2.3.4, write, {"a":["b"]}
+p, role1, book, book2, bookstore1, 192.168.1.0/24, read, {"a":["b","c"]}
+
+g, bob, role1

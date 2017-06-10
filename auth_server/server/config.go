@@ -49,6 +49,7 @@ type Config struct {
 	ACLXorm     *authz.XormAuthzConfig         `yaml:"acl_xorm,omitempty"`
 	ExtAuthz    *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
 	PluginAuthz *authz.PluginAuthzConfig       `yaml:"plugin_authz,omitempty"`
+	CasbinAuthz *authz.CasbinAuthzConfig       `yaml:"casbin_authz,omitempty"`
 }
 
 type ServerConfig struct {

@@ -358,6 +358,11 @@ acl_xorm:
   conn_string: "username:password@/database_name?charset=utf8"
   cache_ttl: "1m"
 
+# (optioinal) Use casbin to verify permission
+casbin_authz:
+  model_path: "path/to/model"
+  policy_path: "path/to/csv"
+
 # External authorization - call an external progam to authorize user.
 # JSON of authz.AuthRequestInfo is passed to command's stdin and exit code is examined.
 # 0 - allow, 1 - deny, other - error.
@@ -370,3 +375,4 @@ ext_authz:
 # return the set of authorized actions is the user is authorized. Otherwise return nil
 plugin_authz:
   plugin_path: ""
+

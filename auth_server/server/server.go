@@ -332,14 +332,15 @@ func (as *AuthServer) CreateToken(ar *authRequest, ares []authzResult) (string, 
 
 func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	glog.V(3).Infof("Request: %+v", req)
+	prefix := as.config.Server.UrlPrefix
 	switch {
-	case req.URL.Path == "/":
+	case req.URL.Path == prefix + "/":
 		as.doIndex(rw, req)
-	case req.URL.Path == "/auth":
+	case req.URL.Path == prefix + "/auth":
 		as.doAuth(rw, req)
-	case req.URL.Path == "/google_auth" && as.ga != nil:
+	case req.URL.Path == prefix + "/google_auth" && as.ga != nil:
 		as.ga.DoGoogleAuth(rw, req)
-	case req.URL.Path == "/github_auth" && as.gha != nil:
+	case req.URL.Path == prefix + "/github_auth" && as.gha != nil:
 		as.gha.DoGitHubAuth(rw, req)
 	default:
 		http.Error(rw, "Not found", http.StatusNotFound)

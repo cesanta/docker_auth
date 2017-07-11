@@ -13,6 +13,9 @@ server:  # Server settings.
   # Address to listen on.
   addr: ":5001"
 
+  # URL path prefix to use.
+  path_prefix: ""
+
   # TLS options.
   #
   # Use specific certificate and key.

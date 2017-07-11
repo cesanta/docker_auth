@@ -48,6 +48,7 @@ type Config struct {
 
 type ServerConfig struct {
 	ListenAddress string            `yaml:"addr,omitempty"`
+	PathPrefix    string            `yaml:"path_prefix,omitempty"`
 	RealIPHeader  string            `yaml:"real_ip_header,omitempty"`
 	RealIPPos     int               `yaml:"real_ip_pos,omitempty"`
 	CertFile      string            `yaml:"certificate,omitempty"`
@@ -77,6 +78,9 @@ type TokenConfig struct {
 func validate(c *Config) error {
 	if c.Server.ListenAddress == "" {
 		return errors.New("server.addr is required")
+	}
+	if c.Server.PathPrefix != "" && !strings.HasPrefix(c.Server.PathPrefix, "/") {
+		return errors.New("server.path_prefix must be an absolute path")
 	}
 
 	if c.Token.Issuer == "" {

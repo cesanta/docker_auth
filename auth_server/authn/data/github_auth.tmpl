@@ -1,6 +1,6 @@
 <html itemscope itemtype="http://schema.org/Article">
 <body>
-  <button type="button" onclick="location.href='{{.GithubWebUri}}/login/oauth/authorize?scope=user:email&client_id={{.ClientId}}'">Login with GitHub</button>
+  <button type="button" onclick="location.href='{{.GithubWebUri}}/login/oauth/authorize?scope=user:email%20read:org&client_id={{.ClientId}}'">Login with GitHub</button>
   <button type="button" onclick="location.href='{{.GithubWebUri}}/settings/applications'">Revoke access</button>
 </body>
 </html>

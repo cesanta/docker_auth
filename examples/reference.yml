@@ -229,6 +229,12 @@ acl:
   - match: {account: "/^(.+)@test.com$/", name: "${account:1}/*"}
     actions: []
     comment: "Emit domain part of account to make it a correct repo name"
+  - match: {labels: {"group": "VIP"}}
+    actions: ["push"]
+    comment: "Users assigned to group 'VIP' is able to push"
+  - match: {labels: {"group": "/trainee|dev/"}}
+    actions: ["push", "pull"]
+    comment: "Users assigned to group 'trainee' and 'dev' is able to push and pull"
   # Access is denied by default.
 
 # (optional) Define to query ACL from a MongoDB server.

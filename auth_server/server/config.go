@@ -120,8 +120,12 @@ func validate(c *Config) error {
 			}
 			ghac.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if ghac.ClientId == "" || ghac.ClientSecret == "" || ghac.TokenDB == "" {
-			return errors.New("github_auth.{client_id,client_secret,token_db} are required.")
+		if ghac.ClientId == "" || ghac.ClientSecret == "" || (ghac.TokenDB == "" && ghac.GCSTokenDB == nil) {
+			return errors.New("github_auth.{client_id,client_secret,token_db} are required")
+		}
+
+		if ghac.ClientId == "" || ghac.ClientSecret == "" || (ghac.GCSTokenDB != nil && (ghac.GCSTokenDB.Bucket == "" || ghac.GCSTokenDB.ClientSecretFile == "")) {
+			return errors.New("github_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
 		}
 		if ghac.HTTPTimeout <= 0 {
 			ghac.HTTPTimeout = time.Duration(10 * time.Second)

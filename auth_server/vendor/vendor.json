@@ -3,6 +3,12 @@
 	"ignore": "",
 	"package": [
 		{
+			"checksumSHA1": "0ot8Hk23WGrT0lE2BmQXeqe4bRo=",
+			"path": "cloud.google.com/go/storage",
+			"revision": "2b74e2e25316cfd9e46b74e444cdeceb78786dc5",
+			"revisionTime": "2017-08-20T12:51:33Z"
+		},
+		{
 			"checksumSHA1": "CujWu7+PWlZSX5+zAPJH91O5AVQ=",
 			"origin": "github.com/docker/distribution/vendor/github.com/Sirupsen/logrus",
 			"path": "github.com/Sirupsen/logrus",
@@ -397,10 +403,16 @@
 			"revisionTime": "2017-03-21T17:14:25Z"
 		},
 		{
-			"checksumSHA1": "AK65RmsGNBl0/e11OVrf2mW78gU=",
+			"checksumSHA1": "1WoWjPiwUEFahi5xz29FRMtd8sA=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "493114f68206f85e7e333beccfabc11e98cba8dd",
 			"revisionTime": "2017-03-31T21:25:38Z"
+		},
+		{
+			"checksumSHA1": "RpAaByicZuXzN7bReX8YXKf8gP0=",
+			"path": "google.golang.org/api/option",
+			"revision": "955a3ae66b420f3adc0d77da3d8ed767a74e2b4f",
+			"revisionTime": "2017-09-01T00:04:07Z"
 		},
 		{
 			"checksumSHA1": "fRERF7JFq7KYgM9I48onMlEgFm4=",

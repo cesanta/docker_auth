@@ -101,8 +101,12 @@ github_auth:
   # want to have sensitive information checked in.
   # client_secret: "verysecret"
   client_secret_file: "/path/to/client_secret.txt"
-  # Where to store server tokens. Required.
+  # Either token_db file for storing of server tokens. 
   token_db: "/somewhere/to/put/github_tokens.ldb"
+  # or google cloud storage for storing of the sensitive information. 
+  gcs_token_db: 
+    bucket: "tokenBucket"
+    client_secret_file: "/path/to/client_secret.json"
   # How long to wait when talking to GitHub servers. Optional.
   http_timeout: "10s"
   # How long to wait before revalidating the GitHub token. Optional.

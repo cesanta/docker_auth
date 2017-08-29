@@ -58,6 +58,12 @@ func TestMatching(t *testing.T) {
 	ai1 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz", Service: "notary"}
 	ai2 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz", Service: "notary",
 		Labels: map[string][]string{"group": []string{"admins", "VIP"}}}
+	ai3 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "admins/foo", Service: "notary",
+		Labels: map[string][]string{"group": []string{"admins", "VIP"}}}
+	ai4 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "VIP/api", Service: "notary",
+		Labels: map[string][]string{"group": []string{"admins", "VIP"}, "project": []string{"api", "frontend"}}}
+	ai5 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "devs/api", Service: "notary",
+		Labels: map[string][]string{"group": []string{"admins", "VIP"}, "project": []string{"api", "frontend"}}}
 	cases := []struct {
 		mc      MatchConditions
 		ai      AuthRequestInfo
@@ -99,6 +105,16 @@ func TestMatching(t *testing.T) {
 		{MatchConditions{Labels: map[string]string{"group": "VIP"}}, ai2, true},
 		{MatchConditions{Labels: map[string]string{"group": "a*"}}, ai2, true},
 		{MatchConditions{Labels: map[string]string{"group": "/(admins|VIP)/"}}, ai2, true},
+		// // Label placeholder matching
+		{MatchConditions{Name: sp("${labels:group}/*")}, ai1, false},                 // no labels
+		{MatchConditions{Name: sp("${labels:noexist}/*")}, ai2, false},               // wrong labels
+		{MatchConditions{Name: sp("${labels:group}/*")}, ai3, true},                  // match label
+		{MatchConditions{Name: sp("${labels:noexist}/*")}, ai3, false},               // missing label
+		{MatchConditions{Name: sp("${labels:group}/${labels:project}")}, ai4, true},  // multiple label match success
+		{MatchConditions{Name: sp("${labels:group}/${labels:noexist}")}, ai4, false}, // multiple label match fail
+		{MatchConditions{Name: sp("${labels:group}/${labels:project}")}, ai4, true},  // multiple label match success
+		{MatchConditions{Name: sp("${labels:group}/${labels:noexist}")}, ai4, false}, // multiple label match fail wrong label
+		{MatchConditions{Name: sp("${labels:group}/${labels:project}")}, ai5, false}, // multiple label match fail. right label, wrong value
 	}
 	for i, c := range cases {
 		if result := c.mc.Matches(&c.ai); result != c.matches {

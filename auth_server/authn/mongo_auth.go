@@ -43,6 +43,7 @@ type MongoAuth struct {
 type authUserEntry struct {
 	Username *string `yaml:"username,omitempty" json:"username,omitempty"`
 	Password *string `yaml:"password,omitempty" json:"password,omitempty"`
+	Labels   Labels  `yaml:"labels,omitempty" json:"labels,omitempty"`
 }
 
 func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
@@ -84,19 +85,19 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 
 func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, Labels, error) {
 	for true {
-		result, err := mauth.authenticate(account, password)
+		result, labels, err := mauth.authenticate(account, password)
 		if err == io.EOF {
 			glog.Warningf("EOF error received from Mongo. Retrying connection")
 			time.Sleep(time.Second)
 			continue
 		}
-		return result, nil, err
+		return result, labels, err
 	}
 
 	return false, nil, errors.New("Unable to communicate with Mongo.")
 }
 
-func (mauth *MongoAuth) authenticate(account string, password PasswordString) (bool, error) {
+func (mauth *MongoAuth) authenticate(account string, password PasswordString) (bool, Labels, error) {
 	// Copy our session
 	tmp_session := mauth.session.Copy()
 	// Close up when we are done
@@ -111,20 +112,20 @@ func (mauth *MongoAuth) authenticate(account string, password PasswordString) (b
 
 	// If we connect and get no results we return a NoMatch so auth can fall-through
 	if err == mgo.ErrNotFound {
-		return false, NoMatch
+		return false, nil, NoMatch
 	} else if err != nil {
-		return false, err
+		return false, nil, err
 	}
 
 	// Validate db password against passed password
 	if dbUserRecord.Password != nil {
 		if bcrypt.CompareHashAndPassword([]byte(*dbUserRecord.Password), []byte(password)) != nil {
-			return false, nil
+			return false, nil, nil
 		}
 	}
 
 	// Auth success
-	return true, nil
+	return true, dbUserRecord.Labels, nil
 }
 
 // Validate ensures that any custom config options

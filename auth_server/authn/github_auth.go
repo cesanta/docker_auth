@@ -32,15 +32,21 @@ import (
 )
 
 type GitHubAuthConfig struct {
-	Organization     string        `yaml:"organization,omitempty"`
-	ClientId         string        `yaml:"client_id,omitempty"`
-	ClientSecret     string        `yaml:"client_secret,omitempty"`
-	ClientSecretFile string        `yaml:"client_secret_file,omitempty"`
-	TokenDB          string        `yaml:"token_db,omitempty"`
-	HTTPTimeout      time.Duration `yaml:"http_timeout,omitempty"`
-	RevalidateAfter  time.Duration `yaml:"revalidate_after,omitempty"`
-	GithubWebUri     string        `yaml:"github_web_uri,omitempty"`
-	GithubApiUri     string        `yaml:"github_api_uri,omitempty"`
+	Organization     string                `yaml:"organization,omitempty"`
+	ClientId         string                `yaml:"client_id,omitempty"`
+	ClientSecret     string                `yaml:"client_secret,omitempty"`
+	ClientSecretFile string                `yaml:"client_secret_file,omitempty"`
+	TokenDB          string                `yaml:"token_db,omitempty"`
+	GCSTokenDB       *GitHubGCSStoreConfig `yaml:"gcs_token_db,omitempty"`
+	HTTPTimeout      time.Duration         `yaml:"http_timeout,omitempty"`
+	RevalidateAfter  time.Duration         `yaml:"revalidate_after,omitempty"`
+	GithubWebUri     string                `yaml:"github_web_uri,omitempty"`
+	GithubApiUri     string                `yaml:"github_api_uri,omitempty"`
+}
+
+type GitHubGCSStoreConfig struct {
+	Bucket           string `yaml:"bucket,omitempty"`
+	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -62,11 +68,20 @@ type GitHubAuth struct {
 }
 
 func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
-	db, err := NewTokenDB(c.TokenDB)
+	var db TokenDB
+	var err error
+	dbName := c.TokenDB
+	if c.GCSTokenDB == nil {
+		db, err = NewTokenDB(c.TokenDB)
+	} else {
+		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
+		dbName = "GCS: " + c.GCSTokenDB.Bucket
+	}
+
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("GitHub auth token DB at %s", c.TokenDB)
+	glog.Infof("GitHub auth token DB at %s", dbName)
 	return &GitHubAuth{
 		config: c,
 		db:     db,

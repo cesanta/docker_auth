@@ -24,8 +24,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/dchest/uniuri"
 	"github.com/cesanta/glog"
+	"github.com/dchest/uniuri"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -93,7 +93,7 @@ func (db *TokenDBImpl) GetValue(user string) (*TokenDBValue, error) {
 	err = json.Unmarshal(valueStr, &dbv)
 	if err != nil {
 		glog.Errorf("bad DB value for %q (%q): %s", user, string(valueStr), err)
-		return nil, fmt.Errorf("bad DB value", err)
+		return nil, fmt.Errorf("bad DB value due: %v", err)
 	}
 	return &dbv, nil
 }

@@ -140,6 +140,16 @@ ldap_auth:
   # User query settings. ${account} is expanded from auth request 
   base: o=example.com
   filter: (&(uid=${account})(objectClass=person))
+  # Labels can be mapped from LDAP attributes
+  labels:
+    # Add the user's title to a label called title
+    title:
+      attribute: title
+    # Add the user's memberOf values to a label called groups
+    groups:
+      attribute: memberOf
+      # Special handling to simplify the values to just the common name
+      parse_cn: true
 
 mongo_auth:
   # Essentially all options are described here: https://godoc.org/gopkg.in/mgo.v2#DialInfo

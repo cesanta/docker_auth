@@ -25,7 +25,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/dchest/uniuri"
-	"github.com/golang/glog"
+	"github.com/cesanta/glog"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 

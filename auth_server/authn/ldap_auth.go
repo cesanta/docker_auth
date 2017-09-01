@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/go-ldap/ldap"
-	"github.com/golang/glog"
+	"github.com/cesanta/glog"
 )
 
 type LabelMap struct {

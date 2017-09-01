@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/cesanta/glog"
 	"gopkg.in/mgo.v2"
 )
 

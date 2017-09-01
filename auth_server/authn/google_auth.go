@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/cesanta/glog"
 )
 
 type GoogleAuthConfig struct {

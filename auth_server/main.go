@@ -29,8 +29,9 @@ import (
 	"time"
 
 	"github.com/cesanta/docker_auth/auth_server/server"
+	"github.com/cesanta/glog"
 	"github.com/facebookgo/httpdown"
-	"github.com/golang/glog"
+	"golang.org/x/crypto/acme/autocert"
 	fsnotify "gopkg.in/fsnotify.v1"
 )
 
@@ -48,36 +49,46 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 		glog.Exitf("Failed to create auth server: %s", err)
 	}
 
-	var tlsConfig *tls.Config
+	tlsConfig := &tls.Config{
+		MinVersion:               tls.VersionTLS10,
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+		NextProtos: []string{"http/1.1"},
+	}
 	if c.Server.CertFile != "" || c.Server.KeyFile != "" {
 		// Check for partial configuration.
 		if c.Server.CertFile == "" || c.Server.KeyFile == "" {
 			glog.Exitf("Failed to load certificate and key: both were not provided")
 		}
-		tlsConfig = &tls.Config{
-			MinVersion:               tls.VersionTLS10,
-			PreferServerCipherSuites: true,
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-				tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			},
-			NextProtos:   []string{"http/1.1"},
-			Certificates: make([]tls.Certificate, 1),
-		}
 		glog.Infof("Cert file: %s", c.Server.CertFile)
 		glog.Infof("Key file : %s", c.Server.KeyFile)
+		tlsConfig.Certificates = make([]tls.Certificate, 1)
 		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(c.Server.CertFile, c.Server.KeyFile)
 		if err != nil {
 			glog.Exitf("Failed to load certificate and key: %s", err)
 		}
+	} else if c.Server.LetsEncrypt.Email != "" {
+		m := &autocert.Manager{
+			Email:  c.Server.LetsEncrypt.Email,
+			Prompt: autocert.AcceptTOS,
+		}
+		if c.Server.LetsEncrypt.Host != "" {
+			m.HostPolicy = autocert.HostWhitelist(c.Server.LetsEncrypt.Host)
+		}
+		glog.Infof("Using LetsEncrypt, host %q, email %q", c.Server.LetsEncrypt.Host, c.Server.LetsEncrypt.Email)
+		tlsConfig.GetCertificate = m.GetCertificate
 	} else {
 		glog.Warning("Running without TLS")
+		tlsConfig = nil
 	}
 	hs := &http.Server{
 		Addr:      c.Server.ListenAddress,

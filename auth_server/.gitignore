@@ -1,4 +1,4 @@
 ca-certificates.crt
 auth_server
-Godeps/
+vendor/*/
 version.*

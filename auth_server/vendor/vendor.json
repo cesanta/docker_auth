@@ -300,6 +300,12 @@
 			"revisionTime": "2015-05-30T21:13:11Z"
 		},
 		{
+			"checksumSHA1": "DVgRSBT6UzmEgC90yJhh6X5A7Yc=",
+			"path": "github.com/schwarmco/go-cartesian-product",
+			"revision": "c2c0aca869a6cbf51e017ce148b949d9dee09bc3",
+			"revisionTime": "2017-01-30T17:09:49Z"
+		},
+		{
 			"checksumSHA1": "GVY3lzvj4xmpKOGgA4/h9GWjQVk=",
 			"path": "github.com/syndtr/goleveldb/leveldb",
 			"revision": "3c5717caf1475fd25964109a0fc640bd150fce43",

@@ -12,6 +12,7 @@ import (
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/glog"
+	"github.com/schwarmco/go-cartesian-product"
 )
 
 type ACL []ACLEntry
@@ -153,6 +154,42 @@ func matchString(pp *string, s string, vars []string) bool {
 	return err == nil && matched
 }
 
+func matchStringWithLabelPermutations(pp *string, s string, vars []string, labelMap *map[string][]string) bool {
+	var matched bool
+	// First try basic matching
+	matched = matchString(pp, s, vars)
+	// If basic matching fails then try with label permuations
+	if !matched {
+		// Take the labelMap and build the structure required for the cartesian library
+		var labelSets [][]interface{}
+		for placeholder, labels := range *labelMap {
+			// Don't bother generating perumations for placeholders not in match string
+			// Since the label permuations are a cartesian product this can have
+			// a huge impact on performance
+			if strings.Contains(*pp, placeholder) {
+				var labelSet []interface{}
+				for _, label := range labels {
+					labelSet = append(labelSet, []string{placeholder, label})
+				}
+				labelSets = append(labelSets, labelSet)
+			}
+		}
+		if len(labelSets) > 0 {
+			for permuation := range cartesian.Iter(labelSets...) {
+				var labelVars []string
+				for _, val := range permuation {
+					labelVars = append(labelVars, val.([]string)...)
+				}
+				matched = matchString(pp, s, append(vars, labelVars...))
+				if matched {
+					break
+				}
+			}
+		}
+	}
+	return matched
+}
+
 func matchIP(ipp *string, ip net.IP) bool {
 	if ipp == nil {
 		return true
@@ -233,10 +270,18 @@ func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 			vars = append(vars, found[0], text[index])
 		}
 	}
-	return matchString(mc.Account, ai.Account, vars) &&
-		matchString(mc.Type, ai.Type, vars) &&
-		matchString(mc.Name, ai.Name, vars) &&
-		matchString(mc.Service, ai.Service, vars) &&
+	labelMap := make(map[string][]string)
+	for label, labelValues := range ai.Labels {
+		var labelSet []string
+		for _, lv := range labelValues {
+			labelSet = append(labelSet, regexp.QuoteMeta(lv))
+		}
+		labelMap[fmt.Sprintf("${labels:%s}", label)] = labelSet
+	}
+	return matchStringWithLabelPermutations(mc.Account, ai.Account, vars, &labelMap) &&
+		matchStringWithLabelPermutations(mc.Type, ai.Type, vars, &labelMap) &&
+		matchStringWithLabelPermutations(mc.Name, ai.Name, vars, &labelMap) &&
+		matchStringWithLabelPermutations(mc.Service, ai.Service, vars, &labelMap) &&
 		matchIP(mc.IP, ai.IP) &&
 		matchLabels(mc.Labels, ai.Labels, vars)
 }

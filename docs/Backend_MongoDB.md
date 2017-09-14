@@ -10,12 +10,21 @@ which can query ACL and Auth from a MongoDB database.
 ## Auth backend in MongoDB
 
 Auth entries in mongo are single dictionary containing a username and password entry.
-The password entry must contain a BCrypt hash.
+The password entry must contain a BCrypt hash. The labels entry is optional.
 
 ```json
 {
     "username" : "admin",
-    "password" : "$2y$05$B.x046DV3bvuwFgn0I42F.W/SbRU5fUoCbCGtjFl7S33aCUHNBxbq"
+    "password" : "$2y$05$B.x046DV3bvuwFgn0I42F.W/SbRU5fUoCbCGtjFl7S33aCUHNBxbq",
+    "labels" : {
+        "group" : [
+            "dev"
+        ],
+        "project": [
+            "website",
+            "api"
+        ]
+    }
 }
 ```
 
@@ -43,15 +52,21 @@ guarantee by default, i.e. [Natural Sorting](https://docs.mongodb.org/manual/ref
 
 ``seq`` is a required field in all MongoDB ACL documents. Any documents without this key will be excluded. seq uniqeness is also enforced.
 
-**reference_acl.json**
+  - match: {labels: {"group": "/trainee|dev/"}}
+    actions: ["push", "pull"]
+    comment: "Users assigned to group 'trainee' and 'dev' is able to push and pull"
 
+**reference_acl.json**
 ```json
 {"seq": 10, "match" : {"account" : "admin"}, "actions" : ["*"], "comment" : "Admin has full access to everything."}
+{"seq": 11, "match" : {"labels": {"group": "admin"}}, "actions" : ["*"], "comment" : "Admin group members have full access to everything"}
 {"seq": 20, "match" : {"account" : "test", "name" : "test-*"}, "actions" : ["*"], "comment" : "User \"test\" has full access to test-* images but nothing else. (1)"}
 {"seq": 30, "match" : {"account" : "test"}, "actions" : [], "comment" : "User \"test\" has full access to test-* images but nothing else. (2)"}
 {"seq": 40, "match" : {"account" : "/.+/"}, "actions" : ["pull"], "comment" : "All logged in users can pull all images."}
 {"seq": 50, "match" : {"account" : "/.+/", "name" : "${account}/*"}, "actions" : ["*"], "comment" : "All logged in users can push all images that are in a namespace beginning with their name"}
-{"seq": 60, "match" : {"account" : "", "name" : "hello-world"}, "actions" : ["pull"], "comment" : "Anonymous users can pull \"hello-world\"."}
+{"seq": 60, "match" : {"name" : "${labels:group}-shared/*"}, "actions" : ["push", "pull"], "comment" : "Users can pull and push to the shared namespace of any group they are in"}
+{"seq": 70, "match" : {"name" : "${labels:project}/*"}, "actions" : ["push", "pull"], "comment" : "Users can pull and push to to namespaces matching projects they are assigned to"}
+{"seq": 80, "match" : {"account" : "", "name" : "hello-world"}, "actions" : ["pull"], "comment" : "Anonymous users can pull \"hello-world\"."}
 ```
 
 **Note** that each document entry must span exactly one line or otherwise the

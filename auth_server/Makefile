@@ -15,8 +15,15 @@ deps:
 	govendor sync
 	go install -v github.com/cesanta/docker_auth/auth_server/vendor/github.com/jteeuwen/go-bindata/go-bindata
 
+generate:
+	go generate \
+	  github.com/cesanta/docker_auth/auth_server \
+	  github.com/cesanta/docker_auth/auth_server/authn/... \
+	  github.com/cesanta/docker_auth/auth_server/authz/... \
+	  github.com/cesanta/docker_auth/auth_server/mgo_session/... \
+	  github.com/cesanta/docker_auth/auth_server/server/...
+
 build:
-	go generate ./...
 	CGO_ENABLED=0 go build -v -i --ldflags=--s
 
 ca-certificates.crt:
@@ -25,12 +32,12 @@ ca-certificates.crt:
 build-release: ca-certificates.crt
 	docker run --rm -v $(PWD)/..:/go/src/github.com/cesanta/docker_auth \
 	  $(BUILDER_IMAGE) sh -x -c "\
-	    apk update && apk add git py2-pip && pip install GitPython && \
+	    apk update && apk add git make py2-pip && pip install GitPython && \
 	    cd /go/src/github.com/cesanta/docker_auth/auth_server && \
 	    go get -v -u github.com/kardianos/govendor && \
 	    umask 0 && govendor sync -v && \
 	    go install -v github.com/cesanta/docker_auth/auth_server/vendor/github.com/jteeuwen/go-bindata/go-bindata && \
-	    go generate ./... && \
+	    make generate && \
 	    go build -v"
 	@echo === Built version $(VERSION) ===
 
@@ -40,7 +47,7 @@ auth_server:
 	@echo
 	@exit 1
 
-docker-build: build
+docker-build:
 	docker build -t $(IMAGE):latest .
 	docker tag $(IMAGE):latest $(IMAGE):$(VERSION)
 

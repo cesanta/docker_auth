@@ -47,7 +47,7 @@ func (fi bindataFileInfo) Sys() interface{} {
 
 var _dataGithub_authTmpl = []byte(`<html itemscope itemtype="http://schema.org/Article">
 <body>
-  <button type="button" onclick="location.href='{{.GithubWebUri}}/login/oauth/authorize?scope=user:email&client_id={{.ClientId}}'">Login with GitHub</button>
+  <button type="button" onclick="location.href='{{.GithubWebUri}}/login/oauth/authorize?scope=user:email%20read:org&client_id={{.ClientId}}'">Login with GitHub</button>
   <button type="button" onclick="location.href='{{.GithubWebUri}}/settings/applications'">Revoke access</button>
 </body>
 </html>
@@ -63,7 +63,7 @@ func dataGithub_authTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "data/github_auth.tmpl", size: 348, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "data/github_auth.tmpl", size: 359, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

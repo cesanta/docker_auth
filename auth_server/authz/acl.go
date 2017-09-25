@@ -274,7 +274,7 @@ func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 	for label, labelValues := range ai.Labels {
 		var labelSet []string
 		for _, lv := range labelValues {
-			labelSet = append(labelSet, regexp.QuoteMeta(lv))
+			labelSet = append(labelSet, lv)
 		}
 		labelMap[fmt.Sprintf("${labels:%s}", label)] = labelSet
 	}

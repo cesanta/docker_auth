@@ -79,3 +79,37 @@ that would need to be tested.
 
 This grows rapidly as more placeholders and labels are added. So it's best
 to limit multiple label matching when possible.
+
+## Using Labels for User Based Access
+
+If you want to use minimal ACLs then you can create some very basic acls and rely on user-side labels for access control.
+
+Example acls:
+
+```yaml
+  - match: {name: "${labels:full-access}"}
+    actions: ["*"]
+  - match: {name: "${labels:read-only-access}"}
+    actions: ["pull"]
+```
+
+Given the acl above you could use labels to grant access by simply updating a user's record
+
+Example User with full-access to `test/*` and read-only access to `prod/*`
+
+```json
+{
+    "username" : "test-user",
+    "labels" : {
+        "full-access" : [
+            "test/*"
+        ],
+        "read-only-access" : [
+            "prod/*"
+        ]
+    }
+}
+
+```
+
+If you wanted to grant more access to test-user in the future you would simply add to the `full-access` or `read-only-access` labels list. This works best when paired with a dynamic authentication method that returns labels. As of v1.3 that includes mongo and ext_auth

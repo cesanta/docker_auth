@@ -58,6 +58,7 @@ token:  # Settings for the tokens.
 # Static user map.
 users:
   # Password is specified as a BCrypt hash. Use htpasswd -B to generate.
+  # or `htpasswd -nB $USERNAME` on OS X
   "admin":
     password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC"  # badmin
   "test":

@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"strings"
 	"time"
 
@@ -31,7 +32,7 @@ import (
 type Config struct {
 	DialInfo     mgo.DialInfo `yaml:",inline"`
 	PasswordFile string       `yaml:"password_file,omitempty"`
-	EnableTls    bool         `yaml:"enable_tls,omitempty"`
+	EnableTLS    bool         `yaml:"enable_tls,omitempty"`
 }
 
 // Validate ensures the most common fields inside the mgo.DialInfo portion of
@@ -63,7 +64,7 @@ func New(c *Config) (*mgo.Session, error) {
 		c.DialInfo.Password = strings.TrimSpace(string(passBuf))
 	}
 
-	if c.EnableTls == true {
+	if c.EnableTLS {
 		c.DialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
 			return tls.Dial("tcp", addr.String(), &tls.Config{})
 		}

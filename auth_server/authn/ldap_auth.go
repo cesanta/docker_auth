@@ -19,6 +19,7 @@ package authn
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -31,6 +32,7 @@ type LDAPAuthConfig struct {
 	Addr                  string `yaml:"addr,omitempty"`
 	TLS                   string `yaml:"tls,omitempty"`
 	InsecureTLSSkipVerify bool   `yaml:"insecure_tls_skip_verify,omitempty"`
+	CACertificate         string `yaml:"ca_certificate,omitempty"`
 	Base                  string `yaml:"base,omitempty"`
 	Filter                string `yaml:"filter,omitempty"`
 	BindDN                string `yaml:"bind_dn,omitempty"`
@@ -140,7 +142,20 @@ func (la *LDAPAuth) ldapConnection() (*ldap.Conn, error) {
 	tlsConfig := &tls.Config{InsecureSkipVerify: true}
 	if !la.config.InsecureTLSSkipVerify {
 		addr := strings.Split(la.config.Addr, ":")
-		tlsConfig = &tls.Config{InsecureSkipVerify: false, ServerName: addr[0]}
+		if la.config.CACertificate != "" {
+			pool := x509.NewCertPool()
+			pem, err := ioutil.ReadFile(la.config.CACertificate)
+			if err != nil {
+				return nil, fmt.Errorf("Error loading CA File: %s", err)
+			}
+			ok := pool.AppendCertsFromPEM(pem)
+			if !ok {
+				return nil, fmt.Errorf("Error loading CA File: Couldn't parse PEM in: %s", la.config.CACertificate)
+			}
+			tlsConfig = &tls.Config{InsecureSkipVerify: false, ServerName: addr[0], RootCAs: pool}
+		} else {
+			tlsConfig = &tls.Config{InsecureSkipVerify: false, ServerName: addr[0]}
+		}
 	}
 
 	if la.config.TLS == "" || la.config.TLS == "none" || la.config.TLS == "starttls" {

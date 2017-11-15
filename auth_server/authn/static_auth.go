@@ -23,6 +23,7 @@ import (
 
 type Requirements struct {
 	Password *PasswordString `yaml:"password,omitempty" json:"password,omitempty"`
+	Labels   Labels          `yaml:"labels,omitempty" json:"labels,omitempty"`
 }
 
 type staticUsersAuth struct {
@@ -54,7 +55,7 @@ func (sua *staticUsersAuth) Authenticate(user string, password PasswordString) (
 			return false, nil, nil
 		}
 	}
-	return true, nil, nil
+	return true, reqs.Labels, nil
 }
 
 func (sua *staticUsersAuth) Stop() {

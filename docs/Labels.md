@@ -2,6 +2,8 @@
 
 Labels can be used to reduce the number ACLS needed in large, complex installations.
 
+Labels are only supported for certain auth backends. As of right now labels are only supported when using Static Authentication or Mongo Authentication.
+
 ## Label Placeholders
 
 Label placeholders are available for any label that is assigned to a user.

@@ -17,6 +17,7 @@
 package mgo_session
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -30,6 +31,7 @@ import (
 type Config struct {
 	DialInfo     mgo.DialInfo `yaml:",inline"`
 	PasswordFile string       `yaml:"password_file,omitempty"`
+	EnableTls    bool         `yaml:"enable_tls,omitempty"`
 }
 
 // Validate ensures the most common fields inside the mgo.DialInfo portion of
@@ -59,6 +61,12 @@ func New(c *Config) (*mgo.Session, error) {
 			return nil, fmt.Errorf(`Failed to read password file "%s": %s`, c.PasswordFile, err)
 		}
 		c.DialInfo.Password = strings.TrimSpace(string(passBuf))
+	}
+
+	if c.EnableTls == true {
+		c.DialInfo.DialServer = func(addr *mgo.ServerAddr) (net.Conn, error) {
+			return tls.Dial("tcp", addr.String(), &tls.Config{})
+		}
 	}
 
 	glog.V(2).Infof("Creating MongoDB session (operation timeout %s)", c.DialInfo.Timeout)

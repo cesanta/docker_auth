@@ -157,6 +157,8 @@ mongo_auth:
     username: ""
     # Path to the text file with the password in it.
     password_file: ""
+    # Enable TLS connection to MongoDB (only enable this if your server supports it)
+    enable_tls: false
   # Name of the collection in which ACLs will be stored in MongoDB.
   collection: "users"
   # Unlike acl_mongo we don't cache the full user set. We just query mongo for
@@ -270,6 +272,8 @@ acl_mongo:
     username: ""
     # Path to the text file with the password in it.
     password_file: ""
+    # Enable TLS connection to MongoDB (only enable this if your server supports it)
+    enable_tls: false
   # Name of the collection in which ACLs will be stored in MongoDB.
   collection: "acl"
   # Specify how long an ACL remains valid before they will be fetched again from

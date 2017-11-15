@@ -38,7 +38,7 @@ build-release: ca-certificates.crt
 	    umask 0 && govendor sync -v && \
 	    go install -v github.com/cesanta/docker_auth/auth_server/vendor/github.com/jteeuwen/go-bindata/go-bindata && \
 	    make generate && \
-	    go build -v"
+	    CGO_ENABLED=0 go build -v -i --ldflags=--s"
 	@echo === Built version $(VERSION) ===
 
 auth_server:

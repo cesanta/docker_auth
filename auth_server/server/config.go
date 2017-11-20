@@ -33,17 +33,18 @@ import (
 )
 
 type Config struct {
-	Server     ServerConfig                   `yaml:"server"`
-	Token      TokenConfig                    `yaml:"token"`
-	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
-	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	GitHubAuth *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
-	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
-	MongoAuth  *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
-	ExtAuth    *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
-	ACL        authz.ACL                      `yaml:"acl,omitempty"`
-	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
-	ExtAuthz   *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
+	Server                  ServerConfig                         `yaml:"server"`
+	Token                   TokenConfig                          `yaml:"token"`
+	Users                   map[string]*authn.Requirements       `yaml:"users,omitempty"`
+	GoogleAuth              *authn.GoogleAuthConfig              `yaml:"google_auth,omitempty"`
+	GitHubAuth              *authn.GitHubAuthConfig              `yaml:"github_auth,omitempty"`
+	KeycloakDirectGrantAuth *authn.KeycloakDirectGrantAuthConfig `yaml:"keycloak_direct_grant_auth,omitempty"`
+	LDAPAuth                *authn.LDAPAuthConfig                `yaml:"ldap_auth,omitempty"`
+	MongoAuth               *authn.MongoAuthConfig               `yaml:"mongo_auth,omitempty"`
+	ExtAuth                 *authn.ExtAuthConfig                 `yaml:"ext_auth,omitempty"`
+	ACL                     authz.ACL                            `yaml:"acl,omitempty"`
+	ACLMongo                *authz.ACLMongoConfig                `yaml:"acl_mongo,omitempty"`
+	ExtAuthz                *authz.ExtAuthzConfig                `yaml:"ext_authz,omitempty"`
 }
 
 type ServerConfig struct {
@@ -89,7 +90,7 @@ func validate(c *Config) error {
 	if c.Token.Expiration <= 0 {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
-	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil {
+	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.KeycloakDirectGrantAuth == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if c.MongoAuth != nil {
@@ -133,6 +134,21 @@ func validate(c *Config) error {
 		if ghac.RevalidateAfter == 0 {
 			// Token expires after 1 hour by default
 			ghac.RevalidateAfter = time.Duration(1 * time.Hour)
+		}
+	}
+	if kdgac := c.KeycloakDirectGrantAuth; kdgac != nil {
+		if kdgac.URI == "" || kdgac.Realm == "" || kdgac.ClientID == "" {
+			return errors.New("keycloak_direct_grant_auth.{uri,realm,client_id} are required")
+		}
+		if kdgac.HTTPTimeout <= 0 {
+			kdgac.HTTPTimeout = 10
+		}
+		if kdgac.ClientSecretFile != "" {
+			contents, err := ioutil.ReadFile(kdgac.ClientSecretFile)
+			if err != nil {
+				return fmt.Errorf("could not read %s: %s", kdgac.ClientSecretFile, err)
+			}
+			kdgac.ClientSecret = strings.TrimSpace(string(contents))
 		}
 	}
 	if c.ExtAuth != nil {

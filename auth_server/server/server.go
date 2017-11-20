@@ -91,6 +91,10 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		as.authenticators = append(as.authenticators, gha)
 		as.gha = gha
 	}
+	if c.KeycloakDirectGrantAuth != nil {
+		as.authenticators = append(as.authenticators,
+			authn.NewKeycloakDirectGrantAuth(c.KeycloakDirectGrantAuth))
+	}
 	if c.LDAPAuth != nil {
 		la, err := authn.NewLDAPAuth(c.LDAPAuth)
 		if err != nil {
@@ -334,13 +338,13 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	glog.V(3).Infof("Request: %+v", req)
 	path_prefix := as.config.Server.PathPrefix
 	switch {
-	case req.URL.Path == path_prefix + "/":
+	case req.URL.Path == path_prefix+"/":
 		as.doIndex(rw, req)
-	case req.URL.Path == path_prefix + "/auth":
+	case req.URL.Path == path_prefix+"/auth":
 		as.doAuth(rw, req)
-	case req.URL.Path == path_prefix + "/google_auth" && as.ga != nil:
+	case req.URL.Path == path_prefix+"/google_auth" && as.ga != nil:
 		as.ga.DoGoogleAuth(rw, req)
-	case req.URL.Path == path_prefix + "/github_auth" && as.gha != nil:
+	case req.URL.Path == path_prefix+"/github_auth" && as.gha != nil:
 		as.gha.DoGitHubAuth(rw, req)
 	default:
 		http.Error(rw, "Not found", http.StatusNotFound)

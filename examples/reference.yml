@@ -118,6 +118,24 @@ github_auth:
   # Includes the protocol, without trailing slash. - defaults to: https://api.github.com
   github_api_uri: "https://github.acme.com/api/v3" 
 
+# Keycloak direct grant authentication.
+# The keycloak client has to have the "Direct Access Grants Enabled" option enabled.
+keycloak_direct_grant_auth:
+  # The keycloak URI. Required.
+  # Includes the protocol, without trailing slash.
+  uri: "https://my.keycloak.com"
+  # Realm name that will be used on the Keycloak. Required.
+  realm: "master"
+  # client_id that will be used on the Keycloak. Required.
+  client_id: "1223123456"
+  # Either client_secret or client_secret_file is required if the client is configured for
+  # confidential access type. Use client_secret_file if you don't want to have
+  # sensitive information checked in.
+  # client_secret: "verysecret"
+  client_secret_file: "/path/to/client_secret.txt"
+  # How long (in seconds) to wait when talking to Keycloak servers. Optional - defaults to: 10
+  http_timeout: 10
+
 # LDAP authentication.
 # Authentication is performed by first binding to the server, looking up the user entry
 # by using the specified filter, and then re-binding using the matched DN and the password provided.

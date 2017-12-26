@@ -28,7 +28,10 @@ server:  # Server settings.
     # so you can run both registry and docker_auth on the same machine without needing to jump
     # through hoops to proxy port 443 to talk to letsencrypt.org, the file is watched for 
     # modifications and reloaded so it should stay completely up-to-date with no additional work.
-    # Note: the "host:" setting below is required if you use registryjson so we can find the keys
+    # Notes: 1. the "host:" setting below is required if you use registryjson so we can find the keys
+    #        2. you should run registry and hit it over port 443 so it creates the letsencrypt.json
+    #           before running it with docker_auth, you can just touch the file to create it so it
+    #           can be mounted, but you'll get a lot of log failures while things try to settle down
     registryjson: /path/to/letsencrypt.json
     # Email is required unless using registryjson. It will be used to register with LetsEncrypt.
     email: webmaster@example.org

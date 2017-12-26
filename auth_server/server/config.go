@@ -25,6 +25,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"encoding/json"
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/docker_auth/auth_server/authz"
@@ -60,9 +61,10 @@ type ServerConfig struct {
 }
 
 type LetsEncryptConfig struct {
-	Host     string `yaml:"host,omitempty"`
-	Email    string `yaml:"email,omitempty"`
-	CacheDir string `yaml:"cache_dir,omitempty"`
+	RegistryJSON string `yaml:"registryjson,omitempty"`
+	Host         string `yaml:"host,omitempty"`
+	Email        string `yaml:"email,omitempty"`
+	CacheDir     string `yaml:"cache_dir,omitempty"`
 }
 
 type TokenConfig struct {
@@ -73,6 +75,15 @@ type TokenConfig struct {
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
+}
+
+type LetsEncryptJSON struct {
+	Certs map[string]*LetsEncryptJSONHost `json:"Certs,omitempty"`
+}
+
+type LetsEncryptJSONHost struct {
+	Cert string `json:"Cert"`
+	Key  string `json:"Key"`
 }
 
 func validate(c *Config) error {
@@ -162,8 +173,8 @@ func validate(c *Config) error {
 	return nil
 }
 
-func loadCertAndKey(certFile, keyFile string) (pk libtrust.PublicKey, prk libtrust.PrivateKey, err error) {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+func loadCertAndKeyBytes(certBytes, keyBytes []byte) (pk libtrust.PublicKey, prk libtrust.PrivateKey, err error) {
+	cert, err := tls.X509KeyPair(certBytes, keyBytes)
 	if err != nil {
 		return
 	}
@@ -176,6 +187,19 @@ func loadCertAndKey(certFile, keyFile string) (pk libtrust.PublicKey, prk libtru
 		return
 	}
 	prk, err = libtrust.FromCryptoPrivateKey(cert.PrivateKey)
+	return
+}
+
+func loadCertAndKey(certFile, keyFile string) (pk libtrust.PublicKey, prk libtrust.PrivateKey, err error) {
+	certBytes, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		return
+	}
+	keyBytes, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return
+	}
+	pk, prk, err = loadCertAndKeyBytes(certBytes,keyBytes)
 	return
 }
 
@@ -225,15 +249,42 @@ func LoadConfig(fileName string) (*Config, error) {
 		return nil, fmt.Errorf("failed to load token cert and key: none provided")
 	}
 
-	if !serverConfigured && c.Server.LetsEncrypt.Email != "" {
-		if c.Server.LetsEncrypt.CacheDir == "" {
-			return nil, fmt.Errorf("server.letsencrypt.cache_dir is required")
-		}
-		// We require that LetsEncrypt is an existing directory, because we really don't want it
-		// to be misconfigured and obtained certificates to be lost.
-		fi, err := os.Stat(c.Server.LetsEncrypt.CacheDir)
-		if err != nil || !fi.IsDir() {
-			return nil, fmt.Errorf("server.letsencrypt.cache_dir (%s) does not exist or is not a directory", c.Server.LetsEncrypt.CacheDir)
+	if !serverConfigured {
+	   	if c.Server.LetsEncrypt.RegistryJSON != "" {
+			fi, err := os.Stat(c.Server.LetsEncrypt.RegistryJSON)
+			if err != nil || !fi.Mode().IsRegular() {
+				return nil, fmt.Errorf("server.letsencrypt.registryjson (%s) does not exist or is not a file", c.Server.LetsEncrypt.RegistryJSON)
+			}
+			if c.Server.LetsEncrypt.Host == "" {
+				return nil, fmt.Errorf("server.letsencrypt.host required if using registryjson")
+			}
+			// read the letsencrypt.json file and find the host key and cert, using dynamic json due to the
+			// hostname part of the lookup, but I don't really know Go so there's probably a better way
+			jsonbytes, err := ioutil.ReadFile(c.Server.LetsEncrypt.RegistryJSON)
+			if err != nil {
+				return nil, fmt.Errorf("could not read %s: %s", c.Server.LetsEncrypt.RegistryJSON, err)
+			}
+			certs := &LetsEncryptJSON{}
+			if err = json.Unmarshal(jsonbytes, &certs); err != nil {
+				return nil, fmt.Errorf("could not parse config: %s", err)
+			}
+			if val, ok := certs.Certs[c.Server.LetsEncrypt.Host]; ok {
+				if c.Server.publicKey, c.Server.privateKey, err = loadCertAndKeyBytes([]byte(val.Cert), []byte(val.Key)); err != nil {
+					return nil, fmt.Errorf("could not load cert and key for host %s in registryjson %s",c.Server.LetsEncrypt.Host,c.Server.LetsEncrypt.RegistryJSON)
+				}
+			} else {
+				return nil, fmt.Errorf("could not find host %s in registryjson %s",c.Server.LetsEncrypt.Host,c.Server.LetsEncrypt.RegistryJSON)
+			}
+		} else if c.Server.LetsEncrypt.Email != "" {
+			if c.Server.LetsEncrypt.CacheDir == "" {
+				return nil, fmt.Errorf("server.letsencrypt.cache_dir is required")
+			}
+			// We require that LetsEncrypt is an existing directory, because we really don't want it
+			// to be misconfigured and obtained certificates to be lost.
+			fi, err := os.Stat(c.Server.LetsEncrypt.CacheDir)
+			if err != nil || !fi.IsDir() {
+				return nil, fmt.Errorf("server.letsencrypt.cache_dir (%s) does not exist or is not a directory", c.Server.LetsEncrypt.CacheDir)
+			}
 		}
 	}
 

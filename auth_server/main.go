@@ -27,6 +27,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"encoding/json"
+	"io/ioutil"
 
 	"github.com/cesanta/docker_auth/auth_server/server"
 	"github.com/cesanta/glog"
@@ -76,6 +78,26 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 		if err != nil {
 			glog.Exitf("Failed to load certificate and key: %s", err)
 		}
+	} else if c.Server.LetsEncrypt.RegistryJSON != "" {
+		// I don't understand why this is basically duplicated in config.go with loadCertAndKey?  just to test cert loading?
+		jsonbytes, err := ioutil.ReadFile(c.Server.LetsEncrypt.RegistryJSON)
+		if err != nil {
+			glog.Exitf("could not read %s: %s", c.Server.LetsEncrypt.RegistryJSON, err)
+		}
+		certs := &server.LetsEncryptJSON{}
+		if err = json.Unmarshal(jsonbytes, &certs); err != nil {
+			glog.Exitf("could not parse config: %s", err)
+		}
+		if val, ok := certs.Certs[c.Server.LetsEncrypt.Host]; ok {
+			glog.Infof("Using LetsEncrypt json from registry, host %q, file %q", c.Server.LetsEncrypt.Host, c.Server.LetsEncrypt.RegistryJSON)
+			tlsConfig.Certificates = make([]tls.Certificate, 1)
+			tlsConfig.Certificates[0], err = tls.X509KeyPair([]byte(val.Cert), []byte(val.Key))
+			if err != nil {
+				glog.Exitf("could not load cert and key for host %s in registryjson %s",c.Server.LetsEncrypt.Host,c.Server.LetsEncrypt.RegistryJSON)
+			}
+		} else {
+			glog.Exitf("could not find host %s in registryjson %s",c.Server.LetsEncrypt.Host,c.Server.LetsEncrypt.RegistryJSON)
+		}
 	} else if c.Server.LetsEncrypt.Email != "" {
 		m := &autocert.Manager{
 			Email:  c.Server.LetsEncrypt.Email,
@@ -106,10 +128,10 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 
 func (rs *RestartableServer) Serve(c *server.Config) {
 	rs.authServer, rs.hs = ServeOnce(c, rs.configFile, rs.hd)
-	rs.WatchConfig()
+	rs.WatchConfig(c.Server.LetsEncrypt.RegistryJSON)
 }
 
-func (rs *RestartableServer) WatchConfig() {
+func (rs *RestartableServer) WatchConfig(alsoWatchFile string) {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		glog.Fatalf("Failed to create watcher: %s", err)
@@ -120,12 +142,18 @@ func (rs *RestartableServer) WatchConfig() {
 	signal.Notify(stopSignals, syscall.SIGTERM, syscall.SIGINT)
 
 	err = w.Add(rs.configFile)
+	if alsoWatchFile != "" && err == nil {
+		err = w.Add(alsoWatchFile)
+	}
 	watching, needRestart := (err == nil), false
 	for {
 		select {
 		case <-time.After(1 * time.Second):
 			if !watching {
 				err = w.Add(rs.configFile)
+				if alsoWatchFile != "" && err == nil {
+					err = w.Add(alsoWatchFile)
+				}
 				if err != nil {
 					glog.Errorf("Failed to set up config watcher: %s", err)
 				} else {

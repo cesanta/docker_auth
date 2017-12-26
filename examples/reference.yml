@@ -24,7 +24,13 @@ server:  # Server settings.
   # Use LetsEncrypt (https://letsencrypt.org/) to automatically obtain and maintain a certificate.
   # Note that this only applies to server TLS certificate, this certificate will not be used for tokens
   letsencrypt:
-    # Email is required. It will be used to register with LetsEncrypt.
+    # registryjson lets you point docker_auth at the letsencrypt.json file used by the registry
+    # so you can run both registry and docker_auth on the same machine without needing to jump
+    # through hoops to proxy port 443 to talk to letsencrypt.org, the file is watched for 
+    # modifications and reloaded so it should stay completely up-to-date with no additional work.
+    # Note: the "host:" setting below is required if you use registryjson so we can find the keys
+    registryjson: /path/to/letsencrypt.json
+    # Email is required unless using registryjson. It will be used to register with LetsEncrypt.
     email: webmaster@example.org
     # Cache directory, where certificates issued by LE will be stored. Must exist.
     # It is recommended to make it a volume mount so it persists across restarts.

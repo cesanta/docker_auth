@@ -219,7 +219,7 @@ func (as *AuthServer) Authenticate(ar *authRequest) (bool, authn.Labels, error) 
 			if err == authn.NoMatch {
 				continue
 			} else if err == authn.WrongPass {
-				glog.Warningf("Failed authentication with %s: %s", err)
+				glog.Warningf("Failed authentication with %s: %s", err, ar.Account)
 				return false, nil, nil
 			}
 			err = fmt.Errorf("authn #%d returned error: %s", i+1, err)
@@ -334,13 +334,13 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	glog.V(3).Infof("Request: %+v", req)
 	path_prefix := as.config.Server.PathPrefix
 	switch {
-	case req.URL.Path == path_prefix + "/":
+	case req.URL.Path == path_prefix+"/":
 		as.doIndex(rw, req)
-	case req.URL.Path == path_prefix + "/auth":
+	case req.URL.Path == path_prefix+"/auth":
 		as.doAuth(rw, req)
-	case req.URL.Path == path_prefix + "/google_auth" && as.ga != nil:
+	case req.URL.Path == path_prefix+"/google_auth" && as.ga != nil:
 		as.ga.DoGoogleAuth(rw, req)
-	case req.URL.Path == path_prefix + "/github_auth" && as.gha != nil:
+	case req.URL.Path == path_prefix+"/github_auth" && as.gha != nil:
 		as.gha.DoGitHubAuth(rw, req)
 	default:
 		http.Error(rw, "Not found", http.StatusNotFound)

@@ -1,7 +1,7 @@
 MAKEFLAGS += --warn-undefined-variables
 IMAGE ?= cesanta/docker_auth
 COMPRESS_BINARY ?= false
-CA_BUNDLE = /etc/ssl/certs/ca-certificates.crt
+CA_BUNDLE ?= /etc/ssl/certs/ca-certificates.crt
 VERSION = $(shell cat version.txt)
 
 BUILDER_IMAGE ?= golang:1.8.0-alpine
@@ -28,7 +28,7 @@ build:
 	CGO_ENABLED=0 go build -v -i --ldflags=--s
 
 ca-certificates.crt:
-	cp $(CA_BUNDLE) .
+	cp $(CA_BUNDLE) ./ca-certificates.crt
 
 custom-image:
 	docker build -t $(CUSTOM_BUILDER_IMAGE) -f ./Dockerfile-builderimage .

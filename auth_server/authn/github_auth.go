@@ -32,21 +32,26 @@ import (
 )
 
 type GitHubAuthConfig struct {
-	Organization     string                `yaml:"organization,omitempty"`
-	ClientId         string                `yaml:"client_id,omitempty"`
-	ClientSecret     string                `yaml:"client_secret,omitempty"`
-	ClientSecretFile string                `yaml:"client_secret_file,omitempty"`
-	TokenDB          string                `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GitHubGCSStoreConfig `yaml:"gcs_token_db,omitempty"`
-	HTTPTimeout      time.Duration         `yaml:"http_timeout,omitempty"`
-	RevalidateAfter  time.Duration         `yaml:"revalidate_after,omitempty"`
-	GithubWebUri     string                `yaml:"github_web_uri,omitempty"`
-	GithubApiUri     string                `yaml:"github_api_uri,omitempty"`
+	Organization     string                  `yaml:"organization,omitempty"`
+	ClientId         string                  `yaml:"client_id,omitempty"`
+	ClientSecret     string                  `yaml:"client_secret,omitempty"`
+	ClientSecretFile string                  `yaml:"client_secret_file,omitempty"`
+	TokenDB          string                  `yaml:"token_db,omitempty"`
+	GCSTokenDB       *GitHubGCSStoreConfig   `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB     *GitHubRedisStoreConfig `yaml:"redis_token_db,omitempty"`
+	HTTPTimeout      time.Duration           `yaml:"http_timeout,omitempty"`
+	RevalidateAfter  time.Duration           `yaml:"revalidate_after,omitempty"`
+	GithubWebUri     string                  `yaml:"github_web_uri,omitempty"`
+	GithubApiUri     string                  `yaml:"github_api_uri,omitempty"`
 }
 
 type GitHubGCSStoreConfig struct {
 	Bucket           string `yaml:"bucket,omitempty"`
 	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
+}
+
+type GitHubRedisStoreConfig struct {
+	Url string `yaml:"url,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -71,11 +76,16 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 	var db TokenDB
 	var err error
 	dbName := c.TokenDB
-	if c.GCSTokenDB == nil {
-		db, err = NewTokenDB(c.TokenDB)
-	} else {
-		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
-		dbName = "GCS: " + c.GCSTokenDB.Bucket
+
+	switch {
+		case c.GCSTokenDB != nil:
+			db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
+			dbName  = "GCS: " + c.GCSTokenDB.Bucket
+		case c.RedisTokenDB != nil:
+			db, err = NewRedisTokenDB(c.RedisTokenDB.Url)
+			dbName  = "Redis: " + c.RedisTokenDB.Url
+		default:
+			db, err = NewTokenDB(c.TokenDB)
 	}
 
 	if err != nil {

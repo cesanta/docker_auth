@@ -107,6 +107,9 @@ github_auth:
   gcs_token_db: 
     bucket: "tokenBucket"
     client_secret_file: "/path/to/client_secret.json"
+  # or Redis.
+  redis_token_db:
+    url: localhost:6379
   # How long to wait when talking to GitHub servers. Optional.
   http_timeout: "10s"
   # How long to wait before revalidating the GitHub token. Optional.

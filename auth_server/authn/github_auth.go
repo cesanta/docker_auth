@@ -95,10 +95,11 @@ type GitHubTokenUser struct {
 }
 
 type GitHubAuth struct {
-	config *GitHubAuthConfig
-	db     TokenDB
-	client *http.Client
-	tmpl   *template.Template
+	config     *GitHubAuthConfig
+	db         TokenDB
+	client     *http.Client
+	tmpl       *template.Template
+	tmplResult *template.Template
 }
 
 type linkHeader struct {
@@ -183,19 +184,31 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 	}
 	glog.Infof("GitHub auth token DB at %s", dbName)
 	return &GitHubAuth{
-		config: c,
-		db:     db,
-		client: &http.Client{Timeout: 10 * time.Second},
-		tmpl:   template.Must(template.New("github_auth").Parse(string(MustAsset("data/github_auth.tmpl")))),
+		config:     c,
+		db:         db,
+		client:     &http.Client{Timeout: 10 * time.Second},
+		tmpl:       template.Must(template.New("github_auth").Parse(string(MustAsset("data/github_auth.tmpl")))),
+		tmplResult: template.Must(template.New("github_auth_result").Parse(string(MustAsset("data/github_auth_result.tmpl")))),
 	}, nil
 }
 
 func (gha *GitHubAuth) doGitHubAuthPage(rw http.ResponseWriter, req *http.Request) {
 	if err := gha.tmpl.Execute(rw, struct {
-		ClientId, GithubWebUri string
+		ClientId, GithubWebUri, Organization string
 	}{
 		ClientId:     gha.config.ClientId,
-		GithubWebUri: gha.getGithubWebUri()}); err != nil {
+		GithubWebUri: gha.getGithubWebUri(),
+		Organization: gha.config.Organization}); err != nil {
+		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
+	}
+}
+
+func (gha *GitHubAuth) doGitHubAuthResultPage(rw http.ResponseWriter, username string, password string) {
+	if err := gha.tmplResult.Execute(rw, struct {
+		Organization, Username, Password string
+	}{Organization: gha.config.Organization,
+		Username: username,
+		Password: password}); err != nil {
 		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
 	}
 }
@@ -290,7 +303,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		return
 	}
 
-	fmt.Fprintf(rw, `Server logged in; now run "docker login YOUR_REGISTRY_FQDN", use %s as login and %s as password.`, user, dp)
+	gha.doGitHubAuthResultPage(rw, user, dp)
 }
 
 func (gha *GitHubAuth) validateAccessToken(token string) (user string, err error) {

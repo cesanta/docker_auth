@@ -1,0 +1,45 @@
+<!doctype html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Docker Registry Authentication</title>
+  <style>
+    body {
+      color: #000;
+      background: #fff;
+      font-family: sans-serif;
+      padding: 4em 4em;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #ccc;
+    }
+    .message code {
+      font-size: 1.4em;
+      background: #ccc;
+      border-radius: 0.5em;
+      padding: 0.25em 0.5em;
+      margin: 0 0.25em 0 0.25em;
+    }
+    .command {
+      font-size: 2em;
+      line-height: 2em;
+      color: #222;
+      background: #fafafa;
+      padding: 1em 1em 1.2em 1em;
+      margin: 1em 0;
+      border-radius: 0.5em;
+      text-shadow: 0px 1px 0px #fff;
+    }
+  </style>
+</head>
+<body>
+  <p class="message">
+    You are successfully authenticated for the Docker Registry{{if .Organization}} with the <code>@{{.Organization}}</code> Github organization{{end}}.
+    Use the following username and password to login into the registry:
+  </p>
+  <hr>
+  <pre class="command">$ docker login -u {{.Username}} -p {{.Password}} YOUR_REGISTRY_FQDN</pre>
+</body>
+</html>

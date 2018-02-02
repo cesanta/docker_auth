@@ -5,6 +5,7 @@ CA_BUNDLE = /etc/ssl/certs/ca-certificates.crt
 VERSION = $(shell cat version.txt)
 
 BUILDER_IMAGE ?= golang:1.8.0-alpine
+CUSTOM_BUILDER_IMAGE ?= docker-auth-build-image:latest
 
 .PHONY: %
 
@@ -29,10 +30,12 @@ build:
 ca-certificates.crt:
 	cp $(CA_BUNDLE) .
 
+custom-image:
+	docker build -t $(CUSTOM_BUILDER_IMAGE) -f ./Dockerfile-builderimage .
+
 build-release: ca-certificates.crt
 	docker run --rm -v $(PWD)/..:/go/src/github.com/cesanta/docker_auth \
-	  $(BUILDER_IMAGE) sh -x -c "\
-	    apk update && apk add git make py2-pip && pip install GitPython && \
+	  $(CUSTOM_BUILDER_IMAGE) sh -x -c "\
 	    cd /go/src/github.com/cesanta/docker_auth/auth_server && \
 	    go get -v -u github.com/kardianos/govendor && \
 	    umask 0 && govendor sync -v && \

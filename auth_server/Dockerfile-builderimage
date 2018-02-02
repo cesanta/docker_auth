@@ -1,0 +1,4 @@
+#FROM busybox
+FROM golang:1.8.0-alpine
+RUN apk update && apk add git make py2-pip && \
+    pip install GitPython

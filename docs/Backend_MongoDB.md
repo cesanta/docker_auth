@@ -62,10 +62,10 @@ guarantee by default, i.e. [Natural Sorting](https://docs.mongodb.org/manual/ref
 {"seq": 11, "match" : {"labels": {"group": "admin"}}, "actions" : ["*"], "comment" : "Admin group members have full access to everything"}
 {"seq": 20, "match" : {"account" : "test", "name" : "test-*"}, "actions" : ["*"], "comment" : "User \"test\" has full access to test-* images but nothing else. (1)"}
 {"seq": 30, "match" : {"account" : "test"}, "actions" : [], "comment" : "User \"test\" has full access to test-* images but nothing else. (2)"}
-{"seq": 40, "match" : {"account" : "/.+/"}, "actions" : ["pull"], "comment" : "All logged in users can pull all images."}
-{"seq": 50, "match" : {"account" : "/.+/", "name" : "${account}/*"}, "actions" : ["*"], "comment" : "All logged in users can push all images that are in a namespace beginning with their name"}
-{"seq": 60, "match" : {"name" : "${labels:group}-shared/*"}, "actions" : ["push", "pull"], "comment" : "Users can pull and push to the shared namespace of any group they are in"}
-{"seq": 70, "match" : {"name" : "${labels:project}/*"}, "actions" : ["push", "pull"], "comment" : "Users can pull and push to to namespaces matching projects they are assigned to"}
+{"seq": 40, "match" : {"account" : "/.+/", "name" : "${account}/*"}, "actions" : ["*"], "comment" : "All logged in users can push all images that are in a namespace beginning with their name"}
+{"seq": 50, "match" : {"name" : "${labels:group}-shared/*"}, "actions" : ["push", "pull"], "comment" : "Users can pull and push to the shared namespace of any group they are in"}
+{"seq": 60, "match" : {"name" : "${labels:project}/*"}, "actions" : ["push", "pull"], "comment" : "Users can pull and push to to namespaces matching projects they are assigned to"}
+{"seq": 70, "match" : {"account" : "/.+/"}, "actions" : ["pull"], "comment" : "All logged in users can pull all images."}
 {"seq": 80, "match" : {"account" : "", "name" : "hello-world"}, "actions" : ["pull"], "comment" : "Anonymous users can pull \"hello-world\"."}
 ```
 

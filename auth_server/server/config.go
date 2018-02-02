@@ -132,6 +132,10 @@ func validate(c *Config) error {
 			return errors.New("github_auth.{client_id,client_secret,redis_token_db{url}} are required")
 		}
 
+		if ghac.RedisTokenDB != nil && ghac.RedisTokenDB.EncryptKey != "" && len(ghac.RedisTokenDB.EncryptKey) != 32 {
+			return errors.New("github_auth.{redis_token_db{encrypt_key}} must be exactly 32 bytes long")
+		}
+
 		if ghac.HTTPTimeout <= 0 {
 			ghac.HTTPTimeout = time.Duration(10 * time.Second)
 		}

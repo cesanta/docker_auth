@@ -79,6 +79,7 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 	} else if c.Server.LetsEncrypt.Email != "" {
 		m := &autocert.Manager{
 			Email:  c.Server.LetsEncrypt.Email,
+			Cache:  autocert.DirCache(c.Server.LetsEncrypt.CacheDir),
 			Prompt: autocert.AcceptTOS,
 		}
 		if c.Server.LetsEncrypt.Host != "" {

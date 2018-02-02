@@ -76,7 +76,8 @@ type GitHubGCSStoreConfig struct {
 }
 
 type GitHubRedisStoreConfig struct {
-	Url string `yaml:"url,omitempty"`
+	Url        string `yaml:"url,omitempty"`
+	EncryptKey string `yaml:"encrypt_key,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -174,7 +175,7 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
 		dbName = "GCS: " + c.GCSTokenDB.Bucket
 	case c.RedisTokenDB != nil:
-		db, err = NewRedisTokenDB(c.RedisTokenDB.Url)
+		db, err = NewRedisTokenDB(c.RedisTokenDB.Url, c.RedisTokenDB.EncryptKey)
 		dbName = "Redis: " + c.RedisTokenDB.Url
 	default:
 		db, err = NewTokenDB(c.TokenDB)

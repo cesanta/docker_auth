@@ -140,6 +140,8 @@ github_auth:
   # or Redis.
   redis_token_db:
     url: localhost:6379
+    # Optionally set an encryption key for Redis (must be exactly 32 bytes)
+    encrypt_key: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   # How long to wait when talking to GitHub servers. Optional.
   http_timeout: "10s"
   # How long to wait before revalidating the GitHub token. Optional.

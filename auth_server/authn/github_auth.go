@@ -418,6 +418,7 @@ func (gha *GitHubAuth) fetchTeams(token string) ([]string, error) {
 		}
 	}
 
+	glog.V(3).Infof("All teams for the user: %v", allTeams)
 	glog.Infof("Teams for the <%s> organization: %v", gha.config.Organization, organizationTeams)
 	return organizationTeams, err
 }
@@ -430,6 +431,12 @@ func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
 		}
 		return nil, err
 	}
+
+	texp := v.ValidUntil.Sub(time.Now())
+	glog.V(3).Infof("Existing GitHub auth token for <%s> expires after: <%d> sec", user, int(texp.Seconds()))
+
+	glog.V(1).Infof("Token has expired. I will revalidate the access token.")
+	glog.V(3).Infof("Old token is: %+v", v)
 	tokenUser, err := gha.validateAccessToken(v.AccessToken)
 	if err != nil {
 		glog.Warningf("Token for %q failed validation: %s", user, err)
@@ -439,9 +446,21 @@ func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
 		glog.Errorf("token for wrong user: expected %s, found %s", user, tokenUser)
 		return nil, fmt.Errorf("found token for wrong user")
 	}
+
+	// Update revalidation timestamp
 	v.ValidUntil = time.Now().Add(gha.config.RevalidateAfter)
-	texp := v.ValidUntil.Sub(time.Now())
-	glog.V(1).Infof("Validated GitHub auth token for %s (exp %d)", user, int(texp.Seconds()))
+	glog.V(3).Infof("New token is: %+v", v)
+
+	// Update token
+	_, err = gha.db.StoreToken(user, v, false)
+	if err != nil {
+		glog.Errorf("Failed to record server token: %s", err)
+		return nil, fmt.Errorf("Unable to store renewed token expiry time: %s", err)
+	}
+	glog.V(2).Infof("Successfully revalidated token")
+
+	texp = v.ValidUntil.Sub(time.Now())
+	glog.V(3).Infof("Re-validated GitHub auth token for %s. Next revalidation in %dsec.", user, int64(texp.Seconds()))
 	return v, nil
 }
 

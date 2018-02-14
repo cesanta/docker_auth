@@ -76,6 +76,7 @@ type GitHubAuthConfig struct {
 	RevalidateAfter  time.Duration         `yaml:"revalidate_after,omitempty"`
 	GithubWebUri     string                `yaml:"github_web_uri,omitempty"`
 	GithubApiUri     string                `yaml:"github_api_uri,omitempty"`
+	RegistryUrl      string                `yaml:"registry_url,omitempty"`
 }
 
 type GitHubGCSStoreConfig struct {
@@ -205,10 +206,11 @@ func (gha *GitHubAuth) doGitHubAuthPage(rw http.ResponseWriter, req *http.Reques
 
 func (gha *GitHubAuth) doGitHubAuthResultPage(rw http.ResponseWriter, username string, password string) {
 	if err := gha.tmplResult.Execute(rw, struct {
-		Organization, Username, Password string
+		Organization, Username, Password, RegistryUrl string
 	}{Organization: gha.config.Organization,
-		Username: username,
-		Password: password}); err != nil {
+		Username:    username,
+		Password:    password,
+		RegistryUrl: gha.config.RegistryUrl}); err != nil {
 		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
 	}
 }

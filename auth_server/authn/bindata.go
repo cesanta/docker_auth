@@ -172,6 +172,9 @@ var _dataGithub_auth_resultTmpl = []byte(`<!doctype html>
       border-radius: 0.5em;
       text-shadow: 0px 1px 0px #fff;
     }
+    .command span {
+      user-select: none
+    }
   </style>
 </head>
 <body>
@@ -180,7 +183,7 @@ var _dataGithub_auth_resultTmpl = []byte(`<!doctype html>
     Use the following username and password to login into the registry:
   </p>
   <hr>
-  <pre class="command">$ docker login -u {{.Username}} -p {{.Password}} YOUR_REGISTRY_FQDN</pre>
+  <pre class="command"><span>$ </span>docker login -u {{.Username}} -p {{.Password}} {{if .RegistryUrl}}{{.RegistryUrl}}{{else}}docker.example.com{{end}}</pre>
 </body>
 </html>
 `)
@@ -195,7 +198,7 @@ func dataGithub_auth_resultTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "data/github_auth_result.tmpl", size: 1094, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "data/github_auth_result.tmpl", size: 1207, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

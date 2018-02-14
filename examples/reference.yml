@@ -133,14 +133,17 @@ github_auth:
   client_secret_file: "/path/to/client_secret.txt"
   # Either token_db file for storing of server tokens.
   token_db: "/somewhere/to/put/github_tokens.ldb"
-  # or google cloud storage for storing of the sensitive information.
+  # or google cloud storage for storing of the sensitive information,
   gcs_token_db:
     bucket: "tokenBucket"
     client_secret_file: "/path/to/client_secret.json"
-  # or Redis.
+  # or Redis,
   redis_token_db:
+    # with a single instance,
     url: localhost:6379
-    # Optionally set an encryption key for Redis (must be exactly 32 bytes)
+    # or in the cluster mode.
+    urls: ["localhost:7000"]
+    # Optionally set an encryption key for Redis (must be exactly 32 bytes).
     encrypt_key: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   # How long to wait when talking to GitHub servers. Optional.
   http_timeout: "10s"

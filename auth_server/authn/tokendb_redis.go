@@ -17,15 +17,28 @@ import (
 	"github.com/go-redis/redis"
 )
 
-// NewRedisTokenDB returns a new TokenDB structure which uses Redis as backend.
+type RedisClient interface {
+	Get(key string) *redis.StringCmd
+	Set(key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	Del(keys ...string) *redis.IntCmd
+}
+
+// NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
 //
 func NewRedisTokenDB(url string, encrypt_key string) (TokenDB, error) {
 	client := redis.NewClient(&redis.Options{Addr: url})
 	return &redisTokenDB{client, encrypt_key}, nil
 }
 
+// NewRedisClusterTokenDB returns a new TokenDB structure which uses Redis Cluster as the storage backend.
+//
+func NewRedisClusterTokenDB(urls []string, encrypt_key string) (TokenDB, error) {
+	client := redis.NewClusterClient(&redis.ClusterOptions{Addrs: urls})
+	return &redisTokenDB{client, encrypt_key}, nil
+}
+
 type redisTokenDB struct {
-	client      *redis.Client
+	client      RedisClient
 	encrypt_key string
 }
 

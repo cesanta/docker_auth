@@ -117,6 +117,8 @@ github_auth:
   # The Github API URI in case you are using Github Enterprise.
   # Includes the protocol, without trailing slash. - defaults to: https://api.github.com
   github_api_uri: "https://github.acme.com/api/v3" 
+  # Set an URL to display in the `docker login` command when succesfully authenticated. Optional.
+  registry_url: localhost:5000
 
 # LDAP authentication.
 # Authentication is performed by first binding to the server, looking up the user entry

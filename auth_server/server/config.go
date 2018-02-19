@@ -96,7 +96,7 @@ func validate(c *Config) error {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if c.MongoAuth != nil {
-		if err := c.MongoAuth.Validate("mongo_auth"); err != nil {
+		if err := c.MongoAuth.Validate("mongoauth"); err != nil {
 			return err
 		}
 	}

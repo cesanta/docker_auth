@@ -30,7 +30,7 @@ import (
 
 // Config stores how to connect to the MongoDB server and an optional password file
 type Config struct {
-	DialInfo     mgo.DialInfo `mapstructure:",inline"`
+	DialInfo     mgo.DialInfo `mapstructure:",squash"`
 	PasswordFile string       `mapstructure:"passwordfile,omitempty"`
 	EnableTLS    bool         `mapstructure:"enabletls,omitempty"`
 }
@@ -40,13 +40,13 @@ type Config struct {
 // Config itself.
 func (c *Config) Validate(configKey string) error {
 	if len(c.DialInfo.Addrs) == 0 {
-		return fmt.Errorf("At least one element in %s.dial_info.addrs is required", configKey)
+		return fmt.Errorf("At least one element in %s.dialinfo.addrs is required", configKey)
 	}
 	if c.DialInfo.Timeout == 0 {
 		c.DialInfo.Timeout = 10 * time.Second
 	}
 	if c.DialInfo.Database == "" {
-		return fmt.Errorf("%s.dial_info.database is required", configKey)
+		return fmt.Errorf("%s.dialinfo.database is required", configKey)
 	}
 	return nil
 }

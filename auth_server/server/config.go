@@ -41,8 +41,8 @@ type Config struct {
 	Users      map[string]*authn.Requirements `mapstructure:"users,omitempty"`
 	GoogleAuth *authn.GoogleAuthConfig        `mapstructure:"googleauth,omitempty"`
 	GitHubAuth *authn.GitHubAuthConfig        `mapstructure:"githubauth,omitempty"`
-	LDAPAuth   *authn.LDAPAuthConfig          `mapstructure:"ldap_auth,omitempty"`
-	MongoAuth  *authn.MongoAuthConfig         `mapstructure:"mongo_auth,omitempty"`
+	LDAPAuth   *authn.LDAPAuthConfig          `mapstructure:"ldapauth,omitempty"`
+	MongoAuth  *authn.MongoAuthConfig         `mapstructure:"mongoauth,omitempty"`
 	ExtAuth    *authn.ExtAuthConfig           `mapstructure:"extauth,omitempty"`
 	ACL        authz.ACL                      `mapstructure:"acl,omitempty"`
 	ACLMongo   *authz.ACLMongoConfig          `mapstructure:"aclmongo,omitempty"`

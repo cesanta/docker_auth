@@ -3,13 +3,14 @@ package authz
 import (
 	"errors"
 	"fmt"
+	"io"
+	"sync"
+	"time"
+
 	"github.com/cesanta/docker_auth/auth_server/mgo_session"
 	"github.com/cesanta/glog"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"sync"
-	"time"
 )
 
 type MongoACL []MongoACLEntry
@@ -20,9 +21,9 @@ type MongoACLEntry struct {
 }
 
 type ACLMongoConfig struct {
-	MongoConfig *mgo_session.Config `yaml:"dial_info,omitempty"`
-	Collection  string              `yaml:"collection,omitempty"`
-	CacheTTL    time.Duration       `yaml:"cache_ttl,omitempty"`
+	MongoConfig *mgo_session.Config `mapstructure:"dialinfo,omitempty"`
+	Collection  string              `mapstructure:"collection,omitempty"`
+	CacheTTL    time.Duration       `mapstructure:"cachettl,omitempty"`
 }
 
 type aclMongoAuthorizer struct {

@@ -30,9 +30,9 @@ import (
 
 // Config stores how to connect to the MongoDB server and an optional password file
 type Config struct {
-	DialInfo     mgo.DialInfo `yaml:",inline"`
-	PasswordFile string       `yaml:"password_file,omitempty"`
-	EnableTLS    bool         `yaml:"enable_tls,omitempty"`
+	DialInfo     mgo.DialInfo `mapstructure:",inline"`
+	PasswordFile string       `mapstructure:"passwordfile,omitempty"`
+	EnableTLS    bool         `mapstructure:"enabletls,omitempty"`
 }
 
 // Validate ensures the most common fields inside the mgo.DialInfo portion of

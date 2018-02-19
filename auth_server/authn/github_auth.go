@@ -32,21 +32,21 @@ import (
 )
 
 type GitHubAuthConfig struct {
-	Organization     string                `yaml:"organization,omitempty"`
-	ClientId         string                `yaml:"client_id,omitempty"`
-	ClientSecret     string                `yaml:"client_secret,omitempty"`
-	ClientSecretFile string                `yaml:"client_secret_file,omitempty"`
-	TokenDB          string                `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GitHubGCSStoreConfig `yaml:"gcs_token_db,omitempty"`
-	HTTPTimeout      time.Duration         `yaml:"http_timeout,omitempty"`
-	RevalidateAfter  time.Duration         `yaml:"revalidate_after,omitempty"`
-	GithubWebUri     string                `yaml:"github_web_uri,omitempty"`
-	GithubApiUri     string                `yaml:"github_api_uri,omitempty"`
+	Organization     string                `mapstructure:"organization,omitempty"`
+	ClientId         string                `mapstructure:"clientid,omitempty"`
+	ClientSecret     string                `mapstructure:"clientsecret,omitempty"`
+	ClientSecretFile string                `mapstructure:"clientsecret_file,omitempty"`
+	TokenDB          string                `mapstructure:"tokendb,omitempty"`
+	GCSTokenDB       *GitHubGCSStoreConfig `mapstructure:"gcstokendb,omitempty"`
+	HTTPTimeout      time.Duration         `mapstructure:"httptimeout,omitempty"`
+	RevalidateAfter  time.Duration         `mapstructure:"revalidateafter,omitempty"`
+	GithubWebUri     string                `mapstructure:"githubweburi,omitempty"`
+	GithubApiUri     string                `mapstructure:"githubapiuri,omitempty"`
 }
 
 type GitHubGCSStoreConfig struct {
-	Bucket           string `yaml:"bucket,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
+	Bucket           string `mapstructure:"bucket,omitempty"`
+	ClientSecretFile string `mapstructure:"clientsecretfile,omitempty"`
 }
 
 type GitHubAuthRequest struct {

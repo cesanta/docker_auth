@@ -27,8 +27,8 @@ import (
 )
 
 type ExtAuthConfig struct {
-	Command string   `yaml:"command"`
-	Args    []string `yaml:"args"`
+	Command string   `mapstructure:"command"`
+	Args    []string `mapstructure:"args"`
 }
 
 type ExtAuthStatus int

@@ -18,12 +18,13 @@ package authn
 
 import (
 	"encoding/json"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Requirements struct {
-	Password *PasswordString `yaml:"password,omitempty" json:"password,omitempty"`
-	Labels   Labels          `yaml:"labels,omitempty" json:"labels,omitempty"`
+	Password *PasswordString `mapstructure:"password,omitempty" json:"password,omitempty"`
+	Labels   Labels          `mapstructure:"labels,omitempty" json:"labels,omitempty"`
 }
 
 type staticUsersAuth struct {

@@ -24,21 +24,21 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/go-ldap/ldap"
 	"github.com/cesanta/glog"
+	"github.com/go-ldap/ldap"
 )
 
 type LDAPAuthConfig struct {
-	Addr                  string `yaml:"addr,omitempty"`
-	TLS                   string `yaml:"tls,omitempty"`
-	InsecureTLSSkipVerify bool   `yaml:"insecure_tls_skip_verify,omitempty"`
-	CACertificate         string `yaml:"ca_certificate,omitempty"`
-	Base                  string `yaml:"base,omitempty"`
-	Filter                string `yaml:"filter,omitempty"`
-	BindDN                string `yaml:"bind_dn,omitempty"`
-	BindPasswordFile      string `yaml:"bind_password_file,omitempty"`
-	GroupBaseDN           string `yaml:"group_base_dn,omitempty"`
-	GroupFilter           string `yaml:"group_filter,omitempty"`
+	Addr                  string `mapstructure:"addr,omitempty"`
+	TLS                   string `mapstructure:"tls,omitempty"`
+	InsecureTLSSkipVerify bool   `mapstructure:"insecuretlsskipverify,omitempty"`
+	CACertificate         string `mapstructure:"cacertificate,omitempty"`
+	Base                  string `mapstructure:"base,omitempty"`
+	Filter                string `mapstructure:"filter,omitempty"`
+	BindDN                string `mapstructure:"binddn,omitempty"`
+	BindPasswordFile      string `mapstructure:"bindpasswordfile,omitempty"`
+	GroupBaseDN           string `mapstructure:"groupbasedn,omitempty"`
+	GroupFilter           string `mapstructure:"groupfilter,omitempty"`
 }
 
 type LDAPAuth struct {

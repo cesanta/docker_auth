@@ -18,18 +18,18 @@ import (
 type ACL []ACLEntry
 
 type ACLEntry struct {
-	Match   *MatchConditions `yaml:"match"`
-	Actions *[]string        `yaml:"actions,flow"`
-	Comment *string          `yaml:"comment,omitempty"`
+	Match   *MatchConditions `mapstructure:"match"`
+	Actions *[]string        `mapstructure:"actions,flow"`
+	Comment *string          `mapstructure:"comment,omitempty"`
 }
 
 type MatchConditions struct {
-	Account *string           `yaml:"account,omitempty" json:"account,omitempty"`
-	Type    *string           `yaml:"type,omitempty" json:"type,omitempty"`
-	Name    *string           `yaml:"name,omitempty" json:"name,omitempty"`
-	IP      *string           `yaml:"ip,omitempty" json:"ip,omitempty"`
-	Service *string           `yaml:"service,omitempty" json:"service,omitempty"`
-	Labels  map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+	Account *string           `mapstructure:"account,omitempty" json:"account,omitempty"`
+	Type    *string           `mapstructure:"type,omitempty" json:"type,omitempty"`
+	Name    *string           `mapstructure:"name,omitempty" json:"name,omitempty"`
+	IP      *string           `mapstructure:"ip,omitempty" json:"ip,omitempty"`
+	Service *string           `mapstructure:"service,omitempty" json:"service,omitempty"`
+	Labels  map[string]string `mapstructure:"labels,omitempty" json:"labels,omitempty"`
 }
 
 type aclAuthorizer struct {

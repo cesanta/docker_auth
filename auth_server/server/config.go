@@ -19,57 +19,60 @@ package server
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/docker_auth/auth_server/authz"
 	"github.com/docker/libtrust"
-	yaml "gopkg.in/yaml.v2"
+	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	Server     ServerConfig                   `yaml:"server"`
-	Token      TokenConfig                    `yaml:"token"`
-	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
-	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	GitHubAuth *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
-	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
-	MongoAuth  *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
-	ExtAuth    *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
-	ACL        authz.ACL                      `yaml:"acl,omitempty"`
-	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
-	ExtAuthz   *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
+	Server     ServerConfig                   `mapstructure:"server"`
+	Token      TokenConfig                    `mapstructure:"token"`
+	Users      map[string]*authn.Requirements `mapstructure:"users,omitempty"`
+	GoogleAuth *authn.GoogleAuthConfig        `mapstructure:"googleauth,omitempty"`
+	GitHubAuth *authn.GitHubAuthConfig        `mapstructure:"githubauth,omitempty"`
+	LDAPAuth   *authn.LDAPAuthConfig          `mapstructure:"ldap_auth,omitempty"`
+	MongoAuth  *authn.MongoAuthConfig         `mapstructure:"mongo_auth,omitempty"`
+	ExtAuth    *authn.ExtAuthConfig           `mapstructure:"extauth,omitempty"`
+	ACL        authz.ACL                      `mapstructure:"acl,omitempty"`
+	ACLMongo   *authz.ACLMongoConfig          `mapstructure:"aclmongo,omitempty"`
+	ExtAuthz   *authz.ExtAuthzConfig          `mapstructure:"extauthz,omitempty"`
 }
 
 type ServerConfig struct {
-	ListenAddress string            `yaml:"addr,omitempty"`
-	PathPrefix    string            `yaml:"path_prefix,omitempty"`
-	RealIPHeader  string            `yaml:"real_ip_header,omitempty"`
-	RealIPPos     int               `yaml:"real_ip_pos,omitempty"`
-	CertFile      string            `yaml:"certificate,omitempty"`
-	KeyFile       string            `yaml:"key,omitempty"`
-	LetsEncrypt   LetsEncryptConfig `yaml:"letsencrypt,omitempty"`
+	ListenAddress string            `mapstructure:"addr,omitempty"`
+	PathPrefix    string            `mapstructure:"pathprefix,omitempty"`
+	RealIPHeader  string            `mapstructure:"realipheader,omitempty"`
+	RealIPPos     int               `mapstructure:"realippos,omitempty"`
+	CertFile      string            `mapstructure:"certificate,omitempty"`
+	KeyFile       string            `mapstructure:"key,omitempty"`
+	LetsEncrypt   LetsEncryptConfig `mapstructure:"letsencrypt,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
 }
 
 type LetsEncryptConfig struct {
-	Host     string `yaml:"host,omitempty"`
-	Email    string `yaml:"email,omitempty"`
-	CacheDir string `yaml:"cache_dir,omitempty"`
+	Host     string `mapstructure:"host,omitempty"`
+	Email    string `mapstructure:"email,omitempty"`
+	CacheDir string `mapstructure:"cachedir,omitempty"`
 }
 
 type TokenConfig struct {
-	Issuer     string `yaml:"issuer,omitempty"`
-	CertFile   string `yaml:"certificate,omitempty"`
-	KeyFile    string `yaml:"key,omitempty"`
-	Expiration int64  `yaml:"expiration,omitempty"`
+	Issuer     string `mapstructure:"issuer,omitempty"`
+	CertFile   string `mapstructure:"certificate,omitempty"`
+	KeyFile    string `mapstructure:"key,omitempty"`
+	Expiration int64  `mapstructure:"expiration,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
@@ -179,13 +182,68 @@ func loadCertAndKey(certFile, keyFile string) (pk libtrust.PublicKey, prk libtru
 	return
 }
 
-func LoadConfig(fileName string) (*Config, error) {
-	contents, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		return nil, fmt.Errorf("could not read %s: %s", fileName, err)
+func processEnvVars(envPrefix, fileName string) error {
+	ext := filepath.Ext(fileName)
+	ext = ext[1:]
+
+	switch ext {
+	case "yaml", "json", "yml":
+	default:
+		return fmt.Errorf("unsupported config type: %s", ext)
 	}
+
+	// set values from env variables starting with envPrefix to make sure
+	// missing map keys on config file can be caught over env variables
+	envs := os.Environ()
+	for _, envKey := range envs {
+		keyVal := strings.SplitN(envKey, "=", 2)
+		ks := strings.SplitAfterN(keyVal[0], envPrefix+"_", 2)
+		if len(ks) != 2 {
+			continue
+		}
+
+		vKey := strings.ToLower(strings.Replace(ks[1], "_", ".", -1))
+
+		var val interface{}
+		var parseErr error
+		switch ext {
+		case "yaml", "yml":
+			parseErr = yaml.Unmarshal([]byte(keyVal[1]), &val)
+		case "json":
+			parseErr = json.Unmarshal([]byte(keyVal[1]), &val)
+		}
+		if parseErr != nil {
+			return fmt.Errorf("could not parse env var %s as %s: %v", ks[0], ext, parseErr)
+		}
+
+		viper.Set(vKey, val)
+	}
+
+	return nil
+}
+
+func LoadConfig(fileName, envPrefix string) (*Config, error) {
+	configFile, err := os.Open(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("could not open %s: %s", fileName, err)
+	}
+
+	viper.SetConfigFile(fileName)
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetEnvPrefix(envPrefix)
+
+	if err := viper.ReadConfig(configFile); err != nil {
+		return nil, fmt.Errorf("could not read %s: %s", fileName, err)
+
+	}
+
+	if err := processEnvVars(envPrefix, fileName); err != nil {
+		return nil, fmt.Errorf("could not process env variables: %s", err)
+	}
+
 	c := &Config{}
-	if err = yaml.Unmarshal(contents, c); err != nil {
+	if err := viper.Unmarshal(c); err != nil {
 		return nil, fmt.Errorf("could not parse config: %s", err)
 	}
 	if err = validate(c); err != nil {

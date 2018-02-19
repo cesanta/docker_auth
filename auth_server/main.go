@@ -37,6 +37,7 @@ import (
 
 type RestartableServer struct {
 	configFile string
+	envPrefix  string
 	hd         *httpdown.HTTP
 	authServer *server.AuthServer
 	hs         httpdown.Server
@@ -156,7 +157,7 @@ func (rs *RestartableServer) WatchConfig() {
 
 func (rs *RestartableServer) MaybeRestart() {
 	glog.Infof("Validating new config")
-	c, err := server.LoadConfig(rs.configFile)
+	c, err := server.LoadConfig(rs.configFile, rs.envPrefix)
 	if err != nil {
 		glog.Errorf("Failed to reload config (server not restarted): %s", err)
 		return
@@ -178,7 +179,13 @@ func main() {
 	if cf == "" {
 		glog.Exitf("Config file not specified")
 	}
-	c, err := server.LoadConfig(cf)
+
+	envPrefix := flag.Arg(1)
+	if envPrefix == "" {
+		envPrefix = "REGAUTH"
+	}
+
+	c, err := server.LoadConfig(cf, envPrefix)
 	if err != nil {
 		glog.Exitf("Failed to load config: %s", err)
 	}

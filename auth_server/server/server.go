@@ -105,6 +105,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authenticators = append(as.authenticators, ma)
 	}
+	if c.SQLAuth != nil {
+		sqla, err := authn.NewSQLAuth(c.SQLAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, sqla)
+	}
 	return as, nil
 }
 

@@ -40,6 +40,7 @@ type Config struct {
 	GitHubAuth *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
 	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
 	MongoAuth  *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
+	SQLAuth    *authn.SQLAuthConfig           `yaml:"sql_auth,omitempty"` 
 	ExtAuth    *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
 	ACL        authz.ACL                      `yaml:"acl,omitempty"`
 	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
@@ -94,6 +95,11 @@ func validate(c *Config) error {
 	}
 	if c.MongoAuth != nil {
 		if err := c.MongoAuth.Validate("mongo_auth"); err != nil {
+			return err
+		}
+	}
+	if c.SQLAuth != nil {
+		if err := c.SQLAuth.Validate("sql_auth"); err != nil {
 			return err
 		}
 	}

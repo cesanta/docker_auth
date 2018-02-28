@@ -34,35 +34,23 @@ import (
 type GitHubTeamCollection []GitHubTeam
 
 type GitHubTeam struct {
-	Id              int64               `json:"id"`
-	Url             string              `json:"url,omitempty"`
-	Name            string              `json:"name,omitempty"`
-	Slug            string              `json:"slug,omitempty"`
-	Description     string              `json:"description,omitempty"`
-	Privacy         string              `json:"privacy,omitempty"`
-	Permission      string              `json:"permission,omitempty"`
-	MembersUrl      string              `json:"members_url,omitempty"`
-	RepositoriesUrl string              `json:"repositories_url,omitempty"`
-	MembersCount    int64               `json:"members_count,omitempty"`
-	ReposCount      int64               `json:"repos_count,omitempty"`
-	CreatedAt       string              `json:"created_at,omitempty"`
-	UpdatedAt       string              `json:"updated_at,omitempty"`
-	Organization    *GitHubOrganization `json:"organization"`
-	Parent          string              `json:"parent,omitempty"`
+	Id           int64               `json:"id"`
+	Url          string              `json:"url,omitempty"`
+	Name         string              `json:"name,omitempty"`
+	Slug         string              `json:"slug,omitempty"`
+	Organization *GitHubOrganization `json:"organization"`
+	Parent       *ParentGitHubTeam   `json:"parent,omitempty"`
 }
 
 type GitHubOrganization struct {
-	Login            string `json:"login"`
-	Id               int64  `json:"id,omitempty"`
-	Url              string `json:"url,omitempty"`
-	ReposUrl         string `json:"repos_url,omitempty"`
-	EventsUrl        string `json:"events_url,omitempty"`
-	HooksUrl         string `json:"hooks_url,omitempty"`
-	IssuesUrl        string `json:"issues_url,omitempty"`
-	MembersUrl       string `json:"members_url,omitempty"`
-	PublicMembersUrl string `json:"public_members_url,omitempty"`
-	AvatarUrl        string `json:"avatar_url,omitempty"`
-	Description      string `json:"Description,omitempty"`
+	Login string `json:"login"`
+	Id    int64  `json:"id,omitempty"`
+}
+
+type ParentGitHubTeam struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
 }
 
 type GitHubAuthConfig struct {
@@ -411,11 +399,22 @@ func (gha *GitHubAuth) fetchTeams(token string) ([]string, error) {
 		}
 	}
 
-	var organizationTeams []string
+	// Use map instead of slice to ensure uniqueness of results
+	organizationTeamsMap := make(map[string]bool)
 	for _, item := range allTeams {
 		if item.Organization.Login == gha.config.Organization {
-			organizationTeams = append(organizationTeams, item.Slug)
+			organizationTeamsMap[item.Slug] = true
+			if item.Parent != nil {
+				organizationTeamsMap[item.Parent.Slug] = true
+			}
 		}
+	}
+
+	organizationTeams := make([]string, len(organizationTeamsMap))
+	i := 0
+	for orgTeam, _ := range organizationTeamsMap {
+		organizationTeams[i] = orgTeam
+		i++
 	}
 
 	glog.V(3).Infof("All teams for the user: %v", allTeams)

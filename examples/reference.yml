@@ -263,6 +263,12 @@ acl:
   - match: {name: "${labels:project}-{labels:tier}/*"}
     actions: ["push", "pull"]
     comment: "Users can push to a project-tier/* that they are assigned to"
+  - match: {labels: {"title": "Developer"}}
+    actions: ["*"]
+    comment: "If you call yourself a developer you can do anything (this ACL is an example for LDAP labels as defined above)"
+  - match: {labels: {"groups": "Admin"}}
+    actions: ["push"]
+    comment: "If you are part of the admin group you can push. (this ACL is an example for LDAP labels as defined above)"
   # Access is denied by default.
 
 # (optional) Define to query ACL from a MongoDB server.

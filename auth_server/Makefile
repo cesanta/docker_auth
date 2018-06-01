@@ -4,7 +4,7 @@ COMPRESS_BINARY ?= false
 CA_BUNDLE = /etc/ssl/certs/ca-certificates.crt
 VERSION = $(shell cat version.txt)
 
-BUILDER_IMAGE ?= golang:1.8.0-alpine
+BUILDER_IMAGE ?= golang:1.10.0-alpine
 
 .PHONY: %
 
@@ -24,7 +24,7 @@ generate:
 	  github.com/cesanta/docker_auth/auth_server/server/...
 
 build:
-	CGO_ENABLED=0 go build -v -i --ldflags=--s
+	CGO_ENABLED=0 go build -v --ldflags=--s
 
 ca-certificates.crt:
 	cp $(CA_BUNDLE) .
@@ -38,8 +38,8 @@ build-release: ca-certificates.crt
 	    umask 0 && govendor sync -v && \
 	    go install -v github.com/cesanta/docker_auth/auth_server/vendor/github.com/jteeuwen/go-bindata/go-bindata && \
 	    make generate && \
-	    CGO_ENABLED=0 go build -v -i --ldflags=--s"
-	@echo === Built version $(VERSION) ===
+	    CGO_ENABLED=0 go build -v --ldflags=--s"
+	@echo === Built version $$(cat version.txt) ===
 
 auth_server:
 	@echo

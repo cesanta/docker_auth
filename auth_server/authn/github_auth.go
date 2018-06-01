@@ -31,6 +31,28 @@ import (
 	"github.com/cesanta/glog"
 )
 
+type GitHubTeamCollection []GitHubTeam
+
+type GitHubTeam struct {
+	Id           int64               `json:"id"`
+	Url          string              `json:"url,omitempty"`
+	Name         string              `json:"name,omitempty"`
+	Slug         string              `json:"slug,omitempty"`
+	Organization *GitHubOrganization `json:"organization"`
+	Parent       *ParentGitHubTeam   `json:"parent,omitempty"`
+}
+
+type GitHubOrganization struct {
+	Login string `json:"login"`
+	Id    int64  `json:"id,omitempty"`
+}
+
+type ParentGitHubTeam struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
 type GitHubAuthConfig struct {
 	Organization     string                `yaml:"organization,omitempty"`
 	ClientId         string                `yaml:"client_id,omitempty"`
@@ -61,10 +83,77 @@ type GitHubTokenUser struct {
 }
 
 type GitHubAuth struct {
-	config *GitHubAuthConfig
-	db     TokenDB
-	client *http.Client
-	tmpl   *template.Template
+	config     *GitHubAuthConfig
+	db         TokenDB
+	client     *http.Client
+	tmpl       *template.Template
+	tmplResult *template.Template
+}
+
+type linkHeader struct {
+	First string
+	Last  string
+	Next  string
+	Prev  string
+}
+
+func execGHExperimentalApiRequest(url string, token string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		err = fmt.Errorf("could not create an http request for uri: %s. Error: %s", url, err)
+		return nil, err
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("token %s", token))
+	// Currently an "experimental" API; https://developer.github.com/v3/orgs/teams/#list-user-teams
+	req.Header.Add("Accept", "application/vnd.github.hellcat-preview+json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		err = fmt.Errorf("HTTP error while retrieving %s. Error : %s", url, err)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+// removeSubstringsFromString removes all occurences of stringsToStrip from sourceStr
+//
+func removeSubstringsFromString(sourceStr string, stringsToStrip []string) string {
+	theNewString := sourceStr
+	for _, i := range stringsToStrip {
+		theNewString = strings.Replace(theNewString, i, "", -1)
+	}
+	return theNewString
+}
+
+// parseLinkHeader parses the HTTP headers from the Github API response
+//
+// https://developer.github.com/v3/guides/traversing-with-pagination/
+//
+func parseLinkHeader(linkLines []string) (linkHeader, error) {
+	var lH linkHeader
+	// URL in link is enclosed in < >
+	stringsToRemove := []string{"<", ">"}
+
+	for _, linkLine := range linkLines {
+		for _, linkItem := range strings.Split(linkLine, ",") {
+			linkData := strings.Split(linkItem, ";")
+			trimmedUrl := removeSubstringsFromString(strings.TrimSpace(linkData[0]), stringsToRemove)
+			linkVal := linkData[1]
+			switch {
+			case strings.Contains(linkVal, "first"):
+				lH.First = trimmedUrl
+			case strings.Contains(linkVal, "last"):
+				lH.Last = trimmedUrl
+			case strings.Contains(linkVal, "next"):
+				lH.Next = trimmedUrl
+			case strings.Contains(linkVal, "prev"):
+				lH.Prev = trimmedUrl
+			}
+		}
+	}
+	return lH, nil
 }
 
 func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
@@ -83,19 +172,31 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 	}
 	glog.Infof("GitHub auth token DB at %s", dbName)
 	return &GitHubAuth{
-		config: c,
-		db:     db,
-		client: &http.Client{Timeout: 10 * time.Second},
-		tmpl:   template.Must(template.New("github_auth").Parse(string(MustAsset("data/github_auth.tmpl")))),
+		config:     c,
+		db:         db,
+		client:     &http.Client{Timeout: 10 * time.Second},
+		tmpl:       template.Must(template.New("github_auth").Parse(string(MustAsset("data/github_auth.tmpl")))),
+		tmplResult: template.Must(template.New("github_auth_result").Parse(string(MustAsset("data/github_auth_result.tmpl")))),
 	}, nil
 }
 
 func (gha *GitHubAuth) doGitHubAuthPage(rw http.ResponseWriter, req *http.Request) {
 	if err := gha.tmpl.Execute(rw, struct {
-		ClientId, GithubWebUri string
+		ClientId, GithubWebUri, Organization string
 	}{
 		ClientId:     gha.config.ClientId,
-		GithubWebUri: gha.getGithubWebUri()}); err != nil {
+		GithubWebUri: gha.getGithubWebUri(),
+		Organization: gha.config.Organization}); err != nil {
+		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
+	}
+}
+
+func (gha *GitHubAuth) doGitHubAuthResultPage(rw http.ResponseWriter, username string, password string) {
+	if err := gha.tmplResult.Execute(rw, struct {
+		Organization, Username, Password string
+	}{Organization: gha.config.Organization,
+		Username: username,
+		Password: password}); err != nil {
 		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
 	}
 }
@@ -172,10 +273,16 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 
 	glog.Infof("New GitHub auth token for %s", user)
 
+	userTeams, err := gha.fetchTeams(c2t.AccessToken)
+	if err != nil {
+		glog.Errorf("could not fetch user teams: %s", err)
+	}
+
 	v := &TokenDBValue{
 		TokenType:   c2t.TokenType,
 		AccessToken: c2t.AccessToken,
 		ValidUntil:  time.Now().Add(gha.config.RevalidateAfter),
+		Labels:      map[string][]string{"teams": userTeams},
 	}
 	dp, err := gha.db.StoreToken(user, v, true)
 	if err != nil {
@@ -184,10 +291,11 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		return
 	}
 
-	fmt.Fprintf(rw, `Server logged in; now run "docker login YOUR_REGISTRY_FQDN", use %s as login and %s as password.`, user, dp)
+	gha.doGitHubAuthResultPage(rw, user, dp)
 }
 
 func (gha *GitHubAuth) validateAccessToken(token string) (user string, err error) {
+	glog.Infof("Github API: Fetching user info")
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", gha.getGithubApiUri()), nil)
 	if err != nil {
 		err = fmt.Errorf("could not create request to get information for token %s: %s", token, err)
@@ -225,6 +333,7 @@ func (gha *GitHubAuth) checkOrganization(token, user string) (err error) {
 	if gha.config.Organization == "" {
 		return nil
 	}
+	glog.Infof("Github API: Fetching organization membership info")
 	url := fmt.Sprintf("%s/orgs/%s/members/%s", gha.getGithubApiUri(), gha.config.Organization, user)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -242,7 +351,7 @@ func (gha *GitHubAuth) checkOrganization(token, user string) (err error) {
 	case http.StatusNoContent:
 		return nil
 	case http.StatusNotFound:
-		return fmt.Errorf("%s is not a member of organization %s", user, gha.config.Organization)
+		return fmt.Errorf("user %s is not a member of organization %s", user, gha.config.Organization)
 	case http.StatusFound:
 		return fmt.Errorf("token %s could not get membership for organization %s", token, gha.config.Organization)
 	}
@@ -250,14 +359,83 @@ func (gha *GitHubAuth) checkOrganization(token, user string) (err error) {
 	return fmt.Errorf("Unknown status for membership of organization %s: %s", gha.config.Organization, resp.Status)
 }
 
+func (gha *GitHubAuth) fetchTeams(token string) ([]string, error) {
+	var allTeams GitHubTeamCollection
+
+	if gha.config.Organization == "" {
+		return nil, nil
+	}
+	glog.Infof("Github API: Fetching user teams")
+	url := fmt.Sprintf("%s/user/teams?per_page=100", gha.getGithubApiUri())
+	var err error
+
+	// Using an `i` iterator for debugging the results
+	for i := 1; url != ""; i++ {
+		var pagedTeams GitHubTeamCollection
+		resp, err := execGHExperimentalApiRequest(url, token)
+		if err != nil {
+			return nil, err
+		}
+
+		respHeaders := resp.Header
+		body, _ := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		err = json.Unmarshal(body, &pagedTeams)
+		if err != nil {
+			err = fmt.Errorf("Error parsing the JSON response while fetching teams: %s", err)
+			return nil, err
+		}
+
+		allTeams = append(allTeams, pagedTeams...)
+
+		// Do we need to paginate?
+		if link, ok := respHeaders["Link"]; ok {
+			parsedLink, _ := parseLinkHeader(link)
+			url = parsedLink.Next
+			glog.V(2).Infof("--> Page <%d>\n", i)
+		} else {
+			url = ""
+		}
+	}
+
+	// Use map instead of slice to ensure uniqueness of results
+	organizationTeamsMap := make(map[string]bool)
+	for _, item := range allTeams {
+		if item.Organization.Login == gha.config.Organization {
+			organizationTeamsMap[item.Slug] = true
+			if item.Parent != nil {
+				organizationTeamsMap[item.Parent.Slug] = true
+			}
+		}
+	}
+
+	organizationTeams := make([]string, len(organizationTeamsMap))
+	i := 0
+	for orgTeam, _ := range organizationTeamsMap {
+		organizationTeams[i] = orgTeam
+		i++
+	}
+
+	glog.V(3).Infof("All teams for the user: %v", allTeams)
+	glog.Infof("Teams for the <%s> organization: %v", gha.config.Organization, organizationTeams)
+	return organizationTeams, err
+}
+
 func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
 	v, err := gha.db.GetValue(user)
 	if err != nil || v == nil {
 		if err == nil {
-			err = errors.New("no db value, please sign out and sign in again.")
+			err = errors.New("no db value, please sign out and sign in again")
 		}
 		return nil, err
 	}
+
+	texp := v.ValidUntil.Sub(time.Now())
+	glog.V(3).Infof("Existing GitHub auth token for <%s> expires after: <%d> sec", user, int(texp.Seconds()))
+
+	glog.V(1).Infof("Token has expired. I will revalidate the access token.")
+	glog.V(3).Infof("Old token is: %+v", v)
 	tokenUser, err := gha.validateAccessToken(v.AccessToken)
 	if err != nil {
 		glog.Warningf("Token for %q failed validation: %s", user, err)
@@ -267,9 +445,21 @@ func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
 		glog.Errorf("token for wrong user: expected %s, found %s", user, tokenUser)
 		return nil, fmt.Errorf("found token for wrong user")
 	}
+
+	// Update revalidation timestamp
 	v.ValidUntil = time.Now().Add(gha.config.RevalidateAfter)
-	texp := v.ValidUntil.Sub(time.Now())
-	glog.V(1).Infof("Validated GitHub auth token for %s (exp %d)", user, int(texp.Seconds()))
+	glog.V(3).Infof("New token is: %+v", v)
+
+	// Update token
+	_, err = gha.db.StoreToken(user, v, false)
+	if err != nil {
+		glog.Errorf("Failed to record server token: %s", err)
+		return nil, fmt.Errorf("Unable to store renewed token expiry time: %s", err)
+	}
+	glog.V(2).Infof("Successfully revalidated token")
+
+	texp = v.ValidUntil.Sub(time.Now())
+	glog.V(3).Infof("Re-validated GitHub auth token for %s. Next revalidation in %dsec.", user, int64(texp.Seconds()))
 	return v, nil
 }
 
@@ -283,7 +473,16 @@ func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool,
 	} else if err != nil {
 		return false, nil, err
 	}
-	return true, nil, nil
+
+	v, err := gha.db.GetValue(user)
+	if err != nil || v == nil {
+		if err == nil {
+			err = errors.New("no db value, please sign out and sign in again")
+		}
+		return false, nil, err
+	}
+
+	return true, v.Labels, nil
 }
 
 func (gha *GitHubAuth) Stop() {

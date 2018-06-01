@@ -1,6 +1,75 @@
-<html itemscope itemtype="http://schema.org/Article">
+<!doctype html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Docker Registry Authentication</title>
+  <style>
+    .github-icon {
+      background-image: url('data:image/svg+xml;utf8,<svg version="1.1" id="Github" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"  width="155px" height="155px" viewBox="0 0 155 155" enable-background="new 0 0 155 155" xml:space="preserve"><path id="path26" fill="#cccccc" d="M78.012,3.04c-41.685,0-75.486,33.794-75.486,75.486c0,33.35,21.629,61.645,51.622,71.625 c3.772,0.699,5.157-1.637,5.157-3.631c0-1.799-0.07-7.746-0.103-14.054c-21,4.566-25.431-8.906-25.431-8.906  c-3.434-8.724-8.381-11.045-8.381-11.045c-6.849-4.685,0.517-4.589,0.517-4.589c7.58,0.533,11.571,7.78,11.571,7.78 c6.732,11.538,17.659,8.202,21.966,6.273c0.678-4.878,2.634-8.208,4.793-10.094c-16.767-1.907-34.392-8.382-34.392-37.305 c0-8.24,2.949-14.975,7.778-20.261c-0.784-1.901-3.368-9.579,0.731-19.977c0,0,6.34-2.027,20.764,7.739 c6.021-1.672,12.479-2.511,18.895-2.541c6.414,0.03,12.877,0.869,18.909,2.541c14.407-9.766,20.737-7.739,20.737-7.739  c4.109,10.397,1.525,18.075,0.742,19.977c4.84,5.286,7.768,12.021,7.768,20.261c0,28.993-17.659,35.376-34.469,37.245 c2.708,2.342,5.121,6.936,5.121,13.979c0,10.1-0.087,18.229-0.087,20.715c0,2.01,1.358,4.363,5.185,3.623 c29.976-9.993,51.578-38.277,51.578-71.617C153.496,36.833,119.699,3.04,78.012,3.04"/></svg>');
+      background-repeat: no-repeat;
+      background-size: contain;
+      display: inline-block;
+      width: 25px;
+      height: 25px;
+    }
+    body {
+      color: #000;
+      background: #fff;
+      font-family: sans-serif;
+      padding: 4em 4em;
+    }
+    a { color: #000; }
+    #panel p { text-align:center; }
+    #login-with-github {
+      color: #fff;
+      background-color: #2a2a2a;
+      font-size: 1em;
+      text-decoration: none;
+      line-height: 3em;
+      padding: 0.5em 2em 0.5em 2em;
+      display: inline-block;
+      height: 3em;
+      border-radius: 0.75em;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    #login-with-github:hover {
+      background-color: #444444;
+    }
+    #login-with-github:active {
+      background-color: #101010;
+    }
+    #login-with-github .github-icon {
+      margin: 0 0.5em 0 0;
+      position: relative;
+      top: 5px;
+    }
+    #login-with-github code {
+      font-size: 1.4em;
+    }
+    #revoke-access {
+      color: #666;
+      font-size: 0.8em;
+      text-decoration: none;
+    }
+    #revoke-access:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
 <body>
-  <button type="button" onclick="location.href='{{.GithubWebUri}}/login/oauth/authorize?scope=user:email%20read:org&client_id={{.ClientId}}'">Login with GitHub</button>
-  <button type="button" onclick="location.href='{{.GithubWebUri}}/settings/applications'">Revoke access</button>
+  <div id="panel">
+    <p>
+      <a id="login-with-github" href="{{.GithubWebUri}}/login/oauth/authorize?scope=user:email%20read:org&client_id={{.ClientId}}">
+        <i class="github-icon"></i>
+        Login{{if .Organization}} to <code>@{{.Organization}}</code>{{end}} with GitHub
+      </a>
+    </p>
+    <p>
+      <a id="revoke-access" href="{{.GithubWebUri}}/settings/applications">Revoke access</a>
+    </p>
+  </div>
 </body>
 </html>

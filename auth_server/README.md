@@ -8,5 +8,8 @@ pip install gitpython
 mkdir /var/tmp/go
 export GOPATH=/var/tmp/go
 export PATH=$PATH:$GOPATH/bin
+# download dependencies
+make deps
+# build source
 make
 ```

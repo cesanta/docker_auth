@@ -70,6 +70,7 @@ type TokenDBValue struct {
 	// DockerPassword is the temporary password we use to authenticate Docker users.
 	// Generated at the time of token creation, stored here as a BCrypt hash.
 	DockerPassword string `json:"docker_password,omitempty"`
+	Labels         Labels `json:"labels,omitempty"`
 }
 
 // NewTokenDB returns a new TokenDB structure

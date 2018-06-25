@@ -113,7 +113,11 @@ func (aa *aclAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {
 	for _, e := range aa.acl {
 		matched := e.Matches(ai)
 		if matched {
-			glog.V(2).Infof("%s matched %s (Comment: %s)", ai, e, e.Comment)
+			comment := "<nil>"
+			if e.Comment != nil {
+				comment = *e.Comment
+			}
+			glog.V(2).Infof("%s matched %s (Comment: %s)", ai, e, comment)
 			if len(*e.Actions) == 1 && (*e.Actions)[0] == "*" {
 				return ai.Actions, nil
 			}

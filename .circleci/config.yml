@@ -1,0 +1,22 @@
+version: 2
+
+jobs:
+  build:
+
+    working_directory: /go/src/github.com/cesanta/docker_auth
+
+    docker:
+      - image: golang:1.10.3
+
+    steps:
+      - checkout
+
+      - run:
+          name: Install Dependencies
+          working_directory: auth_server
+          command: make deps
+
+      - run:
+          name: Compile
+          working_directory: auth_server
+          command: make

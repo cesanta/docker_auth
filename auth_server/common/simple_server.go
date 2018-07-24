@@ -30,7 +30,6 @@ import (
 
 	"github.com/cesanta/glog"
 	"github.com/docker/distribution/registry/auth/token"
-
 )
 
 var (

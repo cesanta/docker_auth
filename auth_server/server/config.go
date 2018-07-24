@@ -31,20 +31,19 @@ import (
 )
 
 type Config struct {
-	Server     ServerConfig                   `yaml:"server"`
-	Token      TokenConfig                    `yaml:"token"`
-	Users      map[string]*authn.Requirements `yaml:"users,omitempty"`
-	GoogleAuth *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	GitHubAuth *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
-	LDAPAuth   *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
-	MongoAuth  *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
-	ExtAuth    *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
-	ACL        authz.ACL                      `yaml:"acl,omitempty"`
-	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
-	ExtAuthz   *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
-	LetsEncrypt LetsEncryptConfig             `yaml:"letsencrypt,omitempty"`
+	Server      ServerConfig                   `yaml:"server"`
+	Token       TokenConfig                    `yaml:"token"`
+	Users       map[string]*authn.Requirements `yaml:"users,omitempty"`
+	GoogleAuth  *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	GitHubAuth  *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
+	LDAPAuth    *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
+	MongoAuth   *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
+	ExtAuth     *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
+	ACL         authz.ACL                      `yaml:"acl,omitempty"`
+	ACLMongo    *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
+	ExtAuthz    *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
+	LetsEncrypt LetsEncryptConfig              `yaml:"letsencrypt,omitempty"`
 }
-
 
 type LetsEncryptConfig struct {
 	Host     string `yaml:"host,omitempty"`

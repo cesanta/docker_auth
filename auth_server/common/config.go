@@ -19,18 +19,18 @@ package common
 import (
 	"crypto/tls"
 	"crypto/x509"
-   	"net"
+	"net"
 
 	"github.com/docker/libtrust"
 )
 
 type ServerConfig struct {
-	ListenAddress string            `yaml:"addr,omitempty"`
-	PathPrefix    string            `yaml:"path_prefix,omitempty"`
-	RealIPHeader  string            `yaml:"real_ip_header,omitempty"`
-	RealIPPos     int               `yaml:"real_ip_pos,omitempty"`
-	CertFile      string            `yaml:"certificate,omitempty"`
-	KeyFile       string            `yaml:"key,omitempty"`
+	ListenAddress string `yaml:"addr,omitempty"`
+	PathPrefix    string `yaml:"path_prefix,omitempty"`
+	RealIPHeader  string `yaml:"real_ip_header,omitempty"`
+	RealIPPos     int    `yaml:"real_ip_pos,omitempty"`
+	CertFile      string `yaml:"certificate,omitempty"`
+	KeyFile       string `yaml:"key,omitempty"`
 
 	PublicKey  libtrust.PublicKey
 	PrivateKey libtrust.PrivateKey

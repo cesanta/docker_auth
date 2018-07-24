@@ -25,7 +25,6 @@ import (
 	"github.com/cesanta/docker_auth/auth_server/authz"
 	. "github.com/cesanta/docker_auth/auth_server/common"
 	"github.com/cesanta/glog"
-
 )
 
 var (
@@ -35,15 +34,15 @@ var (
 type AuthServer struct {
 	*SimpleServer
 
-	config         *Config
-	ga             *authn.GoogleAuth
-	gha            *authn.GitHubAuth
+	config *Config
+	ga     *authn.GoogleAuth
+	gha    *authn.GitHubAuth
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
 	as := &AuthServer{
 		SimpleServer: &SimpleServer{
-			Authorizers: []Authorizer{},
+			Authorizers:    []Authorizer{},
 			Authenticators: []Authenticator{},
 		},
 		config: c,

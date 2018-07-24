@@ -64,16 +64,16 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 		if err != nil {
 			glog.Exitf("Failed to load certificate and key: %s", err)
 		}
-	} else if c.Server.LetsEncrypt.Email != "" {
+	} else if c.LetsEncrypt.Email != "" {
 		m := &autocert.Manager{
-			Email:  c.Server.LetsEncrypt.Email,
-			Cache:  autocert.DirCache(c.Server.LetsEncrypt.CacheDir),
+			Email:  c.LetsEncrypt.Email,
+			Cache:  autocert.DirCache(c.LetsEncrypt.CacheDir),
 			Prompt: autocert.AcceptTOS,
 		}
-		if c.Server.LetsEncrypt.Host != "" {
-			m.HostPolicy = autocert.HostWhitelist(c.Server.LetsEncrypt.Host)
+		if c.LetsEncrypt.Host != "" {
+			m.HostPolicy = autocert.HostWhitelist(c.LetsEncrypt.Host)
 		}
-		glog.Infof("Using LetsEncrypt, host %q, email %q", c.Server.LetsEncrypt.Host, c.Server.LetsEncrypt.Email)
+		glog.Infof("Using LetsEncrypt, host %q, email %q", c.LetsEncrypt.Host, c.LetsEncrypt.Email)
 		tlsConfig.GetCertificate = m.GetCertificate
 	} else {
 		glog.Warning("Running without TLS")

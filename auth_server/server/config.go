@@ -17,8 +17,6 @@
 package server
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -28,7 +26,7 @@ import (
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/docker_auth/auth_server/authz"
-	"github.com/docker/libtrust"
+	. "github.com/cesanta/docker_auth/auth_server/common"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -44,35 +42,14 @@ type Config struct {
 	ACL        authz.ACL                      `yaml:"acl,omitempty"`
 	ACLMongo   *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
 	ExtAuthz   *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
+	LetsEncrypt LetsEncryptConfig             `yaml:"letsencrypt,omitempty"`
 }
 
-type ServerConfig struct {
-	ListenAddress string            `yaml:"addr,omitempty"`
-	PathPrefix    string            `yaml:"path_prefix,omitempty"`
-	RealIPHeader  string            `yaml:"real_ip_header,omitempty"`
-	RealIPPos     int               `yaml:"real_ip_pos,omitempty"`
-	CertFile      string            `yaml:"certificate,omitempty"`
-	KeyFile       string            `yaml:"key,omitempty"`
-	LetsEncrypt   LetsEncryptConfig `yaml:"letsencrypt,omitempty"`
-
-	publicKey  libtrust.PublicKey
-	privateKey libtrust.PrivateKey
-}
 
 type LetsEncryptConfig struct {
 	Host     string `yaml:"host,omitempty"`
 	Email    string `yaml:"email,omitempty"`
 	CacheDir string `yaml:"cache_dir,omitempty"`
-}
-
-type TokenConfig struct {
-	Issuer     string `yaml:"issuer,omitempty"`
-	CertFile   string `yaml:"certificate,omitempty"`
-	KeyFile    string `yaml:"key,omitempty"`
-	Expiration int64  `yaml:"expiration,omitempty"`
-
-	publicKey  libtrust.PublicKey
-	privateKey libtrust.PrivateKey
 }
 
 func validate(c *Config) error {
@@ -162,23 +139,6 @@ func validate(c *Config) error {
 	return nil
 }
 
-func loadCertAndKey(certFile, keyFile string) (pk libtrust.PublicKey, prk libtrust.PrivateKey, err error) {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return
-	}
-	x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
-	if err != nil {
-		return
-	}
-	pk, err = libtrust.FromCryptoPublicKey(x509Cert.PublicKey)
-	if err != nil {
-		return
-	}
-	prk, err = libtrust.FromCryptoPrivateKey(cert.PrivateKey)
-	return
-}
-
 func LoadConfig(fileName string) (*Config, error) {
 	contents, err := ioutil.ReadFile(fileName)
 	if err != nil {
@@ -197,7 +157,7 @@ func LoadConfig(fileName string) (*Config, error) {
 		if c.Server.CertFile == "" || c.Server.KeyFile == "" {
 			return nil, fmt.Errorf("failed to load server cert and key: both were not provided")
 		}
-		c.Server.publicKey, c.Server.privateKey, err = loadCertAndKey(c.Server.CertFile, c.Server.KeyFile)
+		c.Server.PublicKey, c.Server.PrivateKey, err = LoadCertAndKey(c.Server.CertFile, c.Server.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load server cert and key: %s", err)
 		}
@@ -209,7 +169,7 @@ func LoadConfig(fileName string) (*Config, error) {
 		if c.Token.CertFile == "" || c.Token.KeyFile == "" {
 			return nil, fmt.Errorf("failed to load token cert and key: both were not provided")
 		}
-		c.Token.publicKey, c.Token.privateKey, err = loadCertAndKey(c.Token.CertFile, c.Token.KeyFile)
+		c.Token.PublicKey, c.Token.PrivateKey, err = LoadCertAndKey(c.Token.CertFile, c.Token.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load token cert and key: %s", err)
 		}
@@ -217,7 +177,7 @@ func LoadConfig(fileName string) (*Config, error) {
 	}
 
 	if serverConfigured && !tokenConfigured {
-		c.Token.publicKey, c.Token.privateKey = c.Server.publicKey, c.Server.privateKey
+		c.Token.PublicKey, c.Token.PrivateKey = c.Server.PublicKey, c.Server.PrivateKey
 		tokenConfigured = true
 	}
 
@@ -225,15 +185,15 @@ func LoadConfig(fileName string) (*Config, error) {
 		return nil, fmt.Errorf("failed to load token cert and key: none provided")
 	}
 
-	if !serverConfigured && c.Server.LetsEncrypt.Email != "" {
-		if c.Server.LetsEncrypt.CacheDir == "" {
+	if !serverConfigured && c.LetsEncrypt.Email != "" {
+		if c.LetsEncrypt.CacheDir == "" {
 			return nil, fmt.Errorf("server.letsencrypt.cache_dir is required")
 		}
 		// We require that LetsEncrypt is an existing directory, because we really don't want it
 		// to be misconfigured and obtained certificates to be lost.
-		fi, err := os.Stat(c.Server.LetsEncrypt.CacheDir)
+		fi, err := os.Stat(c.LetsEncrypt.CacheDir)
 		if err != nil || !fi.IsDir() {
-			return nil, fmt.Errorf("server.letsencrypt.cache_dir (%s) does not exist or is not a directory", c.Server.LetsEncrypt.CacheDir)
+			return nil, fmt.Errorf("server.letsencrypt.cache_dir (%s) does not exist or is not a directory", c.LetsEncrypt.CacheDir)
 		}
 	}
 

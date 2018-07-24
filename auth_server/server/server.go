@@ -17,22 +17,14 @@
 package server
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"math/rand"
-	"net"
 	"net/http"
 	"regexp"
-	"sort"
-	"strings"
-	"time"
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/docker_auth/auth_server/authz"
-	"github.com/cesanta/docker_auth/auth_server/common"
+	. "github.com/cesanta/docker_auth/auth_server/common"
 	"github.com/cesanta/glog"
-	"github.com/docker/distribution/registry/auth/token"
 
 )
 
@@ -41,48 +33,51 @@ var (
 )
 
 type AuthServer struct {
+	*SimpleServer
+
 	config         *Config
-	authenticators []common.Authenticator
-	authorizers    []common.Authorizer
 	ga             *authn.GoogleAuth
 	gha            *authn.GitHubAuth
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
 	as := &AuthServer{
-		config:      c,
-		authorizers: []common.Authorizer{},
+		SimpleServer: &SimpleServer{
+			Authorizers: []Authorizer{},
+			Authenticators: []Authenticator{},
+		},
+		config: c,
 	}
 	if c.ACL != nil {
 		staticAuthorizer, err := authz.NewACLAuthorizer(c.ACL)
 		if err != nil {
 			return nil, err
 		}
-		as.authorizers = append(as.authorizers, staticAuthorizer)
+		as.Authorizers = append(as.Authorizers, staticAuthorizer)
 	}
 	if c.ACLMongo != nil {
 		mongoAuthorizer, err := authz.NewACLMongoAuthorizer(c.ACLMongo)
 		if err != nil {
 			return nil, err
 		}
-		as.authorizers = append(as.authorizers, mongoAuthorizer)
+		as.Authorizers = append(as.Authorizers, mongoAuthorizer)
 	}
 	if c.ExtAuthz != nil {
 		extAuthorizer := authz.NewExtAuthzAuthorizer(c.ExtAuthz)
-		as.authorizers = append(as.authorizers, extAuthorizer)
+		as.Authorizers = append(as.Authorizers, extAuthorizer)
 	}
 	if c.Users != nil {
-		as.authenticators = append(as.authenticators, authn.NewStaticUserAuth(c.Users))
+		as.Authenticators = append(as.Authenticators, authn.NewStaticUserAuth(c.Users))
 	}
 	if c.ExtAuth != nil {
-		as.authenticators = append(as.authenticators, authn.NewExtAuth(c.ExtAuth))
+		as.Authenticators = append(as.Authenticators, authn.NewExtAuth(c.ExtAuth))
 	}
 	if c.GoogleAuth != nil {
 		ga, err := authn.NewGoogleAuth(c.GoogleAuth)
 		if err != nil {
 			return nil, err
 		}
-		as.authenticators = append(as.authenticators, ga)
+		as.Authenticators = append(as.Authenticators, ga)
 		as.ga = ga
 	}
 	if c.GitHubAuth != nil {
@@ -90,7 +85,7 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		if err != nil {
 			return nil, err
 		}
-		as.authenticators = append(as.authenticators, gha)
+		as.Authenticators = append(as.Authenticators, gha)
 		as.gha = gha
 	}
 	if c.LDAPAuth != nil {
@@ -98,248 +93,27 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		if err != nil {
 			return nil, err
 		}
-		as.authenticators = append(as.authenticators, la)
+		as.Authenticators = append(as.Authenticators, la)
 	}
 	if c.MongoAuth != nil {
 		ma, err := authn.NewMongoAuth(c.MongoAuth)
 		if err != nil {
 			return nil, err
 		}
-		as.authenticators = append(as.authenticators, ma)
+		as.Authenticators = append(as.Authenticators, ma)
 	}
 	return as, nil
 }
 
-type authRequest struct {
-	RemoteConnAddr string
-	RemoteAddr     string
-	RemoteIP       net.IP
-	User           string
-	Password       common.PasswordString
-	Account        string
-	Service        string
-	Scopes         []authScope
-	Labels         common.Labels
-}
-
-type authScope struct {
-	Type    string
-	Name    string
-	Actions []string
-}
-
-type authzResult struct {
-	scope            authScope
-	autorizedActions []string
-}
-
-func (ar authRequest) String() string {
-	return fmt.Sprintf("{%s:%s@%s %s}", ar.User, ar.Password, ar.RemoteAddr, ar.Scopes)
-}
-
-func parseRemoteAddr(ra string) net.IP {
-	hp := hostPortRegex.FindStringSubmatch(ra)
-	if hp != nil {
-		ra = string(hp[1])
-	}
-	res := net.ParseIP(ra)
-	return res
-}
-
-func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
-	ar := &authRequest{RemoteConnAddr: req.RemoteAddr, RemoteAddr: req.RemoteAddr}
-	if as.config.Server.RealIPHeader != "" {
-		hv := req.Header.Get(as.config.Server.RealIPHeader)
-		ips := strings.Split(hv, ",")
-
-		realIPPos := as.config.Server.RealIPPos
-		if realIPPos < 0 {
-			realIPPos = len(ips) + realIPPos
-			if realIPPos < 0 {
-				realIPPos = 0
-			}
-		}
-
-		ar.RemoteAddr = strings.TrimSpace(ips[realIPPos])
-		glog.V(3).Infof("Conn ip %s, %s: %s, addr: %s", ar.RemoteAddr, as.config.Server.RealIPHeader, hv, ar.RemoteAddr)
-		if ar.RemoteAddr == "" {
-			return nil, fmt.Errorf("client address not provided")
-		}
-	}
-	ar.RemoteIP = parseRemoteAddr(ar.RemoteAddr)
-	if ar.RemoteIP == nil {
-		return nil, fmt.Errorf("unable to parse remote addr %s", ar.RemoteAddr)
-	}
-	user, password, haveBasicAuth := req.BasicAuth()
-	if haveBasicAuth {
-		ar.User = user
-		ar.Password = common.PasswordString(password)
-	}
-	ar.Account = req.FormValue("account")
-	if ar.Account == "" {
-		ar.Account = ar.User
-	} else if haveBasicAuth && ar.Account != ar.User {
-		return nil, fmt.Errorf("user and account are not the same (%q vs %q)", ar.User, ar.Account)
-	}
-	ar.Service = req.FormValue("service")
-	if err := req.ParseForm(); err != nil {
-		return nil, fmt.Errorf("invalid form value")
-	}
-	// https://github.com/docker/distribution/blob/1b9ab303a477ded9bdd3fc97e9119fa8f9e58fca/docs/spec/auth/scope.md#resource-scope-grammar
-	if req.FormValue("scope") != "" {
-		for _, scopeStr := range req.Form["scope"] {
-			parts := strings.Split(scopeStr, ":")
-			var scope authScope
-			switch len(parts) {
-			case 3:
-				scope = authScope{
-					Type:    parts[0],
-					Name:    parts[1],
-					Actions: strings.Split(parts[2], ","),
-				}
-			case 4:
-				scope = authScope{
-					Type:    parts[0],
-					Name:    parts[1] + ":" + parts[2],
-					Actions: strings.Split(parts[3], ","),
-				}
-			default:
-				return nil, fmt.Errorf("invalid scope: %q", scopeStr)
-			}
-			sort.Strings(scope.Actions)
-			ar.Scopes = append(ar.Scopes, scope)
-		}
-	}
-	return ar, nil
-}
-
-func (as *AuthServer) Authenticate(ar *authRequest) (bool, common.Labels, error) {
-	for i, a := range as.authenticators {
-		result, labels, err := a.Authenticate(ar.Account, ar.Password)
-		glog.V(2).Infof("Authn %s %s -> %t, %+v, %v", a.Name(), ar.Account, result, labels, err)
-		if err != nil {
-			if err == common.NoMatch {
-				continue
-			} else if err == common.WrongPass {
-				glog.Warningf("Failed authentication with %s: %s", err, ar.Account)
-				return false, nil, nil
-			}
-			err = fmt.Errorf("authn #%d returned error: %s", i+1, err)
-			glog.Errorf("%s: %s", ar, err)
-			return false, nil, err
-		}
-		return result, labels, nil
-	}
-	// Deny by default.
-	glog.Warningf("%s did not match any authn rule", ar)
-	return false, nil, nil
-}
-
-func (as *AuthServer) authorizeScope(ai *common.AuthRequestInfo) ([]string, error) {
-	for i, a := range as.authorizers {
-		result, err := a.Authorize(ai)
-		glog.V(2).Infof("Authz %s %s -> %s, %s", a.Name(), *ai, result, err)
-		if err != nil {
-			if err == common.NoMatch {
-				continue
-			}
-			err = fmt.Errorf("authz #%d returned error: %s", i+1, err)
-			glog.Errorf("%s: %s", *ai, err)
-			return nil, err
-		}
-		return result, nil
-	}
-	// Deny by default.
-	glog.Warningf("%s did not match any authz rule", *ai)
-	return nil, nil
-}
-
-func (as *AuthServer) Authorize(ar *authRequest) ([]authzResult, error) {
-	ares := []authzResult{}
-	for _, scope := range ar.Scopes {
-		ai := &common.AuthRequestInfo{
-			Account: ar.Account,
-			Type:    scope.Type,
-			Name:    scope.Name,
-			Service: ar.Service,
-			IP:      ar.RemoteIP,
-			Actions: scope.Actions,
-			Labels:  ar.Labels,
-		}
-		actions, err := as.authorizeScope(ai)
-		if err != nil {
-			return nil, err
-		}
-		ares = append(ares, authzResult{scope: scope, autorizedActions: actions})
-	}
-	return ares, nil
-}
-
-// https://github.com/docker/distribution/blob/master/docs/spec/auth/token.md#example
-func (as *AuthServer) CreateToken(ar *authRequest, ares []authzResult) (string, error) {
-	now := time.Now().Unix()
-	tc := &as.config.Token
-
-	// Sign something dummy to find out which algorithm is used.
-	_, sigAlg, err := tc.privateKey.Sign(strings.NewReader("dummy"), 0)
-	if err != nil {
-		return "", fmt.Errorf("failed to sign: %s", err)
-	}
-	header := token.Header{
-		Type:       "JWT",
-		SigningAlg: sigAlg,
-		KeyID:      tc.publicKey.KeyID(),
-	}
-	headerJSON, err := json.Marshal(header)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal header: %s", err)
-	}
-
-	claims := token.ClaimSet{
-		Issuer:     tc.Issuer,
-		Subject:    ar.Account,
-		Audience:   ar.Service,
-		NotBefore:  now - 10,
-		IssuedAt:   now,
-		Expiration: now + tc.Expiration,
-		JWTID:      fmt.Sprintf("%d", rand.Int63()),
-		Access:     []*token.ResourceActions{},
-	}
-	for _, a := range ares {
-		ra := &token.ResourceActions{
-			Type:    a.scope.Type,
-			Name:    a.scope.Name,
-			Actions: a.autorizedActions,
-		}
-		if ra.Actions == nil {
-			ra.Actions = []string{}
-		}
-		sort.Strings(ra.Actions)
-		claims.Access = append(claims.Access, ra)
-	}
-	claimsJSON, err := json.Marshal(claims)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal claims: %s", err)
-	}
-
-	payload := fmt.Sprintf("%s%s%s", joseBase64UrlEncode(headerJSON), token.TokenSeparator, joseBase64UrlEncode(claimsJSON))
-
-	sig, sigAlg2, err := tc.privateKey.Sign(strings.NewReader(payload), 0)
-	if err != nil || sigAlg2 != sigAlg {
-		return "", fmt.Errorf("failed to sign token: %s", err)
-	}
-	glog.Infof("New token for %s %+v: %s", *ar, ar.Labels, claimsJSON)
-	return fmt.Sprintf("%s%s%s", payload, token.TokenSeparator, joseBase64UrlEncode(sig)), nil
-}
-
+// ServeHTTP overrides SimpleServer, adding Github and Google features if enabled.
 func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	glog.V(3).Infof("Request: %+v", req)
 	path_prefix := as.config.Server.PathPrefix
 	switch {
 	case req.URL.Path == path_prefix+"/":
-		as.doIndex(rw, req)
+		as.DoIndex(rw, req)
 	case req.URL.Path == path_prefix+"/auth":
-		as.doAuth(rw, req)
+		as.DoAuth(rw, req)
 	case req.URL.Path == path_prefix+"/google_auth" && as.ga != nil:
 		as.ga.DoGoogleAuth(rw, req)
 	case req.URL.Path == path_prefix+"/github_auth" && as.gha != nil:
@@ -350,8 +124,9 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// DoIndex overrides SimpleServer, adding Github and Google features if enabled.
 // https://developers.google.com/identity/sign-in/web/server-side-flow
-func (as *AuthServer) doIndex(rw http.ResponseWriter, req *http.Request) {
+func (as *AuthServer) DoIndex(rw http.ResponseWriter, req *http.Request) {
 	switch {
 		case as.ga != nil:
 			rw.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -364,64 +139,4 @@ func (as *AuthServer) doIndex(rw http.ResponseWriter, req *http.Request) {
 			rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 			fmt.Fprintf(rw, "<h1>%s</h1>\n", as.config.Token.Issuer)
 	}
-}
-
-func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
-	ar, err := as.ParseRequest(req)
-	ares := []authzResult{}
-	if err != nil {
-		glog.Warningf("Bad request: %s", err)
-		http.Error(rw, fmt.Sprintf("Bad request: %s", err), http.StatusBadRequest)
-		return
-	}
-	glog.V(2).Infof("Auth request: %+v", ar)
-	{
-		authnResult, labels, err := as.Authenticate(ar)
-		if err != nil {
-			http.Error(rw, fmt.Sprintf("Authentication failed (%s)", err), http.StatusInternalServerError)
-			return
-		}
-		if !authnResult {
-			glog.Warningf("Auth failed: %s", *ar)
-			rw.Header()["WWW-Authenticate"] = []string{fmt.Sprintf(`Basic realm="%s"`, as.config.Token.Issuer)}
-			http.Error(rw, "Auth failed.", http.StatusUnauthorized)
-			return
-		}
-		ar.Labels = labels
-	}
-	if len(ar.Scopes) > 0 {
-		ares, err = as.Authorize(ar)
-		if err != nil {
-			http.Error(rw, fmt.Sprintf("Authorization failed (%s)", err), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		// Authentication-only request ("docker login"), pass through.
-	}
-	token, err := as.CreateToken(ar, ares)
-	if err != nil {
-		msg := fmt.Sprintf("Failed to generate token %s", err)
-		http.Error(rw, msg, http.StatusInternalServerError)
-		glog.Errorf("%s: %s", ar, msg)
-		return
-	}
-	result, _ := json.Marshal(&map[string]string{"token": token})
-	glog.V(3).Infof("%s", result)
-	rw.Header().Set("Content-Type", "application/json")
-	rw.Write(result)
-}
-
-func (as *AuthServer) Stop() {
-	for _, an := range as.authenticators {
-		an.Stop()
-	}
-	for _, az := range as.authorizers {
-		az.Stop()
-	}
-	glog.Infof("Server stopped")
-}
-
-// Copy-pasted from libtrust where it is private.
-func joseBase64UrlEncode(b []byte) string {
-	return strings.TrimRight(base64.URLEncoding.EncodeToString(b), "=")
 }

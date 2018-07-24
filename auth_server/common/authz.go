@@ -1,12 +1,9 @@
-package authz
+package common
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"
-
-	"github.com/cesanta/docker_auth/auth_server/authn"
 )
 
 // Authorizer interface performs authorization of the request.
@@ -32,8 +29,6 @@ type Authorizer interface {
 	Name() string
 }
 
-var NoMatch = errors.New("did not match any rule")
-
 type AuthRequestInfo struct {
 	Account string
 	Type    string
@@ -41,7 +36,7 @@ type AuthRequestInfo struct {
 	Service string
 	IP      net.IP
 	Actions []string
-	Labels  authn.Labels
+	Labels  Labels
 }
 
 func (ai AuthRequestInfo) String() string {

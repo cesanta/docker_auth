@@ -19,6 +19,8 @@ package authn
 import (
 	"encoding/json"
 	"golang.org/x/crypto/bcrypt"
+
+	. "github.com/cesanta/docker_auth/auth_server/common"
 )
 
 type Requirements struct {

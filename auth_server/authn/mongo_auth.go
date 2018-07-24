@@ -27,6 +27,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+
+	. "github.com/cesanta/docker_auth/auth_server/common"
 )
 
 type MongoAuthConfig struct {

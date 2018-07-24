@@ -30,8 +30,10 @@ import (
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/docker_auth/auth_server/authz"
+	"github.com/cesanta/docker_auth/auth_server/common"
 	"github.com/cesanta/glog"
 	"github.com/docker/distribution/registry/auth/token"
+
 )
 
 var (
@@ -40,8 +42,8 @@ var (
 
 type AuthServer struct {
 	config         *Config
-	authenticators []authn.Authenticator
-	authorizers    []authz.Authorizer
+	authenticators []common.Authenticator
+	authorizers    []common.Authorizer
 	ga             *authn.GoogleAuth
 	gha            *authn.GitHubAuth
 }
@@ -49,7 +51,7 @@ type AuthServer struct {
 func NewAuthServer(c *Config) (*AuthServer, error) {
 	as := &AuthServer{
 		config:      c,
-		authorizers: []authz.Authorizer{},
+		authorizers: []common.Authorizer{},
 	}
 	if c.ACL != nil {
 		staticAuthorizer, err := authz.NewACLAuthorizer(c.ACL)
@@ -113,11 +115,11 @@ type authRequest struct {
 	RemoteAddr     string
 	RemoteIP       net.IP
 	User           string
-	Password       authn.PasswordString
+	Password       common.PasswordString
 	Account        string
 	Service        string
 	Scopes         []authScope
-	Labels         authn.Labels
+	Labels         common.Labels
 }
 
 type authScope struct {
@@ -171,7 +173,7 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	user, password, haveBasicAuth := req.BasicAuth()
 	if haveBasicAuth {
 		ar.User = user
-		ar.Password = authn.PasswordString(password)
+		ar.Password = common.PasswordString(password)
 	}
 	ar.Account = req.FormValue("account")
 	if ar.Account == "" {
@@ -211,14 +213,14 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	return ar, nil
 }
 
-func (as *AuthServer) Authenticate(ar *authRequest) (bool, authn.Labels, error) {
+func (as *AuthServer) Authenticate(ar *authRequest) (bool, common.Labels, error) {
 	for i, a := range as.authenticators {
 		result, labels, err := a.Authenticate(ar.Account, ar.Password)
 		glog.V(2).Infof("Authn %s %s -> %t, %+v, %v", a.Name(), ar.Account, result, labels, err)
 		if err != nil {
-			if err == authn.NoMatch {
+			if err == common.NoMatch {
 				continue
-			} else if err == authn.WrongPass {
+			} else if err == common.WrongPass {
 				glog.Warningf("Failed authentication with %s: %s", err, ar.Account)
 				return false, nil, nil
 			}
@@ -233,12 +235,12 @@ func (as *AuthServer) Authenticate(ar *authRequest) (bool, authn.Labels, error) 
 	return false, nil, nil
 }
 
-func (as *AuthServer) authorizeScope(ai *authz.AuthRequestInfo) ([]string, error) {
+func (as *AuthServer) authorizeScope(ai *common.AuthRequestInfo) ([]string, error) {
 	for i, a := range as.authorizers {
 		result, err := a.Authorize(ai)
 		glog.V(2).Infof("Authz %s %s -> %s, %s", a.Name(), *ai, result, err)
 		if err != nil {
-			if err == authz.NoMatch {
+			if err == common.NoMatch {
 				continue
 			}
 			err = fmt.Errorf("authz #%d returned error: %s", i+1, err)
@@ -255,7 +257,7 @@ func (as *AuthServer) authorizeScope(ai *authz.AuthRequestInfo) ([]string, error
 func (as *AuthServer) Authorize(ar *authRequest) ([]authzResult, error) {
 	ares := []authzResult{}
 	for _, scope := range ar.Scopes {
-		ai := &authz.AuthRequestInfo{
+		ai := &common.AuthRequestInfo{
 			Account: ar.Account,
 			Type:    scope.Type,
 			Name:    scope.Name,

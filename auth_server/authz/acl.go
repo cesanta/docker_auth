@@ -10,9 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/glog"
 	"github.com/schwarmco/go-cartesian-product"
+
+	. "github.com/cesanta/docker_auth/auth_server/common"
 )
 
 type ACL []ACLEntry
@@ -204,7 +205,7 @@ func matchIP(ipp *string, ip net.IP) bool {
 	return ipnet.Contains(ip)
 }
 
-func matchLabels(ml map[string]string, rl authn.Labels, vars []string) bool {
+func matchLabels(ml map[string]string, rl Labels, vars []string) bool {
 	for label, pattern := range ml {
 		labelValues := rl[label]
 		matched := false

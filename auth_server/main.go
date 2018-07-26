@@ -155,9 +155,6 @@ func (rs *RestartableServer) MaybeRestart() {
 	rs.authServer, rs.hs = ServeOnce(c, rs.configFile, rs.hd)
 }
 
-var Version = "dev"
-var BuildId = "dev"
-
 func main() {
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())

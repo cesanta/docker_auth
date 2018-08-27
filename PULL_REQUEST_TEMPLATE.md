@@ -17,8 +17,7 @@ Horizontal:
 - Platform - @jtveritone (Jason)
 
 Infrastructure:
-- @nimajalali
-- @tamsky
+- @lanmalkieri
 
 Engineering/Architecture:
 - @albertcbrown 

@@ -17,7 +17,6 @@
 package authn
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -28,17 +27,21 @@ import (
 	"github.com/cesanta/glog"
 )
 
+type LabelMap struct {
+	Attribute string `yaml:"attribute,omitempty"`
+	ParseCN   bool   `yaml:"parse_cn,omitempty"`
+}
+
 type LDAPAuthConfig struct {
-	Addr                  string `yaml:"addr,omitempty"`
-	TLS                   string `yaml:"tls,omitempty"`
-	InsecureTLSSkipVerify bool   `yaml:"insecure_tls_skip_verify,omitempty"`
-	CACertificate         string `yaml:"ca_certificate,omitempty"`
-	Base                  string `yaml:"base,omitempty"`
-	Filter                string `yaml:"filter,omitempty"`
-	BindDN                string `yaml:"bind_dn,omitempty"`
-	BindPasswordFile      string `yaml:"bind_password_file,omitempty"`
-	GroupBaseDN           string `yaml:"group_base_dn,omitempty"`
-	GroupFilter           string `yaml:"group_filter,omitempty"`
+	Addr                  string              `yaml:"addr,omitempty"`
+	TLS                   string              `yaml:"tls,omitempty"`
+	InsecureTLSSkipVerify bool                `yaml:"insecure_tls_skip_verify,omitempty"`
+	CACertificate         string              `yaml:"ca_certificate,omitempty"`
+	Base                  string              `yaml:"base,omitempty"`
+	Filter                string              `yaml:"filter,omitempty"`
+	BindDN                string              `yaml:"bind_dn,omitempty"`
+	BindPasswordFile      string              `yaml:"bind_password_file,omitempty"`
+	LabelMaps             map[string]LabelMap `yaml:"labels,omitempty"`
 }
 
 type LDAPAuth struct {
@@ -73,13 +76,20 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 	account = la.escapeAccountInput(account)
 
 	filter := la.getFilter(account)
-	accountEntryDN, uSearchErr := la.ldapSearch(l, &la.config.Base, &filter, &[]string{})
+
+	labelAttributes, labelsConfigErr := la.getLabelAttributes()
+	if labelsConfigErr != nil {
+		return false, nil, labelsConfigErr
+	}
+
+	accountEntryDN, entryAttrMap, uSearchErr := la.ldapSearch(l, &la.config.Base, &filter, &labelAttributes)
 	if uSearchErr != nil {
 		return false, nil, uSearchErr
 	}
 	if accountEntryDN == "" {
 		return false, nil, NoMatch // User does not exist
 	}
+
 	// Bind as the user to verify their password
 	if len(accountEntryDN) > 0 {
 		err := l.Bind(accountEntryDN, string(password))
@@ -95,7 +105,13 @@ func (la *LDAPAuth) Authenticate(account string, password PasswordString) (bool,
 		return false, nil, bindErr
 	}
 
-	return true, nil, nil
+	// Extract labels from the attribute values
+	labels, labelsExtractErr := la.getLabelsFromMap(entryAttrMap)
+	if labelsExtractErr != nil {
+		return false, nil, labelsExtractErr
+	}
+
+	return true, labels, nil
 }
 
 func (la *LDAPAuth) bindReadOnlyUser(l *ldap.Conn) error {
@@ -185,9 +201,9 @@ func (la *LDAPAuth) getFilter(account string) string {
 
 //ldap search and return required attributes' value from searched entries
 //default return entry's DN value if you leave attrs array empty
-func (la *LDAPAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, attrs *[]string) (string, error) {
+func (la *LDAPAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, attrs *[]string) (string, map[string][]string, error) {
 	if l == nil {
-		return "", fmt.Errorf("No ldap connection!")
+		return "", nil, fmt.Errorf("No ldap connection!")
 	}
 	glog.V(2).Infof("Searching...basedDN:%s, filter:%s", *baseDN, *filter)
 	searchRequest := ldap.NewSearchRequest(
@@ -198,30 +214,82 @@ func (la *LDAPAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, att
 		nil)
 	sr, err := l.Search(searchRequest)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	if len(sr.Entries) == 0 {
-		return "", nil // User does not exist
+		return "", nil, nil // User does not exist
 	} else if len(sr.Entries) > 1 {
-		return "", fmt.Errorf("Too many entries returned.")
+		return "", nil, fmt.Errorf("Too many entries returned.")
 	}
 
-	var buffer bytes.Buffer
+	attributes := make(map[string][]string)
+	var entryDn string
 	for _, entry := range sr.Entries {
+		entryDn = entry.DN
 		if len(*attrs) == 0 {
-			glog.V(2).Infof("Entry DN = %s", entry.DN)
-			buffer.WriteString(entry.DN)
+			glog.V(2).Infof("Entry DN = %s", entryDn)
 		} else {
 			for _, attr := range *attrs {
-				values := strings.Join(entry.GetAttributeValues(attr), " ")
-				glog.V(2).Infof("Entry %s = %s", attr, values)
-				buffer.WriteString(values)
+				values := entry.GetAttributeValues(attr)
+				glog.V(2).Infof("Entry %s = %s", attr, strings.Join(values, "\n"))
+				attributes[attr] = values
 			}
 		}
 	}
 
-	return buffer.String(), nil
+	return entryDn, attributes, nil
+}
+
+func (la *LDAPAuth) getLabelAttributes() ([]string, error) {
+	labelAttributes := make([]string, len(la.config.LabelMaps))
+	i := 0
+	for key, mapping := range la.config.LabelMaps {
+		if mapping.Attribute == "" {
+			return nil, fmt.Errorf("Label %s is missing 'attribute' to map from", key)
+		}
+		labelAttributes[i] = mapping.Attribute
+		i++
+	}
+	return labelAttributes, nil
+}
+
+func (la *LDAPAuth) getLabelsFromMap(attrMap map[string][]string) (map[string][]string, error) {
+	labels := make(map[string][]string)
+	for key, mapping := range la.config.LabelMaps {
+		if mapping.Attribute == "" {
+			return nil, fmt.Errorf("Label %s is missing 'attribute' to map from", key)
+		}
+
+		mappingValues := attrMap[mapping.Attribute]
+		if mappingValues != nil {
+			if mapping.ParseCN {
+				// shorten attribute to its common name
+				for i, value := range mappingValues {
+					cn := la.getCNFromDN(value)
+					mappingValues[i] = cn
+				}
+			}
+			labels[key] = mappingValues
+		}
+	}
+	return labels, nil
+}
+
+func (la *LDAPAuth) getCNFromDN(dn string) string {
+	parsedDN, err := ldap.ParseDN(dn)
+	if err != nil || len(parsedDN.RDNs) > 0 {
+		for _, rdn := range parsedDN.RDNs {
+			for _, rdnAttr := range rdn.Attributes {
+				if rdnAttr.Type == "CN" {
+					return rdnAttr.Value
+				}
+			}
+		}
+	}
+
+	// else try using raw DN
+	return dn
 }
 
 func (la *LDAPAuth) Stop() {

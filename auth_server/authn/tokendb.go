@@ -27,6 +27,8 @@ import (
 	"github.com/cesanta/glog"
 	"github.com/dchest/uniuri"
 	"github.com/syndtr/goleveldb/leveldb"
+
+	. "github.com/cesanta/docker_auth/auth_server/common"
 )
 
 const (

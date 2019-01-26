@@ -25,6 +25,8 @@ import (
 
 	"github.com/go-ldap/ldap"
 	"github.com/cesanta/glog"
+
+	. "github.com/cesanta/docker_auth/auth_server/common"
 )
 
 type LabelMap struct {

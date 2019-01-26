@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-package authn
+package common
 
 import "errors"
 

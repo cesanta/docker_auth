@@ -10,6 +10,8 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	. "github.com/cesanta/docker_auth/auth_server/common"
 )
 
 type MongoACL []MongoACLEntry

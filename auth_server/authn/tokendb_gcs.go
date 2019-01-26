@@ -26,6 +26,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
+
+	. "github.com/cesanta/docker_auth/auth_server/common"
 )
 
 // NewGCSTokenDB return a new TokenDB structure which uses Google Cloud Storage as backend. The

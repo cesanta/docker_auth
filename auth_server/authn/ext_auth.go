@@ -24,6 +24,8 @@ import (
 	"syscall"
 
 	"github.com/cesanta/glog"
+
+	. "github.com/cesanta/docker_auth/auth_server/common"
 )
 
 type ExtAuthConfig struct {

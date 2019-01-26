@@ -24,7 +24,7 @@ generate:
 	  github.com/cesanta/docker_auth/auth_server/server/...
 
 build:
-	CGO_ENABLED=0 go build -v --ldflags=--s
+	CGO_ENABLED=0 go build --ldflags=--s
 
 ca-certificates.crt:
 	cp $(CA_BUNDLE) .

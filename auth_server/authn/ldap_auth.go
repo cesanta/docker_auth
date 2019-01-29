@@ -281,7 +281,7 @@ func (la *LDAPAuth) getCNFromDN(dn string) string {
 	if err != nil || len(parsedDN.RDNs) > 0 {
 		for _, rdn := range parsedDN.RDNs {
 			for _, rdnAttr := range rdn.Attributes {
-				if rdnAttr.Type == "CN" {
+				if strings.ToUpper(rdnAttr.Type) == "CN" {
 					return rdnAttr.Value
 				}
 			}

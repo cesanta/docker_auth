@@ -31,7 +31,6 @@ require (
 	golang.org/x/tools v0.0.0-20201011145850-ed2f50202694 // indirect
 	google.golang.org/api v0.32.0
 	google.golang.org/genproto v0.0.0-20201009135657-4d944d34d83c // indirect
-	google.golang.org/grpc v1.33.0 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22

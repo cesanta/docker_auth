@@ -39,6 +39,7 @@ type Config struct {
 	Users       map[string]*authn.Requirements `yaml:"users,omitempty"`
 	GoogleAuth  *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
 	GitHubAuth  *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
+	GiteaAuth   *authn.GiteaAuthConfig         `yaml:"gitea_auth,omitempty"`
 	LDAPAuth    *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
 	MongoAuth   *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
 	ExtAuth     *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
@@ -157,7 +158,7 @@ func validate(c *Config) error {
 	if c.Token.Expiration <= 0 {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
-	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.PluginAuthn == nil {
+	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.GiteaAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.PluginAuthn == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if c.MongoAuth != nil {
@@ -208,6 +209,16 @@ func validate(c *Config) error {
 			ghac.RevalidateAfter = time.Duration(1 * time.Hour)
 		}
 	}
+	if gtac := c.GiteaAuth; gtac != nil {
+		if gtac.HTTPTimeout <= 0 {
+			gtac.HTTPTimeout = time.Duration(10 * time.Second)
+		}
+		if gtac.RevalidateAfter == 0 {
+			// Token expires after 1 hour by default
+			gtac.RevalidateAfter = time.Duration(1 * time.Hour)
+		}
+	}
+
 	if c.ExtAuth != nil {
 		if err := c.ExtAuth.Validate(); err != nil {
 			return fmt.Errorf("bad ext_auth config: %s", err)

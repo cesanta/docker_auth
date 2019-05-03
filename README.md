@@ -15,6 +15,7 @@ Supported authentication methods:
  * Google Sign-In (incl. Google for Work / GApps for domain) (documented [here](https://github.com/cesanta/docker_auth/blob/main/examples/reference.yml))
  * [Github Sign-In](docs/auth-methods.md#github)
  * Gitlab Sign-In
+ * Gitea basic auth
  * LDAP bind ([demo](https://github.com/kwk/docker-registry-setup))
  * MongoDB user collection
  * MySQL/MariaDB, PostgreSQL, SQLite database table

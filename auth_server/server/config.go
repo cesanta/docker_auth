@@ -41,6 +41,7 @@ type Config struct {
 	GitHubAuth  *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
 	OIDCAuth    *authn.OIDCAuthConfig          `yaml:"oidc_auth,omitempty"`
 	GitlabAuth  *authn.GitlabAuthConfig        `yaml:"gitlab_auth,omitempty"`
+	GiteaAuth   *authn.GiteaAuthConfig         `yaml:"gitea_auth,omitempty"`
 	LDAPAuth    *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
 	MongoAuth   *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
 	XormAuthn   *authn.XormAuthnConfig         `yaml:"xorm_auth,omitempty"`
@@ -170,7 +171,7 @@ func validate(c *Config) error {
 	if c.Token.Expiration <= 0 {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
-	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.GitlabAuth == nil && c.OIDCAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.XormAuthn == nil && c.PluginAuthn == nil {
+	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.GitlabAuth == nil && c.GiteaAuth == nil && c.OIDCAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.XormAuthn == nil && c.PluginAuthn == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if c.MongoAuth != nil {
@@ -269,6 +270,19 @@ func validate(c *Config) error {
 			glab.RevalidateAfter = time.Duration(1 * time.Hour)
 		}
 	}
+	if gtac := c.GiteaAuth; gtac != nil {
+		if gtac.ApiUri == "" {
+			return errors.New("gitea_auth.api_uri are required")
+		}
+		if gtac.HTTPTimeout <= 0 {
+			gtac.HTTPTimeout = time.Duration(10 * time.Second)
+		}
+		if gtac.RevalidateAfter == 0 {
+			// Token expires after 1 hour by default
+			gtac.RevalidateAfter = time.Duration(1 * time.Hour)
+		}
+	}
+
 	if c.ExtAuth != nil {
 		if err := c.ExtAuth.Validate(); err != nil {
 			return fmt.Errorf("bad ext_auth config: %s", err)

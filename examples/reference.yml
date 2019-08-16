@@ -306,3 +306,11 @@ acl_mongo:
 ext_authz:
   command: "/usr/local/bin/my_authz"  # Can be a relative path too; $PATH works.
   args: ["--flag", "--more", "--flags"]
+
+custom_auth:
+  configured: "true"
+  plugin_path: ""
+
+custom_authz:
+  configured: "true"
+  plugin_path: ""

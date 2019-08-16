@@ -105,6 +105,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authenticators = append(as.authenticators, ma)
 	}
+	if c.CustomAuthn != nil {
+		as.authenticators = append(as.authenticators, authn.NewCustomAuthn(c.CustomAuthn))
+	}
+	if c.CustomAuthz != nil {
+		customAuthorizer := authz.NewCustomAuthzAuthorizer(c.CustomAuthz)
+		as.authorizers = append(as.authorizers, customAuthorizer)
+	}
 	return as, nil
 }
 

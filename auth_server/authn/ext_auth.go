@@ -24,6 +24,8 @@ import (
 	"syscall"
 
 	"github.com/cesanta/glog"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
 type ExtAuthConfig struct {
@@ -41,7 +43,7 @@ const (
 )
 
 type ExtAuthResponse struct {
-	Labels Labels `json:"labels,omitempty"`
+	Labels api.Labels `json:"labels,omitempty"`
 }
 
 func (c *ExtAuthConfig) Validate() error {
@@ -63,7 +65,7 @@ func NewExtAuth(cfg *ExtAuthConfig) *extAuth {
 	return &extAuth{cfg: cfg}
 }
 
-func (ea *extAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
+func (ea *extAuth) Authenticate(user string, password api.PasswordString) (bool, api.Labels, error) {
 	cmd := exec.Command(ea.cfg.Command, ea.cfg.Args...)
 	cmd.Stdin = strings.NewReader(fmt.Sprintf("%s %s", user, string(password)))
 	output, err := cmd.Output()
@@ -90,7 +92,7 @@ func (ea *extAuth) Authenticate(user string, password PasswordString) (bool, Lab
 	case ExtAuthDenied:
 		return false, nil, nil
 	case ExtAuthNoMatch:
-		return false, nil, NoMatch
+		return false, nil, api.NoMatch
 	default:
 		glog.Errorf("Ext command error: %d %s", es, et)
 	}

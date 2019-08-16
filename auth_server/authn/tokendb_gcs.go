@@ -26,6 +26,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
 // NewGCSTokenDB return a new TokenDB structure which uses Google Cloud Storage as backend. The
@@ -86,17 +88,17 @@ func (db *gcsTokenDB) StoreToken(user string, v *TokenDBValue, updatePassword bo
 
 // ValidateToken verifies whether the provided token passed as password field
 // is still valid, e.g available and not expired
-func (db *gcsTokenDB) ValidateToken(user string, password PasswordString) error {
+func (db *gcsTokenDB) ValidateToken(user string, password api.PasswordString) error {
 	dbv, err := db.GetValue(user)
 	if err != nil {
 		return err
 	}
 	if dbv == nil {
-		return NoMatch
+		return api.NoMatch
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return WrongPass
+		return api.WrongPass
 	}
 	if time.Now().After(dbv.ValidUntil) {
 		return ExpiredToken

@@ -3,13 +3,16 @@ package authz
 import (
 	"errors"
 	"fmt"
-	"github.com/cesanta/docker_auth/auth_server/mgo_session"
-	"github.com/cesanta/glog"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"io"
 	"sync"
 	"time"
+
+	"github.com/cesanta/glog"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
+	"github.com/cesanta/docker_auth/auth_server/mgo_session"
 )
 
 type MongoACL []MongoACLEntry
@@ -29,7 +32,7 @@ type aclMongoAuthorizer struct {
 	lastCacheUpdate  time.Time
 	lock             sync.RWMutex
 	config           *ACLMongoConfig
-	staticAuthorizer Authorizer
+	staticAuthorizer api.Authorizer
 	session          *mgo.Session
 	updateTicker     *time.Ticker
 	Collection       string        `yaml:"collection,omitempty"`
@@ -37,7 +40,7 @@ type aclMongoAuthorizer struct {
 }
 
 // NewACLMongoAuthorizer creates a new ACL MongoDB authorizer
-func NewACLMongoAuthorizer(c *ACLMongoConfig) (Authorizer, error) {
+func NewACLMongoAuthorizer(c *ACLMongoConfig) (api.Authorizer, error) {
 	// Attempt to create new MongoDB session.
 	session, err := mgo_session.New(c.MongoConfig)
 	if err != nil {
@@ -60,7 +63,7 @@ func NewACLMongoAuthorizer(c *ACLMongoConfig) (Authorizer, error) {
 	return authorizer, nil
 }
 
-func (ma *aclMongoAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {
+func (ma *aclMongoAuthorizer) Authorize(ai *api.AuthRequestInfo) ([]string, error) {
 	ma.lock.RLock()
 	defer ma.lock.RUnlock()
 

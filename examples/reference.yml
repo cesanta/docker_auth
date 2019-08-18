@@ -187,6 +187,14 @@ ext_auth:
   command: "/usr/local/bin/my_auth"  # Can be a relative path too; $PATH works.
   args: ["--flag", "--more", "--flags"]
 
+# User written authentication plugin - call a user written program to authenticate user.
+# Username of type string and password of authn.PasswordString is passed to the plugin
+# Expects a boolean value whether the user is authenticate or not, authn.Labels, error
+# The "labels" key may contain labels to be passed down to authz, where they can
+# be used in matching.
+plugin_authn:
+  plugin_path: ""
+
 # Authorization methods. All are tried, any one returning success is sufficient.
 # At least one must be configured.
 
@@ -307,10 +315,8 @@ ext_authz:
   command: "/usr/local/bin/my_authz"  # Can be a relative path too; $PATH works.
   args: ["--flag", "--more", "--flags"]
 
-custom_auth:
-  configured: "true"
-  plugin_path: ""
-
-custom_authz:
-  configured: "true"
+# User written authorization plugin - call a user written program to authorize user.
+# *authz.AuthRequestInfo is passed to the plugin and expects an authorized set of actions or an error.
+# return the set of authorized actions is the user is authorized. Otherwise return nil
+plugin_authz:
   plugin_path: ""

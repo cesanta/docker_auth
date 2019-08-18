@@ -41,11 +41,11 @@ type Config struct {
 	LDAPAuth    *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
 	MongoAuth   *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
 	ExtAuth     *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
+	PluginAuthn *authn.PluginAuthnConfig       `yaml:"plugin_authn,omitempty"`
 	ACL         authz.ACL                      `yaml:"acl,omitempty"`
 	ACLMongo    *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
 	ExtAuthz    *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
-	CustomAuthn *authn.CustomAuthnConfig       `yaml:"custom_auth,omitempty"`
-	CustomAuthz *authz.CustomAuthzConfig       `yaml:"custom_authz,omitempty"`
+	PluginAuthz *authz.PluginAuthzConfig       `yaml:"plugin_authz,omitempty"`
 }
 
 type ServerConfig struct {
@@ -91,7 +91,7 @@ func validate(c *Config) error {
 	if c.Token.Expiration <= 0 {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
-	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.CustomAuthn == nil {
+	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.PluginAuthn == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if c.MongoAuth != nil {
@@ -142,7 +142,7 @@ func validate(c *Config) error {
 			return fmt.Errorf("bad ext_auth config: %s", err)
 		}
 	}
-	if c.ACL == nil && c.ACLMongo == nil && c.ExtAuthz == nil && c.CustomAuthz == nil {
+	if c.ACL == nil && c.ACLMongo == nil && c.ExtAuthz == nil && c.PluginAuthz == nil {
 		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions")
 	}
 
@@ -161,14 +161,14 @@ func validate(c *Config) error {
 			return err
 		}
 	}
-	if c.CustomAuthn != nil {
-		if err := c.CustomAuthn.Validate(); err != nil {
-			return fmt.Errorf("bad custom_auth config: %s", err)
+	if c.PluginAuthn != nil {
+		if err := c.PluginAuthn.Validate(); err != nil {
+			return fmt.Errorf("bad plugin_authn config: %s", err)
 		}
 	}
-	if c.CustomAuthz != nil {
-		if err := c.CustomAuthz.Validate(); err != nil {
-			return fmt.Errorf("bad custom_authz config: %s", err)
+	if c.PluginAuthz != nil {
+		if err := c.PluginAuthz.Validate(); err != nil {
+			return fmt.Errorf("bad plugin_authz config: %s", err)
 		}
 	}
 	return nil

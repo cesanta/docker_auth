@@ -1,5 +1,5 @@
 MAKEFLAGS += --warn-undefined-variables
-IMAGE ?= cesanta/docker_auth
+IMAGE ?= checker/docker_auth
 COMPRESS_BINARY ?= false
 CA_BUNDLE = /etc/ssl/certs/ca-bundle.crt
 VERSION = $(shell cat version.txt)

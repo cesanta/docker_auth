@@ -18,29 +18,45 @@ package authz
 
 import (
 	"fmt"
-	"github.com/cesanta/glog"
-	"os"
 	"plugin"
+
+	"github.com/cesanta/glog"
 )
 
 type PluginAuthzConfig struct {
 	PluginPath string `yaml:"plugin_path"`
-	Authz      Authorizer
+}
+
+func lookupSymbol(cfg *PluginAuthzConfig) (Authorizer, error) {
+	// load module
+	plug, err := plugin.Open(cfg.PluginPath)
+	if err != nil {
+		return nil, fmt.Errorf("error while loading authz plugin: %v", err)
+	}
+
+	// look up for Authz
+	symAuthen, err := plug.Lookup("Authz")
+	if err != nil {
+		return nil, fmt.Errorf("error while loading authz exporting the variable: %v", err)
+	}
+
+	// assert that loaded symbol is of a desired type
+	var authz Authorizer
+	authz, ok := symAuthen.(Authorizer)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type from module symbol. Unable to cast Authz module")
+	}
+	return authz, nil
 }
 
 func (c *PluginAuthzConfig) Validate() error {
-	if c.PluginPath == "" {
-		return fmt.Errorf("plugin_path cannot be empty")
-	}
-	if _, err := os.Stat(c.PluginPath); os.IsNotExist(err) {
-		return fmt.Errorf("file does not exists in %s: %v", c.PluginPath, err)
-	}
-	glog.Infof("Plugin file resolved in: %s", c.PluginPath)
-	return nil
+	_, err := lookupSymbol(c)
+	return err
 }
 
 type PluginAuthz struct {
-	cfg *PluginAuthzConfig
+	cfg   *PluginAuthzConfig
+	Authz Authorizer
 }
 
 func (c *PluginAuthz) Stop() {
@@ -52,29 +68,14 @@ func (c *PluginAuthz) Name() string {
 
 func NewPluginAuthzAuthorizer(cfg *PluginAuthzConfig) (*PluginAuthz, error) {
 	glog.Infof("Plugin authorization: %s", cfg)
-	// load module
-	plug, err := plugin.Open(cfg.PluginPath)
+	authz, err := lookupSymbol(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("error while loading authz plugin: %v", err)
+		return nil, err
 	}
-
-	// look up for Authz
-	symAuthz, err := plug.Lookup("Authz")
-	if err != nil {
-		return nil, fmt.Errorf("error while loading authz exporting the variable: %v", err)
-	}
-
-	// assert that loaded symbol is of a desired type
-	var authz Authorizer
-	authz, ok := symAuthz.(Authorizer)
-	if !ok {
-		return nil, fmt.Errorf("unexpected type from module symbol. Unable to cast Authz module")
-	}
-	cfg.Authz = authz
-	return &PluginAuthz{cfg: cfg}, nil
+	return &PluginAuthz{Authz: authz}, nil
 }
 
 func (c *PluginAuthz) Authorize(ai *AuthRequestInfo) ([]string, error) {
 	// use the plugin
-	return c.cfg.Authz.Authorize(ai)
+	return c.Authz.Authorize(ai)
 }

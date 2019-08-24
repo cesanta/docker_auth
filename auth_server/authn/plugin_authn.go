@@ -18,45 +18,16 @@ package authn
 
 import (
 	"fmt"
-	"github.com/cesanta/glog"
-	"os"
 	"plugin"
+
+	"github.com/cesanta/glog"
 )
 
 type PluginAuthnConfig struct {
 	PluginPath string `yaml:"plugin_path"`
-	Authn      Authenticator
 }
 
-func (c *PluginAuthnConfig) Validate() error {
-	if c.PluginPath == "" {
-		return fmt.Errorf("plugin_path cannot be empty")
-	}
-	if _, err := os.Stat(c.PluginPath); os.IsNotExist(err) {
-		return fmt.Errorf("file does not exists in %s: %v", c.PluginPath, err)
-	}
-	glog.Infof("Plugin file resolved in: %s", c.PluginPath)
-	return nil
-}
-
-type PluginAuthn struct {
-	cfg *PluginAuthnConfig
-}
-
-func (c *PluginAuthn) Authenticate(user string, password PasswordString) (bool, Labels, error) {
-	// use the plugin
-	return c.cfg.Authn.Authenticate(user, password)
-}
-
-func (c *PluginAuthn) Stop() {
-}
-
-func (c *PluginAuthn) Name() string {
-	return "plugin auth"
-}
-
-func NewPluginAuthn(cfg *PluginAuthnConfig) (*PluginAuthn, error) {
-	glog.Infof("Plugin authenticator: %s", cfg)
+func lookupSymbol(cfg *PluginAuthnConfig) (Authenticator, error) {
 	// load module
 	plug, err := plugin.Open(cfg.PluginPath)
 	if err != nil {
@@ -75,6 +46,36 @@ func NewPluginAuthn(cfg *PluginAuthnConfig) (*PluginAuthn, error) {
 	if !ok {
 		return nil, fmt.Errorf("unexpected type from module symbol. Unable to cast Authn module")
 	}
-	cfg.Authn = authn
-	return &PluginAuthn{cfg: cfg}, nil
+	return authn, nil
+}
+
+func (c *PluginAuthnConfig) Validate() error {
+	_, err := lookupSymbol(c)
+	return err
+}
+
+type PluginAuthn struct {
+	cfg   *PluginAuthnConfig
+	Authn Authenticator
+}
+
+func (c *PluginAuthn) Authenticate(user string, password PasswordString) (bool, Labels, error) {
+	// use the plugin
+	return c.Authn.Authenticate(user, password)
+}
+
+func (c *PluginAuthn) Stop() {
+}
+
+func (c *PluginAuthn) Name() string {
+	return "plugin auth"
+}
+
+func NewPluginAuthn(cfg *PluginAuthnConfig) (*PluginAuthn, error) {
+	glog.Infof("Plugin authenticator: %s", cfg)
+	authn, err := lookupSymbol(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &PluginAuthn{Authn: authn}, nil
 }

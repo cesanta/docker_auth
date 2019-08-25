@@ -4,16 +4,14 @@ COMPRESS_BINARY ?= false
 CA_BUNDLE = /etc/ssl/certs/ca-certificates.crt
 VERSION = $(shell cat version.txt)
 
-BUILDER_IMAGE ?= golang:1.10.0-alpine
+BUILDER_IMAGE ?= golang:1.12.8-alpine
 
 .PHONY: %
 
 all: build
 
 deps:
-	go get -v -u github.com/kardianos/govendor
-	govendor sync
-	go install -v github.com/cesanta/docker_auth/auth_server/vendor/github.com/jteeuwen/go-bindata/go-bindata
+	go install -v github.com/jteeuwen/go-bindata/go-bindata
 
 generate:
 	go generate \
@@ -30,13 +28,12 @@ ca-certificates.crt:
 	cp $(CA_BUNDLE) .
 
 build-release: ca-certificates.crt
-	docker run --rm -v $(PWD)/..:/go/src/github.com/cesanta/docker_auth \
+	docker run --rm -v $(PWD)/..:/src \
 	  $(BUILDER_IMAGE) sh -x -c "\
 	    apk update && apk add git make py2-pip && pip install GitPython && \
-	    cd /go/src/github.com/cesanta/docker_auth/auth_server && \
-	    go get -v -u github.com/kardianos/govendor && \
-	    umask 0 && govendor sync -v && \
-	    go install -v github.com/cesanta/docker_auth/auth_server/vendor/github.com/jteeuwen/go-bindata/go-bindata && \
+	    cd /src/auth_server && \
+	    umask 0 && \
+	    go install -v github.com/jteeuwen/go-bindata/go-bindata && \
 	    make generate && \
 	    CGO_ENABLED=0 go build -v --ldflags=--s"
 	@echo === Built version $$(cat version.txt) ===

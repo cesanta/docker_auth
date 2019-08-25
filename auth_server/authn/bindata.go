@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 )
-
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -366,9 +365,9 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"data/github_auth.tmpl":        dataGithub_authTmpl,
+	"data/github_auth.tmpl": dataGithub_authTmpl,
 	"data/github_auth_result.tmpl": dataGithub_auth_resultTmpl,
-	"data/google_auth.tmpl":        dataGoogle_authTmpl,
+	"data/google_auth.tmpl": dataGoogle_authTmpl,
 }
 
 // AssetDir returns the file names below a certain
@@ -410,12 +409,11 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
-
 var _bintree = &bintree{nil, map[string]*bintree{
 	"data": &bintree{nil, map[string]*bintree{
-		"github_auth.tmpl":        &bintree{dataGithub_authTmpl, map[string]*bintree{}},
+		"github_auth.tmpl": &bintree{dataGithub_authTmpl, map[string]*bintree{}},
 		"github_auth_result.tmpl": &bintree{dataGithub_auth_resultTmpl, map[string]*bintree{}},
-		"google_auth.tmpl":        &bintree{dataGoogle_authTmpl, map[string]*bintree{}},
+		"google_auth.tmpl": &bintree{dataGoogle_authTmpl, map[string]*bintree{}},
 	}},
 }}
 
@@ -465,3 +463,4 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
+

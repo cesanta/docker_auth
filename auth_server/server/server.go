@@ -386,6 +386,12 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, fmt.Sprintf("Bad request: %s", err), http.StatusBadRequest)
 		return
 	}
+	if ar.Account == "" || ar.Password == "" {
+		glog.Warningf("Auth failed: empty account or password: %+v", ar)
+		rw.Header()["WWW-Authenticate"] = []string{fmt.Sprintf(`Basic realm="%s"`, as.config.Token.Issuer)}
+		http.Error(rw, "Auth failed.", http.StatusUnauthorized)
+		return
+	}
 	glog.V(2).Infof("Auth request: %+v", ar)
 	{
 		authnResult, labels, err := as.Authenticate(ar)

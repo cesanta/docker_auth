@@ -365,16 +365,16 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 // https://developers.google.com/identity/sign-in/web/server-side-flow
 func (as *AuthServer) doIndex(rw http.ResponseWriter, req *http.Request) {
 	switch {
-		case as.ga != nil:
-			rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-			fmt.Fprintf(rw, "<h1>%s</h1>\n", as.config.Token.Issuer)
-			fmt.Fprint(rw, `<p><a href="/google_auth">Login with Google account</a></p>`)
-		case as.gha != nil:
-			url := as.config.Server.PathPrefix + "/github_auth"
-			http.Redirect(rw, req, url, 301)
-		default:
-			rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-			fmt.Fprintf(rw, "<h1>%s</h1>\n", as.config.Token.Issuer)
+	case as.ga != nil:
+		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(rw, "<h1>%s</h1>\n", as.config.Token.Issuer)
+		fmt.Fprint(rw, `<p><a href="/google_auth">Login with Google account</a></p>`)
+	case as.gha != nil:
+		url := as.config.Server.PathPrefix + "/github_auth"
+		http.Redirect(rw, req, url, 301)
+	default:
+		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(rw, "<h1>%s</h1>\n", as.config.Token.Issuer)
 	}
 }
 

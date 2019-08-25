@@ -23,8 +23,8 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/go-ldap/ldap"
 	"github.com/cesanta/glog"
+	"github.com/go-ldap/ldap"
 )
 
 type LabelMap struct {

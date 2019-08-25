@@ -11,7 +11,7 @@ BUILDER_IMAGE ?= golang:1.12.8-alpine
 all: build
 
 deps:
-	go install -v github.com/jteeuwen/go-bindata/go-bindata
+	go install -v github.com/a-urth/go-bindata/go-bindata
 
 generate:
 	go generate \
@@ -33,7 +33,7 @@ build-release: ca-certificates.crt
 	    apk update && apk add git make py2-pip && pip install GitPython && \
 	    cd /src/auth_server && \
 	    umask 0 && \
-	    go install -v github.com/jteeuwen/go-bindata/go-bindata && \
+	    go install -v github.com/a-urth/go-bindata/go-bindata && \
 	    make generate && \
 	    CGO_ENABLED=0 go build -v --ldflags=--s"
 	@echo === Built version $$(cat version.txt) ===

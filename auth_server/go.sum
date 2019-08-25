@@ -7,6 +7,8 @@ cloud.google.com/go v0.44.3/go.mod h1:60680Gw3Yr4ikxnPRS/oxxkBccT6SA1yMk63TGekxK
 cloud.google.com/go/datastore v1.0.0/go.mod h1:LXYbyblFSglQ5pkeyhO+Qmw7ukd3C+pD7TKLgZqpHYE=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
+github.com/a-urth/go-bindata v0.0.0-20180209162145-df38da164efc h1:eXJIPWW4y4xjPWda/7ruw5PRsfcbzKTL9EhNQrBRsOU=
+github.com/a-urth/go-bindata v0.0.0-20180209162145-df38da164efc/go.mod h1:D0SbCgK4DQtSNzDQzfek273VqkCnHdFCd+q2ueHGRiE=
 github.com/cesanta/glog v0.0.0-20150527111657-22eb27a0ae19 h1:qkZ2PnuOWrlzVJ4NO4PzkHyV6yHuUcRRsyrvhtU0HsU=
 github.com/cesanta/glog v0.0.0-20150527111657-22eb27a0ae19/go.mod h1:2z0CC6W/LJ/Tyhj0UuWExb1JmxhBTeujw3wU1JSM1Ps=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=

@@ -24,6 +24,8 @@ import (
 	"syscall"
 
 	"github.com/cesanta/glog"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
 type ExtAuthzConfig struct {
@@ -58,7 +60,7 @@ func NewExtAuthzAuthorizer(cfg *ExtAuthzConfig) *ExtAuthz {
 	return &ExtAuthz{cfg: cfg}
 }
 
-func (ea *ExtAuthz) Authorize(ai *AuthRequestInfo) ([]string, error) {
+func (ea *ExtAuthz) Authorize(ai *api.AuthRequestInfo) ([]string, error) {
 	aiMarshal, err := json.Marshal(ai)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to json.Marshal AuthRequestInfo: %s", err)

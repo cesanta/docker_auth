@@ -21,13 +21,15 @@ import (
 	"plugin"
 
 	"github.com/cesanta/glog"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
 type PluginAuthzConfig struct {
 	PluginPath string `yaml:"plugin_path"`
 }
 
-func lookupSymbol(cfg *PluginAuthzConfig) (Authorizer, error) {
+func lookupAuthzSymbol(cfg *PluginAuthzConfig) (api.Authorizer, error) {
 	// load module
 	plug, err := plugin.Open(cfg.PluginPath)
 	if err != nil {
@@ -41,8 +43,8 @@ func lookupSymbol(cfg *PluginAuthzConfig) (Authorizer, error) {
 	}
 
 	// assert that loaded symbol is of a desired type
-	var authz Authorizer
-	authz, ok := symAuthen.(Authorizer)
+	var authz api.Authorizer
+	authz, ok := symAuthen.(api.Authorizer)
 	if !ok {
 		return nil, fmt.Errorf("unexpected type from module symbol. Unable to cast Authz module")
 	}
@@ -50,13 +52,12 @@ func lookupSymbol(cfg *PluginAuthzConfig) (Authorizer, error) {
 }
 
 func (c *PluginAuthzConfig) Validate() error {
-	_, err := lookupSymbol(c)
+	_, err := lookupAuthzSymbol(c)
 	return err
 }
 
 type PluginAuthz struct {
-	cfg   *PluginAuthzConfig
-	Authz Authorizer
+	Authz api.Authorizer
 }
 
 func (c *PluginAuthz) Stop() {
@@ -68,14 +69,14 @@ func (c *PluginAuthz) Name() string {
 
 func NewPluginAuthzAuthorizer(cfg *PluginAuthzConfig) (*PluginAuthz, error) {
 	glog.Infof("Plugin authorization: %s", cfg)
-	authz, err := lookupSymbol(cfg)
+	authz, err := lookupAuthzSymbol(cfg)
 	if err != nil {
 		return nil, err
 	}
 	return &PluginAuthz{Authz: authz}, nil
 }
 
-func (c *PluginAuthz) Authorize(ai *AuthRequestInfo) ([]string, error) {
+func (c *PluginAuthz) Authorize(ai *api.AuthRequestInfo) ([]string, error) {
 	// use the plugin
 	return c.Authz.Authorize(ai)
 }

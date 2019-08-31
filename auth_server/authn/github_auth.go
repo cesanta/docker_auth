@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"github.com/cesanta/glog"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
 type GitHubTeamCollection []GitHubTeam
@@ -465,7 +467,7 @@ func (gha *GitHubAuth) validateServerToken(user string) (*TokenDBValue, error) {
 	return v, nil
 }
 
-func (gha *GitHubAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
+func (gha *GitHubAuth) Authenticate(user string, password api.PasswordString) (bool, api.Labels, error) {
 	err := gha.db.ValidateToken(user, password)
 	if err == ExpiredToken {
 		_, err = gha.validateServerToken(user)

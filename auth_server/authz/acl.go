@@ -10,9 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/glog"
 	"github.com/schwarmco/go-cartesian-product"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
 type ACL []ACLEntry
@@ -101,7 +102,7 @@ func ValidateACL(acl ACL) error {
 }
 
 // NewACLAuthorizer Creates a new static authorizer with ACL that have been read from the config file
-func NewACLAuthorizer(acl ACL) (Authorizer, error) {
+func NewACLAuthorizer(acl ACL) (api.Authorizer, error) {
 	if err := ValidateACL(acl); err != nil {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func NewACLAuthorizer(acl ACL) (Authorizer, error) {
 	return &aclAuthorizer{acl: acl}, nil
 }
 
-func (aa *aclAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {
+func (aa *aclAuthorizer) Authorize(ai *api.AuthRequestInfo) ([]string, error) {
 	for _, e := range aa.acl {
 		matched := e.Matches(ai)
 		if matched {
@@ -120,7 +121,7 @@ func (aa *aclAuthorizer) Authorize(ai *AuthRequestInfo) ([]string, error) {
 			return StringSetIntersection(ai.Actions, *e.Actions), nil
 		}
 	}
-	return nil, NoMatch
+	return nil, api.NoMatch
 }
 
 func (aa *aclAuthorizer) Stop() {
@@ -204,7 +205,7 @@ func matchIP(ipp *string, ip net.IP) bool {
 	return ipnet.Contains(ip)
 }
 
-func matchLabels(ml map[string]string, rl authn.Labels, vars []string) bool {
+func matchLabels(ml map[string]string, rl api.Labels, vars []string) bool {
 	for label, pattern := range ml {
 		labelValues := rl[label]
 		matched := false
@@ -232,7 +233,7 @@ func getField(i interface{}, name string) (string, bool) {
 	return f.String(), true
 }
 
-func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
+func (mc *MatchConditions) Matches(ai *api.AuthRequestInfo) bool {
 	vars := []string{
 		"${account}", regexp.QuoteMeta(ai.Account),
 		"${type}", regexp.QuoteMeta(ai.Type),
@@ -286,6 +287,6 @@ func (mc *MatchConditions) Matches(ai *AuthRequestInfo) bool {
 		matchLabels(mc.Labels, ai.Labels, vars)
 }
 
-func (e *ACLEntry) Matches(ai *AuthRequestInfo) bool {
+func (e *ACLEntry) Matches(ai *api.AuthRequestInfo) bool {
 	return e.Match.Matches(ai)
 }

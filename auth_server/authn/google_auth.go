@@ -28,6 +28,8 @@ import (
 	"time"
 
 	"github.com/cesanta/glog"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
 type GoogleAuthConfig struct {
@@ -399,7 +401,7 @@ func (ga *GoogleAuth) doGoogleAuthSignOut(rw http.ResponseWriter, token string) 
 	fmt.Fprint(rw, "signed out")
 }
 
-func (ga *GoogleAuth) Authenticate(user string, password PasswordString) (bool, Labels, error) {
+func (ga *GoogleAuth) Authenticate(user string, password api.PasswordString) (bool, api.Labels, error) {
 	err := ga.db.ValidateToken(user, password)
 	if err == ExpiredToken {
 		_, err = ga.validateServerToken(user)

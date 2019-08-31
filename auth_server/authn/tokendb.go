@@ -22,11 +22,12 @@ import (
 	"fmt"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/cesanta/glog"
 	"github.com/dchest/uniuri"
 	"github.com/syndtr/goleveldb/leveldb"
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
 const (
@@ -46,7 +47,7 @@ type TokenDB interface {
 
 	// ValidateTOken takes a username and password
 	// and returns an error
-	ValidateToken(string, PasswordString) error
+	ValidateToken(string, api.PasswordString) error
 
 	// DeleteToken takes a username
 	// and deletes the corresponding token from the DB
@@ -69,8 +70,8 @@ type TokenDBValue struct {
 	ValidUntil   time.Time `json:"valid_until,omitempty"`
 	// DockerPassword is the temporary password we use to authenticate Docker users.
 	// Generated at the time of token creation, stored here as a BCrypt hash.
-	DockerPassword string `json:"docker_password,omitempty"`
-	Labels         Labels `json:"labels,omitempty"`
+	DockerPassword string     `json:"docker_password,omitempty"`
+	Labels         api.Labels `json:"labels,omitempty"`
 }
 
 // NewTokenDB returns a new TokenDB structure
@@ -118,16 +119,16 @@ func (db *TokenDBImpl) StoreToken(user string, v *TokenDBValue, updatePassword b
 	return
 }
 
-func (db *TokenDBImpl) ValidateToken(user string, password PasswordString) error {
+func (db *TokenDBImpl) ValidateToken(user string, password api.PasswordString) error {
 	dbv, err := db.GetValue(user)
 	if err != nil {
 		return err
 	}
 	if dbv == nil {
-		return NoMatch
+		return api.NoMatch
 	}
 	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return WrongPass
+		return api.WrongPass
 	}
 	if time.Now().After(dbv.ValidUntil) {
 		return ExpiredToken

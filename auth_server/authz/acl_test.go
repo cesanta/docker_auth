@@ -3,6 +3,8 @@ package authz
 import (
 	"net"
 	"testing"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
 func sp(s string) *string {
@@ -55,18 +57,18 @@ func TestValidation(t *testing.T) {
 }
 
 func TestMatching(t *testing.T) {
-	ai1 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz", Service: "notary"}
-	ai2 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz", Service: "notary",
+	ai1 := api.AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz", Service: "notary"}
+	ai2 := api.AuthRequestInfo{Account: "foo", Type: "bar", Name: "baz", Service: "notary",
 		Labels: map[string][]string{"group": []string{"admins", "VIP"}}}
-	ai3 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "admins/foo", Service: "notary",
+	ai3 := api.AuthRequestInfo{Account: "foo", Type: "bar", Name: "admins/foo", Service: "notary",
 		Labels: map[string][]string{"group": []string{"admins", "VIP"}}}
-	ai4 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "VIP/api", Service: "notary",
+	ai4 := api.AuthRequestInfo{Account: "foo", Type: "bar", Name: "VIP/api", Service: "notary",
 		Labels: map[string][]string{"group": []string{"admins", "VIP"}, "project": []string{"api", "frontend"}}}
-	ai5 := AuthRequestInfo{Account: "foo", Type: "bar", Name: "devs/api", Service: "notary",
+	ai5 := api.AuthRequestInfo{Account: "foo", Type: "bar", Name: "devs/api", Service: "notary",
 		Labels: map[string][]string{"group": []string{"admins", "VIP"}, "project": []string{"api", "frontend"}}}
 	cases := []struct {
 		mc      MatchConditions
-		ai      AuthRequestInfo
+		ai      api.AuthRequestInfo
 		matches bool
 	}{
 		{MatchConditions{}, ai1, true},
@@ -75,28 +77,28 @@ func TestMatching(t *testing.T) {
 		{MatchConditions{Account: sp("foo"), Type: sp("baz")}, ai1, false},
 		{MatchConditions{Account: sp("fo?"), Type: sp("b*"), Name: sp("/z$/")}, ai1, true},
 		{MatchConditions{Account: sp("fo?"), Type: sp("b*"), Name: sp("/^z/")}, ai1, false},
-		{MatchConditions{Name: sp("${account}")}, AuthRequestInfo{Account: "foo", Name: "foo"}, true}, // Var subst
-		{MatchConditions{Name: sp("/${account}_.*/")}, AuthRequestInfo{Account: "foo", Name: "foo_x"}, true},
-		{MatchConditions{Name: sp("/${account}_.*/")}, AuthRequestInfo{Account: ".*", Name: "foo_x"}, false}, // Quoting
-		{MatchConditions{Account: sp(`/^(.+)@test\.com$/`), Name: sp(`${account:1}/*`)}, AuthRequestInfo{Account: "john.smith@test.com", Name: "john.smith/test"}, true},
-		{MatchConditions{Account: sp(`/^(.+)@test\.com$/`), Name: sp(`${account:3}/*`)}, AuthRequestInfo{Account: "john.smith@test.com", Name: "john.smith/test"}, false},
-		{MatchConditions{Account: sp(`/^(.+)@(.+?).test\.com$/`), Name: sp(`${account:1}-${account:2}/*`)}, AuthRequestInfo{Account: "john.smith@it.test.com", Name: "john.smith-it/test"}, true},
+		{MatchConditions{Name: sp("${account}")}, api.AuthRequestInfo{Account: "foo", Name: "foo"}, true}, // Var subst
+		{MatchConditions{Name: sp("/${account}_.*/")}, api.AuthRequestInfo{Account: "foo", Name: "foo_x"}, true},
+		{MatchConditions{Name: sp("/${account}_.*/")}, api.AuthRequestInfo{Account: ".*", Name: "foo_x"}, false}, // Quoting
+		{MatchConditions{Account: sp(`/^(.+)@test\.com$/`), Name: sp(`${account:1}/*`)}, api.AuthRequestInfo{Account: "john.smith@test.com", Name: "john.smith/test"}, true},
+		{MatchConditions{Account: sp(`/^(.+)@test\.com$/`), Name: sp(`${account:3}/*`)}, api.AuthRequestInfo{Account: "john.smith@test.com", Name: "john.smith/test"}, false},
+		{MatchConditions{Account: sp(`/^(.+)@(.+?).test\.com$/`), Name: sp(`${account:1}-${account:2}/*`)}, api.AuthRequestInfo{Account: "john.smith@it.test.com", Name: "john.smith-it/test"}, true},
 		{MatchConditions{Service: sp("notary"), Type: sp("bar")}, ai1, true},
 		{MatchConditions{Service: sp("notary"), Type: sp("baz")}, ai1, false},
 		{MatchConditions{Service: sp("notary1"), Type: sp("bar")}, ai1, false},
 		// IP matching
-		{MatchConditions{IP: sp("127.0.0.1")}, AuthRequestInfo{IP: nil}, false},
-		{MatchConditions{IP: sp("127.0.0.1")}, AuthRequestInfo{IP: net.IPv4(127, 0, 0, 1)}, true},
-		{MatchConditions{IP: sp("127.0.0.1")}, AuthRequestInfo{IP: net.IPv4(127, 0, 0, 2)}, false},
-		{MatchConditions{IP: sp("127.0.0.2")}, AuthRequestInfo{IP: net.IPv4(127, 0, 0, 1)}, false},
-		{MatchConditions{IP: sp("127.0.0.0/8")}, AuthRequestInfo{IP: net.IPv4(127, 0, 0, 1)}, true},
-		{MatchConditions{IP: sp("127.0.0.0/8")}, AuthRequestInfo{IP: net.IPv4(127, 0, 0, 2)}, true},
-		{MatchConditions{IP: sp("2001:db8::1")}, AuthRequestInfo{IP: nil}, false},
-		{MatchConditions{IP: sp("2001:db8::1")}, AuthRequestInfo{IP: net.ParseIP("2001:db8::1")}, true},
-		{MatchConditions{IP: sp("2001:db8::1")}, AuthRequestInfo{IP: net.ParseIP("2001:db8::2")}, false},
-		{MatchConditions{IP: sp("2001:db8::2")}, AuthRequestInfo{IP: net.ParseIP("2001:db8::1")}, false},
-		{MatchConditions{IP: sp("2001:db8::/48")}, AuthRequestInfo{IP: net.ParseIP("2001:db8::1")}, true},
-		{MatchConditions{IP: sp("2001:db8::/48")}, AuthRequestInfo{IP: net.ParseIP("2001:db8::2")}, true},
+		{MatchConditions{IP: sp("127.0.0.1")}, api.AuthRequestInfo{IP: nil}, false},
+		{MatchConditions{IP: sp("127.0.0.1")}, api.AuthRequestInfo{IP: net.IPv4(127, 0, 0, 1)}, true},
+		{MatchConditions{IP: sp("127.0.0.1")}, api.AuthRequestInfo{IP: net.IPv4(127, 0, 0, 2)}, false},
+		{MatchConditions{IP: sp("127.0.0.2")}, api.AuthRequestInfo{IP: net.IPv4(127, 0, 0, 1)}, false},
+		{MatchConditions{IP: sp("127.0.0.0/8")}, api.AuthRequestInfo{IP: net.IPv4(127, 0, 0, 1)}, true},
+		{MatchConditions{IP: sp("127.0.0.0/8")}, api.AuthRequestInfo{IP: net.IPv4(127, 0, 0, 2)}, true},
+		{MatchConditions{IP: sp("2001:db8::1")}, api.AuthRequestInfo{IP: nil}, false},
+		{MatchConditions{IP: sp("2001:db8::1")}, api.AuthRequestInfo{IP: net.ParseIP("2001:db8::1")}, true},
+		{MatchConditions{IP: sp("2001:db8::1")}, api.AuthRequestInfo{IP: net.ParseIP("2001:db8::2")}, false},
+		{MatchConditions{IP: sp("2001:db8::2")}, api.AuthRequestInfo{IP: net.ParseIP("2001:db8::1")}, false},
+		{MatchConditions{IP: sp("2001:db8::/48")}, api.AuthRequestInfo{IP: net.ParseIP("2001:db8::1")}, true},
+		{MatchConditions{IP: sp("2001:db8::/48")}, api.AuthRequestInfo{IP: net.ParseIP("2001:db8::2")}, true},
 		// Label matching
 		{MatchConditions{Labels: map[string]string{"foo": "bar"}}, ai1, false},
 		{MatchConditions{Labels: map[string]string{"foo": "bar"}}, ai2, false},

@@ -22,11 +22,13 @@ import (
 	"io"
 	"time"
 
-	"github.com/cesanta/docker_auth/auth_server/mgo_session"
 	"github.com/cesanta/glog"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/cesanta/docker_auth/auth_server/api"
+	"github.com/cesanta/docker_auth/auth_server/mgo_session"
 )
 
 type MongoAuthConfig struct {
@@ -41,9 +43,9 @@ type MongoAuth struct {
 }
 
 type authUserEntry struct {
-	Username *string `yaml:"username,omitempty" json:"username,omitempty"`
-	Password *string `yaml:"password,omitempty" json:"password,omitempty"`
-	Labels   Labels  `yaml:"labels,omitempty" json:"labels,omitempty"`
+	Username *string    `yaml:"username,omitempty" json:"username,omitempty"`
+	Password *string    `yaml:"password,omitempty" json:"password,omitempty"`
+	Labels   api.Labels `yaml:"labels,omitempty" json:"labels,omitempty"`
 }
 
 func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
@@ -83,7 +85,7 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 	}, nil
 }
 
-func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (bool, Labels, error) {
+func (mauth *MongoAuth) Authenticate(account string, password api.PasswordString) (bool, api.Labels, error) {
 	for true {
 		result, labels, err := mauth.authenticate(account, password)
 		if err == io.EOF {
@@ -97,7 +99,7 @@ func (mauth *MongoAuth) Authenticate(account string, password PasswordString) (b
 	return false, nil, errors.New("Unable to communicate with Mongo.")
 }
 
-func (mauth *MongoAuth) authenticate(account string, password PasswordString) (bool, Labels, error) {
+func (mauth *MongoAuth) authenticate(account string, password api.PasswordString) (bool, api.Labels, error) {
 	// Copy our session
 	tmp_session := mauth.session.Copy()
 	// Close up when we are done
@@ -112,7 +114,7 @@ func (mauth *MongoAuth) authenticate(account string, password PasswordString) (b
 
 	// If we connect and get no results we return a NoMatch so auth can fall-through
 	if err == mgo.ErrNotFound {
-		return false, nil, NoMatch
+		return false, nil, api.NoMatch
 	} else if err != nil {
 		return false, nil, err
 	}

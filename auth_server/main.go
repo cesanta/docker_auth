@@ -53,13 +53,28 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 	tlsConfig := &tls.Config{
 		PreferServerCipherSuites: true,
 	}
+	if c.Server.HSTS {
+		glog.Info("HTTP Strict Transport Security enabled")
+	}
+	if c.Server.TLSMinVersion > 0 {
+		tlsConfig.MinVersion = c.Server.TLSMinVersion
+		glog.Infof("TLS MinVersion: %#04x", tlsConfig.MinVersion)
+	}
+	if len(c.Server.TLSCurvePreferences) > 0 {
+		tlsConfig.CurvePreferences = c.Server.TLSCurvePreferences
+		glog.Infof("TLS CurvePreferences: %d", tlsConfig.CurvePreferences)
+	}
+	if len(c.Server.TLSCipherSuites) > 0 {
+		tlsConfig.CipherSuites = c.Server.TLSCipherSuites
+		glog.Infof("TLS CipherSuites: %#04x", tlsConfig.CipherSuites)
+	}
 	if c.Server.CertFile != "" || c.Server.KeyFile != "" {
 		// Check for partial configuration.
 		if c.Server.CertFile == "" || c.Server.KeyFile == "" {
 			glog.Exitf("Failed to load certificate and key: both were not provided")
 		}
 		glog.Infof("Cert file: %s", c.Server.CertFile)
-		glog.Infof("Key file : %s", c.Server.KeyFile)
+		glog.Infof("Key file: %s", c.Server.KeyFile)
 		tlsConfig.Certificates = make([]tls.Certificate, 1)
 		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(c.Server.CertFile, c.Server.KeyFile)
 		if err != nil {

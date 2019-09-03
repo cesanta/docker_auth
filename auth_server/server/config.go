@@ -50,13 +50,17 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	ListenAddress string            `yaml:"addr,omitempty"`
-	PathPrefix    string            `yaml:"path_prefix,omitempty"`
-	RealIPHeader  string            `yaml:"real_ip_header,omitempty"`
-	RealIPPos     int               `yaml:"real_ip_pos,omitempty"`
-	CertFile      string            `yaml:"certificate,omitempty"`
-	KeyFile       string            `yaml:"key,omitempty"`
-	LetsEncrypt   LetsEncryptConfig `yaml:"letsencrypt,omitempty"`
+	ListenAddress       string            `yaml:"addr,omitempty"`
+	PathPrefix          string            `yaml:"path_prefix,omitempty"`
+	RealIPHeader        string            `yaml:"real_ip_header,omitempty"`
+	RealIPPos           int               `yaml:"real_ip_pos,omitempty"`
+	CertFile            string            `yaml:"certificate,omitempty"`
+	KeyFile             string            `yaml:"key,omitempty"`
+	HSTS                bool              `yaml:"hsts,omitempty"`
+	TLSMinVersion       uint16            `yaml:"tls_min_version,omitempty"`
+	TLSCurvePreferences []tls.CurveID     `yaml:"tls_curve_preferences,omitempty"`
+	TLSCipherSuites     []uint16          `yaml:"tls_cipher_suites,omitempty"`
+	LetsEncrypt         LetsEncryptConfig `yaml:"letsencrypt,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
@@ -84,6 +88,9 @@ func validate(c *Config) error {
 	}
 	if c.Server.PathPrefix != "" && !strings.HasPrefix(c.Server.PathPrefix, "/") {
 		return errors.New("server.path_prefix must be an absolute path")
+	}
+	if c.Server.TLSMinVersion == 0x0304 && len(c.Server.TLSCipherSuites) > 0 {
+		return errors.New("TLS 1.3 ciphersuites are not configurable")
 	}
 
 	if c.Token.Issuer == "" {

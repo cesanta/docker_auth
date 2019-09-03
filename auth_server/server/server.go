@@ -349,6 +349,9 @@ func (as *AuthServer) CreateToken(ar *authRequest, ares []authzResult) (string, 
 func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	glog.V(3).Infof("Request: %+v", req)
 	path_prefix := as.config.Server.PathPrefix
+	if as.config.Server.HSTS {
+		rw.Header().Add("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+	}
 	switch {
 	case req.URL.Path == path_prefix+"/":
 		as.doIndex(rw, req)

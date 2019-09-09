@@ -11,7 +11,7 @@ BUILDER_IMAGE ?= golang:1.12.8-alpine
 all: build
 
 deps:
-	go install -v github.com/a-urth/go-bindata/go-bindata
+	go get -v github.com/a-urth/go-bindata/go-bindata
 
 generate:
 	go generate \

@@ -57,9 +57,9 @@ type ServerConfig struct {
 	CertFile            string            `yaml:"certificate,omitempty"`
 	KeyFile             string            `yaml:"key,omitempty"`
 	HSTS                bool              `yaml:"hsts,omitempty"`
-	TLSMinVersion       uint16            `yaml:"tls_min_version,omitempty"`
-	TLSCurvePreferences []tls.CurveID     `yaml:"tls_curve_preferences,omitempty"`
-	TLSCipherSuites     []uint16          `yaml:"tls_cipher_suites,omitempty"`
+	TLSMinVersion       string            `yaml:"tls_min_version,omitempty"`
+	TLSCurvePreferences []string          `yaml:"tls_curve_preferences,omitempty"`
+	TLSCipherSuites     []string          `yaml:"tls_cipher_suites,omitempty"`
 	LetsEncrypt         LetsEncryptConfig `yaml:"letsencrypt,omitempty"`
 
 	publicKey  libtrust.PublicKey
@@ -82,6 +82,65 @@ type TokenConfig struct {
 	privateKey libtrust.PrivateKey
 }
 
+// TLSCipherSuitesValues maps CipherSuite names as strings to the actual values
+// in the crypto/tls package
+// Taken from https://golang.org/pkg/crypto/tls/#pkg-constants
+var TLSCipherSuitesValues = map[string]uint16{
+	// TLS 1.0 - 1.2 cipher suites.
+	"TLS_RSA_WITH_RC4_128_SHA":                tls.TLS_RSA_WITH_RC4_128_SHA,
+	"TLS_RSA_WITH_3DES_EDE_CBC_SHA":           tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+	"TLS_RSA_WITH_AES_128_CBC_SHA":            tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_RSA_WITH_AES_256_CBC_SHA":            tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	"TLS_RSA_WITH_AES_128_CBC_SHA256":         tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+	"TLS_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+	"TLS_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA":        tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA":    tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_RC4_128_SHA":          tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
+	"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA":     tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305":    tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305":  tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+	// TLS 1.3 cipher suites.
+	"TLS_AES_128_GCM_SHA256":       tls.TLS_AES_128_GCM_SHA256,
+	"TLS_AES_256_GCM_SHA384":       tls.TLS_AES_256_GCM_SHA384,
+	"TLS_CHACHA20_POLY1305_SHA256": tls.TLS_CHACHA20_POLY1305_SHA256,
+	// TLS_FALLBACK_SCSV isn't a standard cipher suite but an indicator
+	// that the client is doing version fallback. See RFC 7507.
+	"TLS_FALLBACK_SCSV": tls.TLS_FALLBACK_SCSV,
+}
+
+// TLSVersionValues maps Version names as strings to the actual values in the
+// crypto/tls package
+// Taken from https://golang.org/pkg/crypto/tls/#pkg-constants
+var TLSVersionValues = map[string]uint16{
+	"VersionTLS10": tls.VersionTLS10,
+	"VersionTLS11": tls.VersionTLS11,
+	"VersionTLS12": tls.VersionTLS12,
+	"VersionTLS13": tls.VersionTLS13,
+	// Deprecated: SSLv3 is cryptographically broken, and will be
+	// removed in Go 1.14. See golang.org/issue/32716.
+	"VersionSSL30": tls.VersionSSL30,
+}
+
+// TLSCurveIDValues maps CurveID names as strings to the actual values in the
+// crypto/tls package
+// Taken from https://golang.org/pkg/crypto/tls/#CurveID
+var TLSCurveIDValues = map[string]tls.CurveID{
+	"CurveP256": tls.CurveP256,
+	"CurveP384": tls.CurveP384,
+	"CurveP521": tls.CurveP521,
+	"X25519":    tls.X25519,
+}
+
 func validate(c *Config) error {
 	if c.Server.ListenAddress == "" {
 		return errors.New("server.addr is required")
@@ -89,10 +148,9 @@ func validate(c *Config) error {
 	if c.Server.PathPrefix != "" && !strings.HasPrefix(c.Server.PathPrefix, "/") {
 		return errors.New("server.path_prefix must be an absolute path")
 	}
-	if c.Server.TLSMinVersion == 0x0304 && len(c.Server.TLSCipherSuites) > 0 {
+	if (c.Server.TLSMinVersion == "0x0304" || c.Server.TLSMinVersion == "VersionTLS13") && c.Server.TLSCipherSuites != nil {
 		return errors.New("TLS 1.3 ciphersuites are not configurable")
 	}
-
 	if c.Token.Issuer == "" {
 		return errors.New("token.issuer is required")
 	}

@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -56,17 +57,55 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 	if c.Server.HSTS {
 		glog.Info("HTTP Strict Transport Security enabled")
 	}
-	if c.Server.TLSMinVersion > 0 {
-		tlsConfig.MinVersion = c.Server.TLSMinVersion
-		glog.Infof("TLS MinVersion: %#04x", tlsConfig.MinVersion)
+	if c.Server.TLSMinVersion != "" {
+		var value uint16
+		var ok bool
+		if value, ok = server.TLSVersionValues[c.Server.TLSMinVersion]; !ok {
+			var u uint64
+			var err error
+			if u, err = strconv.ParseUint(c.Server.TLSMinVersion, 0, 16); err != nil {
+				glog.Exitf("Failed to convert %s in server.tls_min_version to uint16 ", c.Server.TLSMinVersion)
+			}
+			value = uint16(u)
+		}
+		tlsConfig.MinVersion = value
+		glog.Infof("TLS MinVersion: %s", c.Server.TLSMinVersion)
 	}
-	if len(c.Server.TLSCurvePreferences) > 0 {
-		tlsConfig.CurvePreferences = c.Server.TLSCurvePreferences
-		glog.Infof("TLS CurvePreferences: %d", tlsConfig.CurvePreferences)
+	if c.Server.TLSCurvePreferences != nil {
+		var values []tls.CurveID
+		for _, s := range c.Server.TLSCurvePreferences {
+			var v tls.CurveID
+			var ok bool
+			if v, ok = server.TLSCurveIDValues[s]; !ok {
+				var u uint64
+				var err error
+				if u, err = strconv.ParseUint(s, 0, 16); err != nil {
+					glog.Exitf("Failed to convert %s in server.tls_curve_preferences to tls.CurveID ", s)
+				}
+				v = tls.CurveID(u)
+			}
+			values = append(values, v)
+		}
+		tlsConfig.CurvePreferences = values
+		glog.Infof("TLS CurvePreferences: %s", c.Server.TLSCurvePreferences)
 	}
-	if len(c.Server.TLSCipherSuites) > 0 {
-		tlsConfig.CipherSuites = c.Server.TLSCipherSuites
-		glog.Infof("TLS CipherSuites: %#04x", tlsConfig.CipherSuites)
+	if c.Server.TLSCipherSuites != nil {
+		var values []uint16
+		for _, s := range c.Server.TLSCipherSuites {
+			var v uint16
+			var ok bool
+			if v, ok = server.TLSCipherSuitesValues[s]; !ok {
+				var u uint64
+				var err error
+				if u, err = strconv.ParseUint(s, 0, 16); err != nil {
+					glog.Exitf("Failed to convert %s in server.tls_cipher_suites to uint16", s)
+				}
+				v = uint16(u)
+			}
+			values = append(values, v)
+		}
+		tlsConfig.CipherSuites = values
+		glog.Infof("TLS CipherSuites: %s", c.Server.TLSCipherSuites)
 	}
 	if c.Server.CertFile != "" || c.Server.KeyFile != "" {
 		// Check for partial configuration.

@@ -28,20 +28,26 @@ server:  # Server settings.
   #
   # Enable HTTP Strict Transport Security.
   # hsts: true
+  #
   # Set minimum TLS version.
   # Values can be found at https://golang.org/pkg/crypto/tls/#pkg-constants
-  # tls_min_version: 0x0303
+  # Either the version name or its uint16 value can be specified.
+  # tls_min_version: VersionTLS12
+  #
   # List of TLS curve preferences.
   # Values can be found at https://golang.org/pkg/crypto/tls/#CurveID
+  # Either CurveID names or uint16 values can be specified.
   # tls_curve_preferences:
-  #   - 25
+  #   - CurveP521
   #   - 24
-  #   - 23
+  #   - CurveP256
+  #
   # List of enabled TLS cipher suites.
   # Values can be found at https://golang.org/pkg/crypto/tls/#pkg-constants
+  # Either CipherSuite names or uint16 values can be specified.
   # tls_cipher_suites:
-  #   - 0xc030
-  #   - 0xc02c
+  #   - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+  #   - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
   #   - 0xc014
   #   - 0xc00a
 

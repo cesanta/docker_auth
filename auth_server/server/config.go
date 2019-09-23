@@ -122,23 +122,23 @@ var TLSCipherSuitesValues = map[string]uint16{
 // crypto/tls package
 // Taken from https://golang.org/pkg/crypto/tls/#pkg-constants
 var TLSVersionValues = map[string]uint16{
-	"VersionTLS10": tls.VersionTLS10,
-	"VersionTLS11": tls.VersionTLS11,
-	"VersionTLS12": tls.VersionTLS12,
-	"VersionTLS13": tls.VersionTLS13,
+	"TLS10": tls.VersionTLS10,
+	"TLS11": tls.VersionTLS11,
+	"TLS12": tls.VersionTLS12,
+	"TLS13": tls.VersionTLS13,
 	// Deprecated: SSLv3 is cryptographically broken, and will be
 	// removed in Go 1.14. See golang.org/issue/32716.
-	"VersionSSL30": tls.VersionSSL30,
+	"SSL30": tls.VersionSSL30,
 }
 
 // TLSCurveIDValues maps CurveID names as strings to the actual values in the
 // crypto/tls package
 // Taken from https://golang.org/pkg/crypto/tls/#CurveID
 var TLSCurveIDValues = map[string]tls.CurveID{
-	"CurveP256": tls.CurveP256,
-	"CurveP384": tls.CurveP384,
-	"CurveP521": tls.CurveP521,
-	"X25519":    tls.X25519,
+	"P256":   tls.CurveP256,
+	"P384":   tls.CurveP384,
+	"P521":   tls.CurveP521,
+	"X25519": tls.X25519,
 }
 
 func validate(c *Config) error {
@@ -148,7 +148,7 @@ func validate(c *Config) error {
 	if c.Server.PathPrefix != "" && !strings.HasPrefix(c.Server.PathPrefix, "/") {
 		return errors.New("server.path_prefix must be an absolute path")
 	}
-	if (c.Server.TLSMinVersion == "0x0304" || c.Server.TLSMinVersion == "VersionTLS13") && c.Server.TLSCipherSuites != nil {
+	if (c.Server.TLSMinVersion == "0x0304" || c.Server.TLSMinVersion == "TLS13") && c.Server.TLSCipherSuites != nil {
 		return errors.New("TLS 1.3 ciphersuites are not configurable")
 	}
 	if c.Token.Issuer == "" {

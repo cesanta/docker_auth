@@ -31,20 +31,20 @@ server:  # Server settings.
   #
   # Set minimum TLS version.
   # Values can be found at https://golang.org/pkg/crypto/tls/#pkg-constants
-  # Either the version name or its uint16 value can be specified.
-  # tls_min_version: VersionTLS12
+  # Either the version name (i.e. TLS11) or its uint16 value can be specified.
+  # tls_min_version: TLS12
   #
   # List of TLS curve preferences.
   # Values can be found at https://golang.org/pkg/crypto/tls/#CurveID
-  # Either CurveID names or uint16 values can be specified.
+  # Either CurveID names (i.e. P384) or uint16 values can be specified.
   # tls_curve_preferences:
-  #   - CurveP521
+  #   - P521
   #   - 24
-  #   - CurveP256
+  #   - P256
   #
   # List of enabled TLS cipher suites.
   # Values can be found at https://golang.org/pkg/crypto/tls/#pkg-constants
-  # Either CipherSuite names or uint16 values can be specified.
+  # Either CipherSuite names (i.e. TLS_RSA_WITH_RC4_128_SHA) or uint16 values can be specified.
   # tls_cipher_suites:
   #   - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
   #   - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384

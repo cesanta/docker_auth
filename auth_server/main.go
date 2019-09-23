@@ -44,6 +44,14 @@ type RestartableServer struct {
 	hs         httpdown.Server
 }
 
+func stringToUint16(s string) uint16 {
+	v, err := strconv.ParseUint(s, 0, 16)
+	if err != nil {
+		glog.Exitf("Failed to convert %s to uint16", s)
+	}
+	return uint16(v)
+}
+
 func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServer, httpdown.Server) {
 	glog.Infof("Config from %s (%d users, %d ACL static entries)", cf, len(c.Users), len(c.ACL))
 	as, err := server.NewAuthServer(c)
@@ -58,15 +66,9 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 		glog.Info("HTTP Strict Transport Security enabled")
 	}
 	if c.Server.TLSMinVersion != "" {
-		var value uint16
-		var ok bool
-		if value, ok = server.TLSVersionValues[c.Server.TLSMinVersion]; !ok {
-			var u uint64
-			var err error
-			if u, err = strconv.ParseUint(c.Server.TLSMinVersion, 0, 16); err != nil {
-				glog.Exitf("Failed to convert %s in server.tls_min_version to uint16 ", c.Server.TLSMinVersion)
-			}
-			value = uint16(u)
+		value, found := server.TLSVersionValues[c.Server.TLSMinVersion]
+		if !found {
+			value = stringToUint16(c.Server.TLSMinVersion)
 		}
 		tlsConfig.MinVersion = value
 		glog.Infof("TLS MinVersion: %s", c.Server.TLSMinVersion)
@@ -74,17 +76,11 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 	if c.Server.TLSCurvePreferences != nil {
 		var values []tls.CurveID
 		for _, s := range c.Server.TLSCurvePreferences {
-			var v tls.CurveID
-			var ok bool
-			if v, ok = server.TLSCurveIDValues[s]; !ok {
-				var u uint64
-				var err error
-				if u, err = strconv.ParseUint(s, 0, 16); err != nil {
-					glog.Exitf("Failed to convert %s in server.tls_curve_preferences to tls.CurveID ", s)
-				}
-				v = tls.CurveID(u)
+			value, found := server.TLSCurveIDValues[s]
+			if !found {
+				value = tls.CurveID(stringToUint16(s))
 			}
-			values = append(values, v)
+			values = append(values, value)
 		}
 		tlsConfig.CurvePreferences = values
 		glog.Infof("TLS CurvePreferences: %s", c.Server.TLSCurvePreferences)
@@ -92,17 +88,11 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 	if c.Server.TLSCipherSuites != nil {
 		var values []uint16
 		for _, s := range c.Server.TLSCipherSuites {
-			var v uint16
-			var ok bool
-			if v, ok = server.TLSCipherSuitesValues[s]; !ok {
-				var u uint64
-				var err error
-				if u, err = strconv.ParseUint(s, 0, 16); err != nil {
-					glog.Exitf("Failed to convert %s in server.tls_cipher_suites to uint16", s)
-				}
-				v = uint16(u)
+			value, found := server.TLSCipherSuitesValues[s]
+			if !found {
+				value = stringToUint16(s)
 			}
-			values = append(values, v)
+			values = append(values, value)
 		}
 		tlsConfig.CipherSuites = values
 		glog.Infof("TLS CipherSuites: %s", c.Server.TLSCipherSuites)

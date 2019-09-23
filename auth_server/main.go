@@ -113,7 +113,7 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 			glog.Exitf("Failed to load certificate and key: both were not provided")
 		}
 		glog.Infof("Cert file: %s", c.Server.CertFile)
-		glog.Infof("Key file: %s", c.Server.KeyFile)
+		glog.Infof("Key file : %s", c.Server.KeyFile)
 		tlsConfig.Certificates = make([]tls.Certificate, 1)
 		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(c.Server.CertFile, c.Server.KeyFile)
 		if err != nil {

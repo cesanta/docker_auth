@@ -22,6 +22,35 @@ server:  # Server settings.
   # Use specific certificate and key.
   certificate: "/path/to/server.pem"
   key: "/path/to/server.key"
+  #
+  # The following optional settings will fine tune TLS configuration to improve security.
+  # Leaving them unset should be just fine for most installations.
+  #
+  # Enable HTTP Strict Transport Security.
+  # hsts: true
+  #
+  # Set minimum TLS version.
+  # Values can be found at https://golang.org/pkg/crypto/tls/#pkg-constants
+  # Either the version name (i.e. TLS11) or its uint16 value can be specified.
+  # tls_min_version: TLS12
+  #
+  # List of TLS curve preferences.
+  # Values can be found at https://golang.org/pkg/crypto/tls/#CurveID
+  # Either CurveID names (i.e. P384) or uint16 values can be specified.
+  # tls_curve_preferences:
+  #   - P521
+  #   - 24
+  #   - P256
+  #
+  # List of enabled TLS cipher suites.
+  # Values can be found at https://golang.org/pkg/crypto/tls/#pkg-constants
+  # Either CipherSuite names (i.e. TLS_RSA_WITH_RC4_128_SHA) or uint16 values can be specified.
+  # tls_cipher_suites:
+  #   - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+  #   - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+  #   - 0xc014
+  #   - 0xc00a
+
   # Use LetsEncrypt (https://letsencrypt.org/) to automatically obtain and maintain a certificate.
   # Note that this only applies to server TLS certificate, this certificate will not be used for tokens
   letsencrypt:
@@ -102,10 +131,10 @@ github_auth:
   # want to have sensitive information checked in.
   # client_secret: "verysecret"
   client_secret_file: "/path/to/client_secret.txt"
-  # Either token_db file for storing of server tokens. 
+  # Either token_db file for storing of server tokens.
   token_db: "/somewhere/to/put/github_tokens.ldb"
-  # or google cloud storage for storing of the sensitive information. 
-  gcs_token_db: 
+  # or google cloud storage for storing of the sensitive information.
+  gcs_token_db:
     bucket: "tokenBucket"
     client_secret_file: "/path/to/client_secret.json"
   # How long to wait when talking to GitHub servers. Optional.
@@ -117,7 +146,7 @@ github_auth:
   github_web_uri: "https://github.acme.com"
   # The Github API URI in case you are using Github Enterprise.
   # Includes the protocol, without trailing slash. - defaults to: https://api.github.com
-  github_api_uri: "https://github.acme.com/api/v3" 
+  github_api_uri: "https://github.acme.com/api/v3"
   # Set an URL to display in the `docker login` command when succesfully authenticated. Optional.
   registry_url: localhost:5000
 
@@ -140,7 +169,7 @@ ldap_auth:
   # specify them here. Plain text password is read from the file.
   bind_dn:
   bind_password_file:
-  # User query settings. ${account} is expanded from auth request 
+  # User query settings. ${account} is expanded from auth request
   base: o=example.com
   filter: (&(uid=${account})(objectClass=person))
   # Labels can be mapped from LDAP attributes

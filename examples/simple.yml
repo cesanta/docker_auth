@@ -27,7 +27,7 @@ acl:
   - match: {account: "admin"}
     actions: ["*"]
     comment: "Admin has full access to everything."
-  - match: {account: "user"}
+  - match: {account: "test"}
     actions: ["pull"]
-    comment: "User \"user\" can pull stuff."
+    comment: "User \"test\" can pull stuff."
   # Access is denied by default.

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "docker-auth.name" . }}
+data:
+  auth_config.yml: |
+    server:
+      addr: ":{{ .Values.service.targetPort }}"
+    token:
+      issuer: "{{ .Values.configmap.data.token.issuer }}"  # Must match issuer in the Registry config.
+      expiration: {{ .Values.configmap.data.token.expiration }}
+      certificate: "/config/certs/server.pem"
+      key: "/config/certs/server.key"
+    users:
+      {{ .Values.configmap.data.users | toYaml | nindent 6 }}
+    acl:
+      {{ .Values.configmap.data.acl | toYaml | nindent 6 }}

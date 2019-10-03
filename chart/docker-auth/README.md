@@ -25,6 +25,7 @@ Install the docker-auth helm chart:
 ```bash
 git clone https://github.com/cesanta/docker_auth.git docker_auth
 
+helm dependency update
 helm install --name=docker-auth ./docker_auth
 ```
 

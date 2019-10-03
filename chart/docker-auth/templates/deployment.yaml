@@ -22,6 +22,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["--v={{ .Values.logging.level }}", "-logtostderr", "/config/auth_config.yml"]
           volumeMounts:
           - name: {{ include "docker-auth.name" . }}-config
             mountPath: /config

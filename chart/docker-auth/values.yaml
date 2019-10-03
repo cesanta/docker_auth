@@ -9,15 +9,17 @@ image:
   tag: 1.4.0
   pullPolicy: IfNotPresent
 
+registry:
+  enabled: false
+
+logging:
+  level: 2
+
 secret:
   data:
     server:
-      certificate: |+
-        -----BEGIN CERTIFICATE-----
-        -----END CERTIFICATE-----
-      key: |+
-        -----BEGIN RSA PRIVATE KEY-----
-        -----END RSA PRIVATE KEY-----
+      certificate: ""
+      key: ""
 configmap:
   data:
     token:
@@ -25,9 +27,9 @@ configmap:
       expiration: 900
     users:
       "admin":
-        password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC"  # badmin
+        password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC"  # password: badmin
       "test":
-        password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya"  # 123
+        password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya"  # password: 123
     acl:
       - match: {account: "admin"}
         actions: ["*"]

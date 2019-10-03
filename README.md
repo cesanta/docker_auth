@@ -25,6 +25,12 @@ Supported authorization methods:
 
 ## Installation and Examples
 
+### Using Helm/Kubernetes
+
+A helm chart is available in the folder [chart/docker-auth](chart/docker-auth).
+
+### Docker
+
 A public Docker image is available on Docker Hub: [cesanta/docker_auth](https://registry.hub.docker.com/u/cesanta/docker_auth/).
 
 Tags available:

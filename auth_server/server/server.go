@@ -188,6 +188,14 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	if haveBasicAuth {
 		ar.User = user
 		ar.Password = api.PasswordString(password)
+	} else if req.Method == "POST" {
+		// username and password could be part of form data
+		username := req.FormValue("username")
+		password := req.FormValue("password")
+		if username != "" && password != "" {
+			ar.User = username
+			ar.Password = api.PasswordString(password)
+		}
 	}
 	ar.Account = req.FormValue("account")
 	if ar.Account == "" {

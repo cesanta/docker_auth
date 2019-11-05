@@ -188,6 +188,14 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	if haveBasicAuth {
 		ar.User = user
 		ar.Password = api.PasswordString(password)
+	} else if req.Method == "POST" {
+		// username and password could be part of form data
+		username := req.FormValue("username")
+		password := req.FormValue("password")
+		if username != "" && password != "" {
+			ar.User = username
+			ar.Password = api.PasswordString(password)
+		}
 	}
 	ar.Account = req.FormValue("account")
 	if ar.Account == "" {
@@ -422,7 +430,9 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 		glog.Errorf("%s: %s", ar, msg)
 		return
 	}
-	result, _ := json.Marshal(&map[string]string{"token": token})
+	// https://www.oauth.com/oauth2-servers/access-tokens/access-token-response/
+	// describes that the response should have the token in `access_token`
+	result, _ := json.Marshal(&map[string]string{"access_token": token})
 	glog.V(3).Infof("%s", result)
 	rw.Header().Set("Content-Type", "application/json")
 	rw.Write(result)

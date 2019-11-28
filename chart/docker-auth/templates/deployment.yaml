@@ -48,7 +48,11 @@ spec:
             name: {{ include "docker-auth.name" . }}
         - name: {{ include "docker-auth.name" . }}-secret
           secret:
+{{- if .Values.secret.secretName }}
+            secretName: {{ .Values.secret.secretName }}
+{{- else }}
             secretName: {{ include "docker-auth.name" . }}
+{{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

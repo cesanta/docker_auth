@@ -9,14 +9,11 @@ data:
     token:
       issuer: "{{ .Values.configmap.data.token.issuer }}"  # Must match issuer in the Registry config.
       expiration: {{ .Values.configmap.data.token.expiration }}
-{{- if .Values.secret.certificateName }}
-      certificate: "/config/certs/{{ .Values.secret.certificateName}}"
+{{- if .Values.secret.secretName }}
+      certificate: "/config/certs/{{ default "tls.crt" .Values.secret.certificateFileName }}"
+      key: "/config/certs/{{ default "tls.key" .Values.secret.keyFileName }}"
 {{- else }}
       certificate: "/config/certs/server.pem"
-{{- end }}
-{{- if .Values.secret.keyName }}
-      key: "/config/certs/{{ .Values.secret.keyName }}"
-{{- else }}
       key: "/config/certs/server.key"
 {{- end }}
     users:

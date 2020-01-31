@@ -1,8 +1,0 @@
-dependencies:
-- name: docker-registry
-  version: ^1.8.3
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  condition: registry.enabled
-  import-values:
-    - child: configData
-      parent: registry.configData

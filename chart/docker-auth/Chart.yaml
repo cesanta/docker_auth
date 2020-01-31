@@ -1,8 +1,8 @@
-apiVersion: v1
+apiVersion: v2
 appVersion: "1.4.0"
 description: Docker Registry V2 authentication server
 name: docker-auth
-version: 1.0.1
+version: 1.0.2
 keywords:
 - docker
 - registry
@@ -18,3 +18,12 @@ maintainers:
 - name: pfisterer
   email: github@farberg.de
 engine: gotpl
+dependencies:
+- name: docker-registry
+  version: ^1.9.1
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  #repository: file:///Users/dennis/Desktop/k8s/helm-charts/stable/docker-registry/
+  condition: registry.enabled
+  import-values:
+    - child: configData
+      parent: registry.configData

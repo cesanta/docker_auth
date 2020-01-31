@@ -1,13 +1,9 @@
 Helm Chart for docker_auth
 =======================
 
-**Attention**: This will not work until <https://github.com/helm/charts/pull/17604> has been accepted.
+**This is a fork of <https://github.com/cesanta/docker_auth> with support for token based authentication.**
 
 Open issues:
-- Move the contents of the current `docs/` folder somewhere else
-- Configure this github repo as helm repository and add to Helm hub
-  - Cf. "Github Pages example" here: <https://github.com/helm/helm/blob/master/docs/chart_repository.md> - Use the approach "By configuring a project to serve the contents of its docs/ directory"
-- Upload the releases to this repo (cf. "Development: Upload a new version of the chart" below)
 - Add this chart to helm hub (cf. [Guidelines for Repository Inclusion](https://github.com/helm/hub/blob/master/Repositories.md))
 
 ## Introduction
@@ -173,14 +169,12 @@ secret:
 registry:
   enabled: true
 
-docker-registry:
-  secrets:
-    tokenAuthRootCertBundle: "$CERT_PEM_BASE64"
-
 logging:
   level: 5
 
 docker-registry:
+  secrets:
+    tokenAuthRootCertBundle: "$CERT_PEM_BASE64"
   configData:
     log:
       level: debug
@@ -235,8 +229,8 @@ helm install ./docker_auth \
 ```bash
 helm lint
 helm package .
-mv docker_auth-*.tgz docs/
-helm repo index docs/ --url https://github.com/cesanta/docker_auth/
+mv docker_auth-*.tgz ../../docs/
+helm repo index ../../docs/ --url https://github.com/pfisterer/docker_auth/
 git add docs/
 git commit -a -m "Updated helm repository"
 git push origin master

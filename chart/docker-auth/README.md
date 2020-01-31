@@ -229,9 +229,9 @@ helm install ./docker_auth \
 ```bash
 helm lint
 helm package .
-mv docker_auth-*.tgz ../../docs/
+mv docker-auth-*.tgz ../../docs/
 helm repo index ../../docs/ --url https://github.com/pfisterer/docker_auth/
-git add docs/
+git add ../../docs/
 git commit -a -m "Updated helm repository"
 git push origin master
 ```

@@ -1,0 +1,35 @@
+apiVersion: v1
+entries:
+  docker-auth:
+  - apiVersion: v2
+    appVersion: 1.4.0
+    created: "2020-01-31T11:16:53.247531+01:00"
+    dependencies:
+    - condition: registry.enabled
+      import-values:
+      - child: configData
+        parent: registry.configData
+      name: docker-registry
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: ^1.9.1
+    description: Docker Registry V2 authentication server
+    digest: d700cd60d54aeeeded566a9c978bce2805d4b777ad5ca61a4862a35b11b69487
+    home: https://github.com/cesanta/docker_auth
+    keywords:
+    - docker
+    - registry
+    - docker-auth
+    - docker-registry
+    - token
+    maintainers:
+    - email: 1294057873@qq.com
+      name: duyanghao
+    - email: github@farberg.de
+      name: pfisterer
+    name: docker-auth
+    sources:
+    - https://github.com/cesanta/docker_auth
+    urls:
+    - https://github.com/pfisterer/docker_auth/docker-auth-1.0.2.tgz
+    version: 1.0.2
+generated: "2020-01-31T11:16:53.241651+01:00"

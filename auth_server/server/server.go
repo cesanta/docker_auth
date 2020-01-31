@@ -38,6 +38,7 @@ import (
 
 var (
 	hostPortRegex = regexp.MustCompile(`\[?(.+?)\]?:\d+$`)
+	scopeRegex    = regexp.MustCompile(`([a-z0-9]+)(\([a-z0-9]+\))?`)
 )
 
 type AuthServer struct {
@@ -138,6 +139,7 @@ type authRequest struct {
 
 type authScope struct {
 	Type    string
+	Class   string
 	Name    string
 	Actions []string
 }
@@ -158,6 +160,22 @@ func parseRemoteAddr(ra string) net.IP {
 	}
 	res := net.ParseIP(ra)
 	return res
+}
+
+func parseScope(scope string) (string, string, error) {
+	parts := scopeRegex.FindStringSubmatch(scope)
+	if parts == nil {
+		return "", "", fmt.Errorf("malformed scope request")
+	}
+
+	switch len(parts) {
+	case 3:
+		return parts[1], "", nil
+	case 4:
+		return parts[1], parts[3], nil
+	default:
+		return "", "", fmt.Errorf("malformed scope request")
+	}
 }
 
 func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
@@ -212,16 +230,24 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 		for _, scopeStr := range req.Form["scope"] {
 			parts := strings.Split(scopeStr, ":")
 			var scope authScope
+
+			scopeType, scopeClass, err := parseScope(parts[0])
+			if err != nil {
+				return nil, err
+			}
+
 			switch len(parts) {
 			case 3:
 				scope = authScope{
-					Type:    parts[0],
+					Type:    scopeType,
+					Class:   scopeClass,
 					Name:    parts[1],
 					Actions: strings.Split(parts[2], ","),
 				}
 			case 4:
 				scope = authScope{
-					Type:    parts[0],
+					Type:    scopeType,
+					Class:   scopeClass,
 					Name:    parts[1] + ":" + parts[2],
 					Actions: strings.Split(parts[3], ","),
 				}

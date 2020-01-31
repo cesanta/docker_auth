@@ -35,30 +35,25 @@ helm delete --purge docker-auth
 
 The following table lists the configurable parameters of the docker-auth chart and the default values.
 
-| Parameter                         | Description                                       | Default            |
-| --------------------------------- | ------------------------------------------------- | ------------------ |
-| **Docker Registry**               |                                                   |                    |
-| `registry.enabled`                | Deploy an instance of the docker registry         | `false`            |
-| **Secret**                        |                                                   |                    |
-| `secret.data.server.certificate`  | Content of server.pem (base64 encoded, see below) |                    |
-| `secret.data.server.key`          | Content of server.key (base64 encoded, see below) |                    |
-| **Configmap**                     |                                                   |                    |
-| `configmap.data.token.issuer`     | Must match issuer in the Registry config          | `Acme auth server` |
-| `configmap.data.token.expiration` | Token Expiration                                  | `900`              |
-| `configmap.data.users`            | Static user map (see below)                       |                    |
-| `configmap.data.acl`              | ACL specifies who can do what (see below).        |                    |
-| **High Availability**             |                                                   |                    |
-| `replicaCount`                    | Replica count for High Available                  | `1`                |
-| **ingress**                       |                                                   |                    |
-| `ingress.enabled`                 | If true, Ingress will be created                  | `false`            |
-| `ingress.annotations`             | Ingress annotations                               | `{}`               |
-| `ingress.labels`                  | Ingress labels                                    | `{}`               |
-| `ingress.path`                    | Ingress service path                              | `/`                |
-| `ingress.hosts`                   | Ingress hostnames                                 | `[]`               |
-| `ingress.tls`                     | Ingress TLS configuration (YAML)                  | `[]`               |
-| **others**                        |                                                   |                    |
-| `logging.level`                   | Set log level (value for `-v` cli param)          | `2`                |
-
+| Parameter                         | Description                                                                                                                                                                                                                                            | Default                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
+| **Docker Registry**               |                                                                                                                                                                                                                                                        |                        |
+| `registry.enabled`                | Deploy an instance of the docker registry                                                                                                                                                                                                              | `false`                |
+| **Secret**                        |
+| `secret.data.server.certificate`  | Content of server.pem  (mutually exclusive with secretName, keyName, certificateName)                                                                                                                                                                  |                        |
+| `secret.data.server.key`          | Content of server.key  (mutually exclusive with secretName, keyName, certificateName)                                                                                                                                                                  |                        |
+| `secret.secretName`               | The name of the secret containing server key and certificate (mutually exclusive with secret.data.server.key/certificate)                                                                                                                              |                        |
+| `secret.certificateFileName`      | The name of the server certificate file (mutually exclusive with secret.data.server.key/certificate)                                                                                                                                                   | tls.crt                |
+| `secret.keyFileName`              | The name of the server key file (mutually exclusive with secret.data.server.key/certificate)                                                                                                                                                           | tls.key                |
+| **Configmap**                     |
+| `configmap.data.token.issuer`     | Must match issuer in the Registry config                                                                                                                                                                                                               | `Acme auth server`     |
+| `configmap.data.token.expiration` | Token Expiration                                                                                                                                                                                                                                       | `900`                  |
+| `configmap.data.users`            | Static user map                                                                                                                                                                                                                                        |                        |
+| `configmap.data.acl`              | ACL specifies who can do what. If the match section of an entry matches the request, the set of allowed actions will be applied to the token request and a ticket will be issued only for those of the requested actions that are allowed by the rule. |                        |
+| **ingress**                       |
+| `ingress.hosts.host`              | Domain to your `docker_auth` installation                                                                                                                                                                                                              | `docker-auth.test.com` |
+| **High Available**                |
+| `replicaCount`                    | Replica count for High Available                                                                                                                                                                                                                       | `1`                    |
 
 ## Generate certificates
 

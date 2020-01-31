@@ -4,7 +4,7 @@ COMPRESS_BINARY ?= false
 CA_BUNDLE = /etc/ssl/certs/ca-certificates.crt
 VERSION = $(shell cat version.txt)
 
-BUILDER_IMAGE ?= golang:1.12.8-alpine
+BUILDER_IMAGE ?= golang:1.13-alpine
 
 .PHONY: %
 

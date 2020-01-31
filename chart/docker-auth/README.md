@@ -18,9 +18,16 @@ Is uses
 
 Install the docker-auth helm chart:
 
-```bash
-git clone https://github.com/cesanta/docker_auth.git docker_auth
+Add repository to helm
 
+```bash
+helm repo add pfisterer-knox https://pfisterer.github.io/docker_auth/
+helm repo update
+```
+
+Installation: 
+
+```bash
 helm dependency update
 helm install --name=docker-auth ./docker_auth
 ```

@@ -21,7 +21,7 @@ Install the docker-auth helm chart:
 Add repository to helm
 
 ```bash
-helm repo add pfisterer-knox https://pfisterer.github.io/docker_auth/
+helm repo add pfisterer-docker-auth https://pfisterer.github.io/docker_auth/
 helm repo update
 ```
 

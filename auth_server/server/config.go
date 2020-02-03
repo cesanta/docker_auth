@@ -196,8 +196,8 @@ func validate(c *Config) error {
 			return errors.New("github_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
 		}
 
-		if ghac.ClientId == "" || ghac.ClientSecret == "" || (ghac.RedisTokenDB != nil && ghac.RedisTokenDB.Url == "" && len(ghac.RedisTokenDB.Urls) < 1) {
-			return errors.New("github_auth.{client_id,client_secret,redis_token_db{url(s)}} are required")
+		if ghac.ClientId == "" || ghac.ClientSecret == "" || (ghac.RedisTokenDB != nil && ghac.RedisTokenDB.NodeOptions.Addr == "" && len(ghac.RedisTokenDB.ClusterOptions.Addrs) < 1) {
+			return errors.New("github_auth.{client_id,client_secret,redis_token_db.{node_options,cluster_options}} are required")
 		}
 
 		if ghac.RedisTokenDB != nil && ghac.RedisTokenDB.EncryptKey != "" && len(ghac.RedisTokenDB.EncryptKey) != 32 {

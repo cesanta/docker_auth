@@ -12,6 +12,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/cesanta/docker_auth/auth_server/api"
 	"github.com/cesanta/glog"
 	"github.com/dchest/uniuri"
 	"github.com/go-redis/redis"
@@ -25,21 +26,24 @@ type RedisClient interface {
 
 // NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
 //
-func NewRedisTokenDB(url string, encrypt_key string) (TokenDB, error) {
-	client := redis.NewClient(&redis.Options{Addr: url})
-	return &redisTokenDB{client, encrypt_key}, nil
-}
+func NewRedisTokenDB(options *GitHubRedisStoreConfig) (TokenDB, error) {
+	var client RedisClient
+	if options.ClusterOptions != nil {
+		client = redis.NewClusterClient(options.ClusterOptions)
+	} else {
+		client = redis.NewClient(options.NodeOptions)
+	}
 
-// NewRedisClusterTokenDB returns a new TokenDB structure which uses Redis Cluster as the storage backend.
-//
-func NewRedisClusterTokenDB(urls []string, encrypt_key string) (TokenDB, error) {
-	client := redis.NewClusterClient(&redis.ClusterOptions{Addrs: urls})
-	return &redisTokenDB{client, encrypt_key}, nil
+	return &redisTokenDB{client, options.EncryptKey}, nil
 }
 
 type redisTokenDB struct {
 	client      RedisClient
 	encrypt_key string
+}
+
+func (db *redisTokenDB) String() string {
+	return fmt.Sprintf("%v", db.client)
 }
 
 func (db *redisTokenDB) GetValue(user string) (*TokenDBValue, error) {
@@ -111,7 +115,7 @@ func (db *redisTokenDB) StoreToken(user string, v *TokenDBValue, updatePassword 
 	return
 }
 
-func (db *redisTokenDB) ValidateToken(user string, password PasswordString) error {
+func (db *redisTokenDB) ValidateToken(user string, password api.PasswordString) error {
 	dbv, err := db.GetValue(user)
 
 	if err != nil {
@@ -119,11 +123,11 @@ func (db *redisTokenDB) ValidateToken(user string, password PasswordString) erro
 	}
 
 	if dbv == nil {
-		return NoMatch
+		return api.NoMatch
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(dbv.DockerPassword), []byte(password)) != nil {
-		return WrongPass
+		return api.WrongPass
 	}
 
 	if time.Now().After(dbv.ValidUntil) {

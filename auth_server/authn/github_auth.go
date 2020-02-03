@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/cesanta/glog"
+	"github.com/go-redis/redis"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
@@ -76,9 +77,9 @@ type GitHubGCSStoreConfig struct {
 }
 
 type GitHubRedisStoreConfig struct {
-	Url        string   `yaml:"url,omitempty"`
-	Urls       []string `yaml:"urls,omitempty"`
-	EncryptKey string   `yaml:"encrypt_key,omitempty"`
+	NodeOptions    *redis.Options        `yaml:"node_options,omitempty"`
+	ClusterOptions *redis.ClusterOptions `yaml:"cluster_options,omitempty"`
+	EncryptKey     string                `yaml:"encrypt_key,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -176,13 +177,8 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
 		dbName = "GCS: " + c.GCSTokenDB.Bucket
 	case c.RedisTokenDB != nil:
-		if len(c.RedisTokenDB.Urls) > 0 {
-			db, err = NewRedisClusterTokenDB(c.RedisTokenDB.Urls, c.RedisTokenDB.EncryptKey)
-			dbName = "Redis Cluster: " + fmt.Sprintf("%v", c.RedisTokenDB.Urls)
-		} else {
-			db, err = NewRedisTokenDB(c.RedisTokenDB.Url, c.RedisTokenDB.EncryptKey)
-			dbName = "Redis: " + c.RedisTokenDB.Url
-		}
+		db, err = NewRedisTokenDB(c.RedisTokenDB)
+		dbName = db.(*redisTokenDB).String()
 	default:
 		db, err = NewTokenDB(c.TokenDB)
 	}

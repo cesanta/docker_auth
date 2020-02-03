@@ -24,9 +24,12 @@ type RedisClient interface {
 func NewRedisTokenDB(options *GitHubRedisStoreConfig) (TokenDB, error) {
 	var client RedisClient
 	if options.ClusterOptions != nil {
+		if options.ClientOptions != nil {
+			glog.Infof("Both redis_token_db.configs and redis_token_db.cluster_configs have been set. Only the latter will be used")
+		}
 		client = redis.NewClusterClient(options.ClusterOptions)
 	} else {
-		client = redis.NewClient(options.NodeOptions)
+		client = redis.NewClient(options.ClientOptions)
 	}
 
 	return &redisTokenDB{client}, nil

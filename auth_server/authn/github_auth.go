@@ -77,8 +77,8 @@ type GitHubGCSStoreConfig struct {
 }
 
 type GitHubRedisStoreConfig struct {
-	NodeOptions    *redis.Options        `yaml:"node_options,omitempty"`
-	ClusterOptions *redis.ClusterOptions `yaml:"cluster_options,omitempty"`
+	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
+	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
 }
 
 type GitHubAuthRequest struct {

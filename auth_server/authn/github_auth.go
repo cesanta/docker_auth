@@ -79,7 +79,6 @@ type GitHubGCSStoreConfig struct {
 type GitHubRedisStoreConfig struct {
 	NodeOptions    *redis.Options        `yaml:"node_options,omitempty"`
 	ClusterOptions *redis.ClusterOptions `yaml:"cluster_options,omitempty"`
-	EncryptKey     string                `yaml:"encrypt_key,omitempty"`
 }
 
 type GitHubAuthRequest struct {

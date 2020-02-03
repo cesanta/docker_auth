@@ -1,13 +1,8 @@
 package authn
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -34,12 +29,11 @@ func NewRedisTokenDB(options *GitHubRedisStoreConfig) (TokenDB, error) {
 		client = redis.NewClient(options.NodeOptions)
 	}
 
-	return &redisTokenDB{client, options.EncryptKey}, nil
+	return &redisTokenDB{client}, nil
 }
 
 type redisTokenDB struct {
-	client      RedisClient
-	encrypt_key string
+	client RedisClient
 }
 
 func (db *redisTokenDB) String() string {
@@ -65,15 +59,6 @@ func (db *redisTokenDB) GetValue(user string) (*TokenDBValue, error) {
 
 	var dbv TokenDBValue
 
-	if db.encrypt_key != "" {
-		result_b, err := db.Decrypt([]byte(result), []byte(db.encrypt_key))
-		if err != nil {
-			glog.Errorf("Error decrypting key <%s>: %s\n", key, err)
-			return nil, fmt.Errorf("Error decrypting key <%s>: %s", key, err)
-		}
-		result = string(result_b[:])
-	}
-
 	err = json.Unmarshal([]byte(result), &dbv)
 	if err != nil {
 		glog.Errorf("Error parsing value for user <%q> (%q): %s", user, string(result), err)
@@ -96,14 +81,6 @@ func (db *redisTokenDB) StoreToken(user string, v *TokenDBValue, updatePassword 
 	}
 
 	key := string(getDBKey(user))
-
-	if db.encrypt_key != "" {
-		data, err = db.Encrypt(data, []byte(db.encrypt_key))
-		if err != nil {
-			glog.Errorf("Error encrypting key <%s>: %s\n", key, err)
-			return "", fmt.Errorf("Error encrypting key <%s>: %s", key, err)
-		}
-	}
 
 	err = db.client.Set(key, data, 0).Err()
 	if err != nil {
@@ -150,43 +127,4 @@ func (db *redisTokenDB) DeleteToken(user string) error {
 
 func (db *redisTokenDB) Close() error {
 	return nil
-}
-
-func (db *redisTokenDB) Encrypt(plaintext []byte, key []byte) ([]byte, error) {
-	c, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return nil, err
-	}
-
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
-	}
-
-	return gcm.Seal(nonce, nonce, plaintext, nil), nil
-}
-
-func (db *redisTokenDB) Decrypt(ciphertext []byte, key []byte) ([]byte, error) {
-	c, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return nil, err
-	}
-
-	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return nil, errors.New("Encrypted content is too short")
-	}
-
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	return gcm.Open(nil, nonce, ciphertext, nil)
 }

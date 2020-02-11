@@ -458,7 +458,7 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 	}
 	// https://www.oauth.com/oauth2-servers/access-tokens/access-token-response/
 	// describes that the response should have the token in `access_token`
-	result, _ := json.Marshal(&map[string]string{"access_token": token})
+	result, _ := json.Marshal(&map[string]string{"access_token": token, "token": token})
 	glog.V(3).Infof("%s", result)
 	rw.Header().Set("Content-Type", "application/json")
 	rw.Write(result)

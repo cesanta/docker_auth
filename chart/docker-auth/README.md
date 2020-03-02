@@ -1,7 +1,7 @@
 Helm Chart for docker_auth
 =======================
 
-**This is a fork of <https://github.com/cesanta/docker_auth> with support for token based authentication.**
+**This is a fork of <https://github.com/cesanta/docker_auth> with support for token based authentication using a token server (specified by Docker's [Token Authentication Specification](https://docs.docker.com/registry/spec/auth/token/)).**
 
 Open issues:
 - Add this chart to helm hub (cf. [Guidelines for Repository Inclusion](https://github.com/helm/hub/blob/master/Repositories.md))

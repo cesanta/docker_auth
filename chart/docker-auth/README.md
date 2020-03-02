@@ -29,7 +29,7 @@ Installation:
 
 ```bash
 helm dependency update
-helm install --name=docker-auth ./docker_auth
+helm install --name=docker-auth pfisterer-docker-auth/docker_auth
 ```
 
 To delete the `my-release` deployment, run:

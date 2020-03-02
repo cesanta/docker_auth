@@ -139,6 +139,23 @@ CERT_PEM_BASE64=`cat generated-docker-auth-server.pem | base64`
 CERT_KEY_BASE64=`cat generated-docker-auth-server.key | base64`
 ```
 
+## Create a k8s secret with the certificate
+
+Save this to `my-secret.yaml` (and replace `$CERT_PEM_BASE64` with the actual value):
+
+```bash
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  namespace: "your-namespace"
+  name: "your-docker-registry-cert"
+data:
+  tokenAuthRootCertBundle: "$CERT_PEM_BASE64"
+```
+
+Run `kubectl apply -f my-secret.yaml`
+
 ## Generate the configuration file for Helm
 
 ```bash
@@ -175,8 +192,6 @@ logging:
   level: 5
 
 docker-registry:
-  secrets:
-    tokenAuthRootCertBundle: "$CERT_PEM_BASE64"
   configData:
     log:
       level: debug
@@ -201,6 +216,19 @@ docker-registry:
     tls:
       - hosts:
           - $DOCKER_REG_HOSTNAME
+
+  extraVolumeMounts:
+    - name: token-auth-root-cert-bundle
+      mountPath: /tokenAuthRootCertBundle
+      readOnly: true
+
+  extraVolumes:
+    - name: token-auth-root-cert-bundle
+      secret:
+        secretName: "your-docker-registry-cert"
+        items:
+          - key: tokenAuthRootCertBundle
+            path: cert.pem
 
 ingress:
   enabled: true

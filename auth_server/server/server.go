@@ -227,35 +227,37 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	}
 	// https://github.com/docker/distribution/blob/1b9ab303a477ded9bdd3fc97e9119fa8f9e58fca/docs/spec/auth/scope.md#resource-scope-grammar
 	if req.FormValue("scope") != "" {
-		for _, scopeStr := range req.Form["scope"] {
-			parts := strings.Split(scopeStr, ":")
-			var scope authScope
+		for _, scopeValue := range req.Form["scope"] {
+			for _, scopeStr := range strings.Split(scopeValue, " ") {
+				parts := strings.Split(scopeStr, ":")
+				var scope authScope
 
-			scopeType, scopeClass, err := parseScope(parts[0])
-			if err != nil {
-				return nil, err
-			}
+				scopeType, scopeClass, err := parseScope(parts[0])
+				if err != nil {
+					return nil, err
+				}
 
-			switch len(parts) {
-			case 3:
-				scope = authScope{
-					Type:    scopeType,
-					Class:   scopeClass,
-					Name:    parts[1],
-					Actions: strings.Split(parts[2], ","),
+				switch len(parts) {
+				case 3:
+					scope = authScope{
+						Type:    scopeType,
+						Class:   scopeClass,
+						Name:    parts[1],
+						Actions: strings.Split(parts[2], ","),
+					}
+				case 4:
+					scope = authScope{
+						Type:    scopeType,
+						Class:   scopeClass,
+						Name:    parts[1] + ":" + parts[2],
+						Actions: strings.Split(parts[3], ","),
+					}
+				default:
+					return nil, fmt.Errorf("invalid scope: %q", scopeStr)
 				}
-			case 4:
-				scope = authScope{
-					Type:    scopeType,
-					Class:   scopeClass,
-					Name:    parts[1] + ":" + parts[2],
-					Actions: strings.Split(parts[3], ","),
-				}
-			default:
-				return nil, fmt.Errorf("invalid scope: %q", scopeStr)
+				sort.Strings(scope.Actions)
+				ar.Scopes = append(ar.Scopes, scope)
 			}
-			sort.Strings(scope.Actions)
-			ar.Scopes = append(ar.Scopes, scope)
 		}
 	}
 	return ar, nil
@@ -459,7 +461,7 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 	// https://www.oauth.com/oauth2-servers/access-tokens/access-token-response/
 	// describes that the response should have the token in `access_token`
 	// https://docs.docker.com/registry/spec/auth/token/#token-response-fields
-	// the token should also be in `token` to support older clients 
+	// the token should also be in `token` to support older clients
 	result, _ := json.Marshal(&map[string]string{"access_token": token, "token": token})
 	glog.V(3).Infof("%s", result)
 	rw.Header().Set("Content-Type", "application/json")

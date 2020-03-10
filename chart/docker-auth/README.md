@@ -257,10 +257,11 @@ helm install ./docker_auth \
 # Development: Upload a new version of the chart
 
 ```bash
+cd chart/docker-auth
 helm lint
 helm package .
 mv docker-auth-*.tgz ../../docs/
-helm repo index ../../docs/ --url https://github.com/pfisterer/docker_auth/
+helm repo index ../../docs/ --url https://pfisterer.github.io/docker_auth/
 git add ../../docs/
 git commit -a -m "Updated helm repository"
 git push origin master

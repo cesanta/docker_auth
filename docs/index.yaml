@@ -3,7 +3,7 @@ entries:
   docker-auth:
   - apiVersion: v2
     appVersion: 1.4.0
-    created: "2020-01-31T11:16:53.247531+01:00"
+    created: "2020-03-10T11:08:11.799418+01:00"
     dependencies:
     - condition: registry.enabled
       import-values:
@@ -30,6 +30,6 @@ entries:
     sources:
     - https://github.com/cesanta/docker_auth
     urls:
-    - https://github.com/pfisterer/docker_auth/docker-auth-1.0.2.tgz
+    - https://pfisterer.github.io/docker_auth/docker-auth-1.0.2.tgz
     version: 1.0.2
-generated: "2020-01-31T11:16:53.241651+01:00"
+generated: "2020-03-10T11:08:11.793496+01:00"

@@ -15,7 +15,10 @@ require (
 	github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4 // indirect
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-redis/redis v6.15.7+incompatible
+	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gorilla/mux v1.7.3 // indirect
+	github.com/lib/pq v1.4.0
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/schwarmco/go-cartesian-product v0.0.0-20180515110546-d5ee747a6dc9
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/syndtr/goleveldb v1.0.0
@@ -26,4 +29,5 @@ require (
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 	gopkg.in/yaml.v2 v2.2.2
+	xorm.io/xorm v1.0.1
 )

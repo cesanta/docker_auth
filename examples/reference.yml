@@ -214,6 +214,12 @@ mongo_auth:
   # Unlike acl_mongo we don't cache the full user set. We just query mongo for
   # an exact match for each authorization
 
+xorm_auth:
+  # the database type you'd like to connect to
+  database_type: "mysql"
+  # the connection string to connect to the database
+  conn_string: "username:password@/database_name?charset=utf8"
+
 # External authentication - call an external progam to authenticate user.
 # Username and password are passed to command's stdin and exit code is examined.
 # 0 - allow, 1 - deny, 2 - no match, other - error.
@@ -343,6 +349,13 @@ acl_mongo:
   # Specify how long an ACL remains valid before they will be fetched again from
   # the MongoDB server.
   # (See https://golang.org/pkg/time/#ParseDuration for a format description.)
+  cache_ttl: "1m"
+
+# (optional) Define to query ACL from a XORM.io database connection.
+acl_xorm:
+  # the database type you'd like to connect to
+  database_type: "mysql"
+  conn_string: "username:password@/database_name?charset=utf8"
   cache_ttl: "1m"
 
 # External authorization - call an external progam to authorize user.

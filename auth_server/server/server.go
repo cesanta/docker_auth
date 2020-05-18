@@ -122,6 +122,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authorizers = append(as.authorizers, pluginAuthz)
 	}
+	if c.SQLAuth != nil {
+		sa, err := authn.NewSQLAuth(c.SQLAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, sa)
+	}
 	return as, nil
 }
 

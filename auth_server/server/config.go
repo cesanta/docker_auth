@@ -47,6 +47,7 @@ type Config struct {
 	ACLMongo    *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
 	ExtAuthz    *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
 	PluginAuthz *authz.PluginAuthzConfig       `yaml:"plugin_authz,omitempty"`
+	SQLAuth     *authn.SQLAuthConfig           `yaml:"sql_auth,omitempty"`
 }
 
 type ServerConfig struct {
@@ -157,7 +158,7 @@ func validate(c *Config) error {
 	if c.Token.Expiration <= 0 {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
-	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.PluginAuthn == nil {
+	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.PluginAuthn == nil && c.SQLAuth == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if c.MongoAuth != nil {
@@ -240,6 +241,11 @@ func validate(c *Config) error {
 	if c.PluginAuthz != nil {
 		if err := c.PluginAuthz.Validate(); err != nil {
 			return fmt.Errorf("bad plugin_authz config: %s", err)
+		}
+	}
+	if c.SQLAuth != nil {
+		if err := c.SQLAuth.Validate(); err != nil {
+			return fmt.Errorf("bad sql_auth config: %s", err)
 		}
 	}
 	return nil

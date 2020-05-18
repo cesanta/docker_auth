@@ -16,6 +16,7 @@ Supported authentication methods:
  * [Github Sign-In](docs/auth-methods.md#github)
  * LDAP bind ([demo](https://github.com/kwk/docker-registry-setup))
  * MongoDB user collection
+ * PostgreSQL / MySQL (documented [here](https://github.com/cesanta/docker_auth/blob/master/examples/reference.yml))
  * [External program](https://github.com/cesanta/docker_auth/blob/master/examples/ext_auth.sh)
 
 Supported authorization methods:

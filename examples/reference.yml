@@ -232,6 +232,23 @@ ext_auth:
 plugin_authn:
   plugin_path: ""
 
+# SQL authentication.
+# Database, table and columns must exist before using this plugin.
+# Example PostgreSQL query to create the necessary table:
+#   CREATE TABLE users (username text PRIMARY KEY, password text NOT NULL)
+sql_auth:
+  # Database connection string in URI format.
+  # See https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
+  dsn: "postgresql://dockerauth:dockerauthpass@localhost:5432/dockerauth?sslmode=disable"
+  # or for a MySQL database:
+  # dsn: "mysql://root:dockerauthpass@tcp(localhost:3306)/dockerauth?tls=false"
+  # The name of the table that will be used for data lookups
+  table: "users"
+  # The column that contains the username
+  user_column: "username"
+  # The column that contains the bcrypt hash of the password
+  password_column: "password"
+
 # Authorization methods. All are tried, any one returning success is sufficient.
 # At least one must be configured.
 

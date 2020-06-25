@@ -155,25 +155,11 @@ func parseLinkHeader(linkLines []string) (linkHeader, error) {
 }
 
 func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
-	var db TokenDB
-	var err error
-	dbName := c.TokenDB
-
-	switch {
-	case c.GCSTokenDB != nil:
-		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
-		dbName = "GCS: " + c.GCSTokenDB.Bucket
-	case c.RedisTokenDB != nil:
-		db, err = NewRedisTokenDB(c.RedisTokenDB)
-		dbName = db.(*redisTokenDB).String()
-	default:
-		db, err = NewLevelDBTokenDB(c.TokenDB)
-	}
-
+	db, err := NewTokenDB(c.TokenConfiguration)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize token storage: %w", err)
 	}
-	glog.Infof("GitHub auth token DB at %s", dbName)
+	glog.Infof("GitHub auth token DB at %s", db)
 	return &GitHubAuth{
 		config:     c,
 		db:         db,

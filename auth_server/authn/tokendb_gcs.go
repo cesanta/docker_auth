@@ -121,3 +121,8 @@ func (db *gcsTokenDB) DeleteToken(user string) error {
 func (db *gcsTokenDB) Close() error {
 	return nil
 }
+
+// String returns "GCS: " plus the bucket path
+func (db *gcsTokenDB) String() string {
+	return "GCS: " + db.bucket
+}

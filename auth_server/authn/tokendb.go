@@ -47,8 +47,11 @@ type TokenDB interface {
 	// and deletes the corresponding token from the DB
 	DeleteToken(string) error
 
-	// Composed from leveldb.DB
+	// Close cleans up any resources
 	Close() error
+
+	// String returns a short description
+	String() string
 }
 
 // TokenDBValue is stored in the database, JSON-serialized.
@@ -82,4 +85,13 @@ type RedisTokenConfig struct {
 	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
 }
 
-// func NewTokenDB(filename string)
+// NewTokenDB returns the TokenDB specified by the given configuration (GCS, Redis or LevelDB)
+func NewTokenDB(c TokenConfiguration) (TokenDB, error) {
+	if c.GCSTokenDB != nil {
+		return NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
+	}
+	if c.RedisTokenDB != nil {
+		return NewRedisTokenDB(c.RedisTokenDB)
+	}
+	return NewLevelDBTokenDB(c.TokenDB)
+}

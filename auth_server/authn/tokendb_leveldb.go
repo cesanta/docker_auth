@@ -15,13 +15,16 @@ import (
 
 type leveldbTokenDB struct {
 	*leveldb.DB
+
+	filename string
 }
 
 // NewLevelDBTokenDB returns LevelDB-based token instance
 func NewLevelDBTokenDB(file string) (TokenDB, error) {
 	db, err := leveldb.OpenFile(file, nil)
 	return &leveldbTokenDB{
-		DB: db,
+		DB:       db,
+		filename: file,
 	}, err
 }
 
@@ -85,6 +88,10 @@ func (db *leveldbTokenDB) DeleteToken(user string) error {
 		return fmt.Errorf("failed to delete %s: %s", user, err)
 	}
 	return nil
+}
+
+func (db *leveldbTokenDB) String() string {
+	return db.filename
 }
 
 func getDBKey(user string) []byte {

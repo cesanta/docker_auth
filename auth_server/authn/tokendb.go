@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
+	"github.com/go-redis/redis"
 )
 
 const (
@@ -61,3 +62,24 @@ type TokenDBValue struct {
 	DockerPassword string     `json:"docker_password,omitempty"`
 	Labels         api.Labels `json:"labels,omitempty"`
 }
+
+// TokenConfiguration is a shared YAML configuration structure for multiple token types
+type TokenConfiguration struct {
+	TokenDB      string            `yaml:"token_db,omitempty"`
+	GCSTokenDB   *GCSTokenConfig   `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB *RedisTokenConfig `yaml:"redis_token_db,omitempty"`
+}
+
+// GCSTokenConfig is Google Cloud Storage-based token storage configuration
+type GCSTokenConfig struct {
+	Bucket           string `yaml:"bucket,omitempty"`
+	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
+}
+
+// RedisTokenConfig is Redis-based token storage configuration
+type RedisTokenConfig struct {
+	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
+	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
+}
+
+// func NewTokenDB(filename string)

@@ -21,7 +21,7 @@ type RedisClient interface {
 
 // NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
 //
-func NewRedisTokenDB(options *GitHubRedisStoreConfig) (TokenDB, error) {
+func NewRedisTokenDB(options *RedisTokenConfig) (TokenDB, error) {
 	var client RedisClient
 	if options.ClusterOptions != nil {
 		if options.ClientOptions != nil {

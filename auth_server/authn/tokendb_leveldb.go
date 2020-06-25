@@ -13,20 +13,19 @@ import (
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
-// TokenDB stores tokens using LevelDB
-type TokenDBImpl struct {
+type leveldbTokenDB struct {
 	*leveldb.DB
 }
 
-// NewTokenDB returns a new TokenDB structure
-func NewTokenDB(file string) (TokenDB, error) {
+// NewLevelDBTokenDB returns LevelDB-based token instance
+func NewLevelDBTokenDB(file string) (TokenDB, error) {
 	db, err := leveldb.OpenFile(file, nil)
-	return &TokenDBImpl{
+	return &leveldbTokenDB{
 		DB: db,
 	}, err
 }
 
-func (db *TokenDBImpl) GetValue(user string) (*TokenDBValue, error) {
+func (db *leveldbTokenDB) GetValue(user string) (*TokenDBValue, error) {
 	valueStr, err := db.Get(getDBKey(user), nil)
 	switch {
 	case err == leveldb.ErrNotFound:
@@ -44,7 +43,7 @@ func (db *TokenDBImpl) GetValue(user string) (*TokenDBValue, error) {
 	return &dbv, nil
 }
 
-func (db *TokenDBImpl) StoreToken(user string, v *TokenDBValue, updatePassword bool) (dp string, err error) {
+func (db *leveldbTokenDB) StoreToken(user string, v *TokenDBValue, updatePassword bool) (dp string, err error) {
 	if updatePassword {
 		dp = uniuri.New()
 		dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
@@ -63,7 +62,7 @@ func (db *TokenDBImpl) StoreToken(user string, v *TokenDBValue, updatePassword b
 	return
 }
 
-func (db *TokenDBImpl) ValidateToken(user string, password api.PasswordString) error {
+func (db *leveldbTokenDB) ValidateToken(user string, password api.PasswordString) error {
 	dbv, err := db.GetValue(user)
 	if err != nil {
 		return err
@@ -80,7 +79,7 @@ func (db *TokenDBImpl) ValidateToken(user string, password api.PasswordString) e
 	return nil
 }
 
-func (db *TokenDBImpl) DeleteToken(user string) error {
+func (db *leveldbTokenDB) DeleteToken(user string) error {
 	glog.V(1).Infof("deleting token for %s", user)
 	if err := db.Delete(getDBKey(user), nil); err != nil {
 		return fmt.Errorf("failed to delete %s: %s", user, err)

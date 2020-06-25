@@ -179,7 +179,7 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 		db, err = NewRedisTokenDB(c.RedisTokenDB)
 		dbName = db.(*redisTokenDB).String()
 	default:
-		db, err = NewTokenDB(c.TokenDB)
+		db, err = NewLevelDBTokenDB(c.TokenDB)
 	}
 
 	if err != nil {

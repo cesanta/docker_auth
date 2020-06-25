@@ -127,7 +127,7 @@ type GoogleAuth struct {
 }
 
 func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
-	db, err := NewTokenDB(c.TokenDB)
+	db, err := NewLevelDBTokenDB(c.TokenDB)
 	if err != nil {
 		return nil, err
 	}

@@ -29,7 +29,7 @@ const (
 
 var ExpiredToken = errors.New("expired token")
 
-// TokenDB stores tokens using LevelDB
+// TokenDB stores and validates tokens from external authentication providers
 type TokenDB interface {
 	// GetValue takes a username returns the corresponding token
 	GetValue(string) (*TokenDBValue, error)

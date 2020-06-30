@@ -73,6 +73,13 @@ type TokenConfiguration struct {
 	RedisTokenDB *RedisTokenConfig `yaml:"redis_token_db,omitempty"`
 }
 
+func (t TokenConfiguration) Validate() error {
+	if t.TokenDB == "" && t.GCSTokenDB == nil && t.RedisTokenDB == nil {
+		return errors.New("one of token_db, gcs_token_db or redis_token_db must be specified")
+	}
+	return nil
+}
+
 // GCSTokenConfig is Google Cloud Storage-based token storage configuration
 type GCSTokenConfig struct {
 	Bucket           string `yaml:"bucket,omitempty"`

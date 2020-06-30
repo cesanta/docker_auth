@@ -173,8 +173,11 @@ func validate(c *Config) error {
 			}
 			gac.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if gac.ClientId == "" || gac.ClientSecret == "" || gac.TokenDB == "" {
-			return errors.New("google_auth.{client_id,client_secret,token_db} are required.")
+		if gac.ClientId == "" || gac.ClientSecret == "" {
+			return errors.New("google_auth.{client_id,client_secret} are required")
+		}
+		if err := gac.TokenConfiguration.Validate(); err != nil {
+			return fmt.Errorf("invalid google_auth: %w", err)
 		}
 		if gac.HTTPTimeout <= 0 {
 			gac.HTTPTimeout = 10

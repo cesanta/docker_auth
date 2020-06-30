@@ -110,8 +110,20 @@ google_auth:
   # want to have sensitive information checked in.
   # client_secret: "verysecret"
   client_secret_file: "/path/to/client_secret.txt"
-  # Where to store server tokens. Required.
+  # Either token_db file for storing of server tokens.
   token_db: "/somewhere/to/put/google_tokens.ldb"
+  # or google cloud storage for storing of the sensitive information,
+  gcs_token_db:
+    bucket: "tokenBucket"
+    client_secret_file: "/path/to/client_secret.json"
+  # or Redis,
+  redis_token_db:
+    redis_options:
+        # with a single instance,
+        addr: localhost:6379
+    redis_cluster_options:
+        # or in the cluster mode.
+        addrs: ["localhost:7000"]
   # How long to wait when talking to Google servers. Optional.
   http_timeout: 10
 

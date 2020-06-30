@@ -33,12 +33,12 @@ import (
 )
 
 type GoogleAuthConfig struct {
-	Domain           string `yaml:"domain,omitempty"`
-	ClientId         string `yaml:"client_id,omitempty"`
-	ClientSecret     string `yaml:"client_secret,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-	TokenDB          string `yaml:"token_db,omitempty"`
-	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
+	TokenConfiguration `yaml:",inline"`
+	Domain             string `yaml:"domain,omitempty"`
+	ClientId           string `yaml:"client_id,omitempty"`
+	ClientSecret       string `yaml:"client_secret,omitempty"`
+	ClientSecretFile   string `yaml:"client_secret_file,omitempty"`
+	HTTPTimeout        int    `yaml:"http_timeout,omitempty"`
 }
 
 type GoogleAuthRequest struct {
@@ -127,11 +127,11 @@ type GoogleAuth struct {
 }
 
 func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
-	db, err := NewLevelDBTokenDB(c.TokenDB)
+	db, err := NewTokenDB(c.TokenConfiguration)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize token storage: %w", err)
 	}
-	glog.Infof("Google auth token DB at %s", c.TokenDB)
+	glog.Infof("Google auth token DB at %s", db)
 	return &GoogleAuth{
 		config: c,
 		db:     db,

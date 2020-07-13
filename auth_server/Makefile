@@ -30,7 +30,7 @@ ca-certificates.crt:
 build-release: ca-certificates.crt
 	docker run --rm -v $(PWD)/..:/src \
 	  $(BUILDER_IMAGE) sh -x -c "\
-	    apk update && apk add git make py2-pip && pip install GitPython && \
+	    apk update && apk add git make py-pip && pip install GitPython && \
 	    cd /src/auth_server && \
 	    umask 0 && \
 	    go install -v github.com/a-urth/go-bindata/go-bindata && \

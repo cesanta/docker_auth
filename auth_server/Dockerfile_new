@@ -1,7 +1,7 @@
 
 # build examples:
-# docker build -t cesanta/docker_auth:latest -f auth_server/Dockerfile_scratch .
-# docker build -t cesanta/docker_auth:latest -f auth_server/Dockerfile_scratch --build-arg BASE_IMAGE=alpine:3.12 .
+# docker build -t cesanta/docker_auth:latest -f auth_server/Dockerfile_new .
+# docker build -t cesanta/docker_auth:latest -f auth_server/Dockerfile_new --build-arg BASE_IMAGE=alpine:3.12 .
 
 ARG BASE_IMAGE=scratch
 

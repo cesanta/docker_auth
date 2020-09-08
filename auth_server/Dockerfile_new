@@ -1,0 +1,36 @@
+
+# build examples:
+# docker build -t cesanta/docker_auth:latest -f auth_server/Dockerfile_scratch .
+# docker build -t cesanta/docker_auth:latest -f auth_server/Dockerfile_scratch --build-arg BASE_IMAGE=alpine:3.12 .
+
+ARG BASE_IMAGE=scratch
+
+#################################################################
+####                         Stage 1                         ####
+#################################################################
+
+FROM golang:1.15-alpine AS build-env
+RUN apk --no-cache add git make py3-pip && \
+    pip3 install gitpython
+COPY . /go/src/app
+WORKDIR /go/src/app/auth_server
+
+
+RUN make deps
+
+RUN make generate
+
+RUN make
+
+
+#################################################################
+####                         Stage 2                         ####
+#################################################################
+
+FROM ${BASE_IMAGE} 
+
+WORKDIR /app/
+COPY --from=build-env /go/src/app/auth_server /app/
+EXPOSE 5001
+ENTRYPOINT ["/app/auth_server"]
+CMD ["/config/auth_config.yml"]

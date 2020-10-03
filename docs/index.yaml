@@ -3,17 +3,9 @@ entries:
   docker-auth:
   - apiVersion: v2
     appVersion: 1.4.0
-    created: "2020-05-02T16:45:33.319988+02:00"
-    dependencies:
-    - condition: registry.enabled
-      import-values:
-      - child: configData
-        parent: registry.configData
-      name: docker-registry
-      repository: https://kubernetes-charts.storage.googleapis.com/
-      version: ^1.9.1
+    created: "2020-10-02T22:56:32.134675-04:00"
     description: Docker Registry V2 authentication server
-    digest: ef21264f6e72c8cf19705486ccc5594469a0384a94d73bd4c853a11abc5db296
+    digest: 7842a1c2672bb63393cec4df2ec6f554d114e32dcc91ced98e427f365be423c7
     home: https://github.com/cesanta/docker_auth
     keywords:
     - docker
@@ -30,37 +22,6 @@ entries:
     sources:
     - https://github.com/cesanta/docker_auth
     urls:
-    - https://pfisterer.github.io/docker_auth/docker-auth-1.0.3.tgz
+    - https://cesanta.github.io/docker_auth/docker-auth-1.0.3.tgz
     version: 1.0.3
-  - apiVersion: v2
-    appVersion: 1.4.0
-    created: "2020-05-02T16:45:33.316859+02:00"
-    dependencies:
-    - condition: registry.enabled
-      import-values:
-      - child: configData
-        parent: registry.configData
-      name: docker-registry
-      repository: https://kubernetes-charts.storage.googleapis.com/
-      version: ^1.9.1
-    description: Docker Registry V2 authentication server
-    digest: d700cd60d54aeeeded566a9c978bce2805d4b777ad5ca61a4862a35b11b69487
-    home: https://github.com/cesanta/docker_auth
-    keywords:
-    - docker
-    - registry
-    - docker-auth
-    - docker-registry
-    - token
-    maintainers:
-    - email: 1294057873@qq.com
-      name: duyanghao
-    - email: github@farberg.de
-      name: pfisterer
-    name: docker-auth
-    sources:
-    - https://github.com/cesanta/docker_auth
-    urls:
-    - https://pfisterer.github.io/docker_auth/docker-auth-1.0.2.tgz
-    version: 1.0.2
-generated: "2020-05-02T16:45:33.314109+02:00"
+generated: "2020-10-02T22:56:32.133348-04:00"

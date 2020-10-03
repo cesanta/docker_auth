@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: cesanta/docker_auth
-  tag: 1.4.0
+  tag: 1.6.0
   pullPolicy: IfNotPresent
 
 registry:

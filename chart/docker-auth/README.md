@@ -21,7 +21,7 @@ Install the docker-auth helm chart:
 Add repository to helm
 
 ```bash
-helm repo add pfisterer-docker-auth https://pfisterer.github.io/docker_auth/
+helm repo add cesanta-charts https://cesanta.github.io/docker_auth/
 helm repo update
 ```
 
@@ -29,7 +29,7 @@ Installation:
 
 ```bash
 helm dependency update
-helm install --name=docker-auth pfisterer-docker-auth/docker_auth
+helm install --name=docker-auth cesanta-charts/docker_auth
 ```
 
 To delete the `my-release` deployment, run:
@@ -44,8 +44,6 @@ The following table lists the configurable parameters of the docker-auth chart a
 
 | Parameter                         | Description                                                                                                                                                                                                                                            | Default                |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
-| **Docker Registry**               |                                                                                                                                                                                                                                                        |                        |
-| `registry.enabled`                | Deploy an instance of the docker registry                                                                                                                                                                                                              | `false`                |
 | **Secret**                        |
 | `secret.data.server.certificate`  | Content of server.pem  (mutually exclusive with secretName, keyName, certificateName)                                                                                                                                                                  |                        |
 | `secret.data.server.key`          | Content of server.key  (mutually exclusive with secretName, keyName, certificateName)                                                                                                                                                                  |                        |
@@ -261,7 +259,7 @@ cd chart/docker-auth
 helm lint
 helm package .
 mv docker-auth-*.tgz ../../docs/
-helm repo index ../../docs/ --url https://pfisterer.github.io/docker_auth/
+helm repo index ../../docs/ --url https://cesanta.github.io/docker_auth/
 git add ../../docs/
 git commit -a -m "Updated helm repository"
 git push origin master

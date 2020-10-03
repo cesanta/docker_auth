@@ -18,12 +18,3 @@ maintainers:
 - name: pfisterer
   email: github@farberg.de
 engine: gotpl
-dependencies:
-- name: docker-registry
-  version: ^1.9.1
-  repository: https://kubernetes-charts.storage.googleapis.com/
-  #repository: file:///Users/dennis/Desktop/k8s/helm-charts/stable/docker-registry/
-  condition: registry.enabled
-  import-values:
-    - child: configData
-      parent: registry.configData

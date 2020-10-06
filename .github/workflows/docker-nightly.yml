@@ -1,0 +1,79 @@
+name: docker-nightly
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+
+  docker:
+    name: Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get Version
+        id: info
+        run: |
+          echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+      - name: make generate build
+        run: |
+          /usr/bin/env python3 -m pip install GitPython
+          cd auth_server
+          make deps generate build
+
+      - name: cp ca-certificates.crt
+        run: |
+          cp /etc/ssl/certs/ca-certificates.crt auth_server/ca-certificates.crt
+
+      - name: Determine Docker Tag
+        uses: haya14busa/action-cond@v1
+        id: imagetag
+        with:
+          cond: ${{ github.event_name == 'pull_request' }}
+          if_true: ${{ github.sha }}
+          if_false: 'latest'
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          install: true
+          version: latest
+          # TODO: Remove driver-opts once fix is released docker/buildx#386
+          driver-opts: image=moby/buildkit:master
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        if: github.event_name == 'push'
+
+      - name: Build and Push
+        uses: docker/build-push-action@v2
+        with:
+          context: auth_server
+          file: auth_server/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name == 'push' }}
+          tags: cesanta/docker_auth:${{ steps.imagetag.outputs.value }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.version=${{ steps.imagetag.outputs.value }}
+            org.opencontainers.image.created=${{ steps.info.outputs.created }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=${{ github.event.repository.license.spdx_id }}

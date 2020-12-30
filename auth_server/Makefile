@@ -33,7 +33,7 @@ build-release: ca-certificates.crt
 	    apk update && apk add git make py3-pip && pip install GitPython && \
 	    cd /src/auth_server && \
 	    umask 0 && \
-	    go install -v github.com/go-bindata/go-bindata && \
+	    go get -u github.com/go-bindata/go-bindata/... && \
 	    make generate && \
 	    CGO_ENABLED=0 go build -v --ldflags=--s"
 	@echo === Built version $$(cat version.txt) ===

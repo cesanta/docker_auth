@@ -1,9 +1,7 @@
 1. Get the application URL by running these commands:
 {{- if .Values.ingress.enabled }}
-{{- range $host := .Values.ingress.hosts }}
-  {{- range .paths }}
-  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ . }}
-  {{- end }}
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ . }}{{ $.Values.ingress.path }}
 {{- end }}
 {{- else if contains "NodePort" .Values.service.type }}
   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "docker-auth.fullname" . }})
@@ -19,17 +17,18 @@
   echo "Visit http://127.0.0.1:8080 to use your application"
   kubectl port-forward $POD_NAME 8080:80
 {{- end }}
-2. Docker/Distribution configurate `auth.token` as below:
+
+{{- if not .Values.registry.enabled }}
+2. Configure your docker registry:
 auth:
   token:
     autoredirect: false
 {{- if .Values.ingress.enabled }}
-{{- range $host := .Values.ingress.hosts }}
-    {{- range .paths }}
-    realm: http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ . }}
-    {{- end }}
+{{- range .Values.ingress.hosts }}
+    realm: http{{ if $.Values.ingress.tls }}s{{ end }}://{{ . }}{{ $.Values.ingress.path }}
 {{- end }}
 {{- end }}
     service: token-service
     issuer: Acme auth server
     rootcertbundle: /path/to/server.pem
+{{- end }}

@@ -49,9 +49,9 @@ func TestValidation(t *testing.T) {
 	for i, c := range cases {
 		result := validateMatchConditions(&c.mc)
 		if c.ok && result != nil {
-			t.Errorf("%d: %q: expected to pass, got %s", i, c.mc, result)
+			t.Errorf("%d: %v: expected to pass, got %s", i, c.mc, result)
 		} else if !c.ok && result == nil {
-			t.Errorf("%d: %q: expected to fail, but it passed", i, c.mc)
+			t.Errorf("%d: %v: expected to fail, but it passed", i, c.mc)
 		}
 	}
 }

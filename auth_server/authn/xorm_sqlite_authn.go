@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-// +build sqlite
+//+build sqlite
 
 package authn
 

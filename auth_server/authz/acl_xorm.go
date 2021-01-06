@@ -75,7 +75,7 @@ func NewACLXormAuthz(c *XormAuthzConfig) (api.Authorizer, error) {
 		updateTicker: time.NewTicker(c.CacheTTL),
 	}
 
-	// Initially fetch the ACL from MongoDB
+	// Initially fetch the ACL from XORM
 	if err := authorizer.updateACLCache(); err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (xa *aclXormAuthz) continuouslyUpdateACLCache() {
 			if err == nil {
 				break
 			} else if err == io.EOF {
-				glog.Warningf("EOF error received from Mongo. Retrying connection")
+				glog.Warningf("EOF error received from Xorm. Retrying connection")
 				time.Sleep(time.Second)
 				continue
 			} else {
@@ -155,8 +155,8 @@ func (xa *aclXormAuthz) updateACLCache() error {
 	xa.staticAuthorizer = newStaticAuthorizer
 	xa.lock.Unlock()
 
-	glog.V(2).Infof("Got new ACL from MongoDB: %s", retACL)
-	glog.V(1).Infof("Installed new ACL from MongoDB (%d entries)", len(retACL))
+	glog.V(2).Infof("Got new ACL from XORM: %s", retACL)
+	glog.V(1).Infof("Installed new ACL from XORM (%d entries)", len(retACL))
 	return nil
 
 }

@@ -68,6 +68,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authorizers = append(as.authorizers, mongoAuthorizer)
 	}
+	if c.ACLXorm != nil {
+		xormAuthorizer, err := authz.NewACLXormAuthz(c.ACLXorm)
+		if err != nil {
+			return nil, err
+		}
+		as.authorizers = append(as.authorizers, xormAuthorizer)
+	}
 	if c.ExtAuthz != nil {
 		extAuthorizer := authz.NewExtAuthzAuthorizer(c.ExtAuthz)
 		as.authorizers = append(as.authorizers, extAuthorizer)
@@ -107,6 +114,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 			return nil, err
 		}
 		as.authenticators = append(as.authenticators, ma)
+	}
+	if c.XormAuthn != nil {
+		xa, err := authn.NewXormAuth(c.XormAuthn)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, xa)
 	}
 	if c.PluginAuthn != nil {
 		pluginAuthn, err := authn.NewPluginAuthn(c.PluginAuthn)

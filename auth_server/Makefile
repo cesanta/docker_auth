@@ -1,5 +1,5 @@
 MAKEFLAGS += --warn-undefined-variables
-IMAGE ?= cesanta/docker_auth
+IMAGE ?= fbasels/docker_auth
 COMPRESS_BINARY ?= false
 CA_BUNDLE = /etc/ssl/certs/ca-certificates.crt
 VERSION = $(shell cat version.txt)
@@ -22,7 +22,7 @@ generate:
 	  github.com/cesanta/docker_auth/auth_server/server/...
 
 build:
-	CGO_ENABLED=0 go build -v --ldflags=--s
+	go build -v --ldflags=--s
 
 ca-certificates.crt:
 	cp $(CA_BUNDLE) .

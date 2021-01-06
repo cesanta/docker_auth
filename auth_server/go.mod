@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.68.0 // indirect
 	cloud.google.com/go/storage v1.12.0
 	github.com/cesanta/glog v0.0.0-20150527111657-22eb27a0ae19
+	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/distribution v2.7.1+incompatible
@@ -21,6 +22,7 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/pquerna/cachecontrol v0.0.0-20201205024021-ac21108117ac // indirect
 	github.com/schwarmco/go-cartesian-product v0.0.0-20180515110546-d5ee747a6dc9
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0
@@ -35,5 +37,6 @@ require (
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
+	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )

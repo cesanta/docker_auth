@@ -205,7 +205,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	glog.CopyStandardLogTo("INFO")
 
-	glog.Infof("docker_auth %s build %s", Version, BuildId)
+	//glog.Infof("docker_auth %s build %s", Version, BuildId)
 
 	cf := flag.Arg(0)
 	if cf == "" {

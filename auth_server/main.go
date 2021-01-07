@@ -14,7 +14,8 @@
    limitations under the License.
 */
 
-//go:generate ./gen_version.py
+// This creates a problem in the new Dockerfile. Change if time you have time
+//go : generate ./gen_version.py
 
 package main // import "github.com/cesanta/docker_auth/auth_server"
 

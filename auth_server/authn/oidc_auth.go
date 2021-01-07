@@ -43,6 +43,7 @@ type OIDCAuthConfig struct {
 	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
 	TokenDB          string `yaml:"token_db,omitempty"`
 	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
+	RegistryURL      string `yaml:"registry_url,omitempty"`
 }
 
 /*
@@ -108,12 +109,13 @@ type OIDCProfileResponse struct {
 }
 
 type OIDCAuth struct {
-	config   *OIDCAuthConfig
-	db       TokenDB
-	client   *http.Client
-	tmpl     *template.Template
-	ctx      context.Context
-	provider *oidc.Provider
+	config     *OIDCAuthConfig
+	db         TokenDB
+	client     *http.Client
+	tmpl       *template.Template
+	tmplResult *template.Template
+	ctx        context.Context
+	provider   *oidc.Provider
 }
 
 /*
@@ -131,12 +133,13 @@ func NewOIDCAuth(c *OIDCAuthConfig) (*OIDCAuth, error) {
 		return nil, err
 	}
 	return &OIDCAuth{
-		config:   c,
-		db:       db,
-		client:   &http.Client{Timeout: 10 * time.Second},
-		tmpl:     template.Must(template.New("oidc_auth").Parse(string(MustAsset("data/oidc_auth.tmpl")))),
-		ctx:      ctx,
-		provider: prov,
+		config:     c,
+		db:         db,
+		client:     &http.Client{Timeout: 10 * time.Second},
+		tmpl:       template.Must(template.New("oidc_auth").Parse(string(MustAsset("data/oidc_auth.tmpl")))),
+		tmplResult: template.Must(template.New("oidc_auth_result").Parse(string(MustAsset("data/oidc_auth_result.tmpl")))),
+		ctx:        ctx,
+		provider:   prov,
 	}, nil
 }
 
@@ -149,7 +152,7 @@ func (ga *OIDCAuth) DoOIDCAuth(rw http.ResponseWriter, req *http.Request) {
 	if code != "" {
 		ga.doOIDCAuthCreateToken(rw, code)
 	} else if req.Method == "GET" {
-		ga.doOIDCAuthPage(rw, req)
+		ga.doOIDCAuthPage(rw)
 		return
 	} else {
 		http.Error(rw, "Invalid auth request", http.StatusBadRequest)
@@ -159,13 +162,25 @@ func (ga *OIDCAuth) DoOIDCAuth(rw http.ResponseWriter, req *http.Request) {
 /*
 Executes tmpl for the login page of the docker auth server
 */
-func (ga *OIDCAuth) doOIDCAuthPage(rw http.ResponseWriter, req *http.Request) {
+func (ga *OIDCAuth) doOIDCAuthPage(rw http.ResponseWriter) {
 	if err := ga.tmpl.Execute(rw, struct {
 		AuthEndpoint, RedirectURI, ClientId string
 	}{
 		AuthEndpoint: ga.provider.Endpoint().AuthURL,
 		RedirectURI:  ga.config.RedirectURL,
 		ClientId:     ga.config.ClientId,
+	}); err != nil {
+		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
+	}
+}
+
+func (ga *OIDCAuth) doOIDCAuthResultPage(rw http.ResponseWriter, un string, pw string) {
+	if err := ga.tmplResult.Execute(rw, struct {
+		Username, Password, RegistryUrl string
+	}{
+		Username:    un,
+		Password:    pw,
+		RegistryUrl: ga.config.RegistryURL,
 	}); err != nil {
 		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
 	}
@@ -238,7 +253,7 @@ func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
 		return
 	}
 
-	fmt.Fprintf(rw, `Server logged in; now run "docker login YOUR_REGISTRY_FQDN", use %s as login and %s as password.`, ui, dp)
+	ga.doOIDCAuthResultPage(rw, ui, dp)
 }
 
 /*

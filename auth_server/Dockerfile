@@ -7,6 +7,7 @@ ARG BASE_IMAGE=scratch
 FROM golang:1.15-alpine AS build-env
 RUN apk --no-cache add git make py3-pip && \
     pip3 install gitpython
+RUN apk --no-cache add ca-certificates
 RUN apk add --no-cache gcc musl-dev
 COPY . /go/src/app/auth_server
 WORKDIR /go/src/app/auth_server/
@@ -26,6 +27,7 @@ RUN make
 FROM ${BASE_IMAGE}
 
 WORKDIR /app/
+COPY --from=build-env /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build-env /go/src/app/auth_server /app/
 EXPOSE 5001
 ENTRYPOINT ["/app/auth_server"]

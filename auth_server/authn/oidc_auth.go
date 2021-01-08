@@ -18,6 +18,7 @@ package authn
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -153,7 +154,6 @@ func (ga *OIDCAuth) DoOIDCAuth(rw http.ResponseWriter, req *http.Request) {
 		ga.doOIDCAuthCreateToken(rw, code)
 	} else if req.Method == "GET" {
 		ga.doOIDCAuthPage(rw)
-		return
 	} else {
 		http.Error(rw, "Invalid auth request", http.StatusBadRequest)
 	}
@@ -191,15 +191,16 @@ Requests at OIDC provider for a token by reacting to the code that was responded
 new DB token is created based on the information given in the OIDC token
 */
 func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
-	resp, err := ga.client.PostForm(
-		ga.provider.Endpoint().TokenURL,
+	req, _ := http.NewRequest("POST", ga.provider.Endpoint().TokenURL, strings.NewReader(
 		url.Values{
-			"code":                []string{string(code)},
-			"client_id":           []string{ga.config.ClientId},
-			"client_secret_basic": []string{ga.config.ClientSecret},
-			"redirect_uri":        []string{ga.config.RedirectURL},
-			"grant_type":          []string{"authorization_code"},
-		})
+			"code":         []string{code},
+			"redirect_uri": []string{ga.config.RedirectURL},
+			"grant_type":   []string{"authorization_code"},
+		}.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Authorization",
+		"Basic "+base64.StdEncoding.EncodeToString([]byte(ga.config.ClientId+":"+ga.config.ClientSecret)))
+	resp, err := ga.client.Do(req)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("Error talking to OIDC auth backend: %s", err), http.StatusServiceUnavailable)
 		return
@@ -222,8 +223,7 @@ func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
 	}
 
 	if c2t.RefreshToken == "" {
-		http.Error(rw, "OIDC provider did not return refresh token, please sign out and sign in again.", http.StatusBadRequest)
-		return
+		glog.V(2).Infof("No refresh token was send by the OIDC provider")
 	}
 
 	if c2t.ExpiresIn < 60 {
@@ -231,10 +231,19 @@ func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
 		return
 	}
 
-	ui, err := ga.getIDTokenInfo(c2t.IDToken)
-	if err != nil || ui == "" {
+	valid, err := ga.validateIDToken(c2t.IDToken)
+	if err != nil || !valid {
 		glog.Errorf("Newly-acquired ID token is invalid: %+v %s", c2t, err)
 		http.Error(rw, "Newly-acquired ID token is invalid", http.StatusInternalServerError)
+		return
+	}
+
+	ui, err := ga.getUserInformation(c2t.TokenType, c2t.AccessToken)
+	if err != nil {
+		glog.Errorf("Could not get user information from /userinfo endpoint with access token: %s", c2t.AccessToken)
+	} else if ui == "" {
+		glog.Errorf("There are no information about the users email address at /userinfo endpoint with access token: %s", c2t.AccessToken)
+		http.Error(rw, "There are no information about the users email address given by the OIDC provider", http.StatusInternalServerError)
 		return
 	}
 
@@ -259,7 +268,7 @@ func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
 /*
 Validates the ID token and extracts user information (only extraction of email since it is the only necessary information)
 */
-func (ga *OIDCAuth) getIDTokenInfo(idToken string) (string, error) {
+func (ga *OIDCAuth) validateIDToken(idToken string) (bool, error) {
 	// TODO: remove it if everything will be done correctly by the verifier
 	//parts := strings.Split(token, ".")
 	//rawIDTok, err := base64.StdEncoding.DecodeString(parts[1])
@@ -286,23 +295,15 @@ func (ga *OIDCAuth) getIDTokenInfo(idToken string) (string, error) {
 	//	return nil, fmt.Errorf("ID Token expired")
 	//}
 	var verifier = ga.provider.Verifier(&oidc.Config{ClientID: ga.config.ClientId})
-	idTok, err := verifier.Verify(ga.ctx, idToken)
+	_, err := verifier.Verify(ga.ctx, idToken)
 	if err != nil {
-		return "", fmt.Errorf("could not verify ID token %s. %s", idToken, err)
+		return false, fmt.Errorf("could not verify ID token %s. %s", idToken, err)
 	}
-	var mail struct {
-		Email string `json:"email"`
-	}
-	err = idTok.Claims(&mail)
-	if err != nil || mail.Email == "" {
-		return "", fmt.Errorf("could not get mail information from ID token %s", idTok)
-
-	}
-	return mail.Email, nil
+	return true, nil
 }
 
 /*
-Refresh the access token of the user.
+Refreshs the access token of the user. Not usable with all OIDC provider, since not all provide refresh tokens.
 */
 func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshTokenResponse, err error) {
 	resp, err := ga.client.PostForm(
@@ -328,10 +329,10 @@ func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshToke
 }
 
 /*
-validates the access token of the user, that is stored in the database, against OIDC provider. Furthermore gets the user
+validates the access token of the user that is stored in the database against OIDC provider. Furthermore gets the user
 information by doing a UserInfo request
 */
-func (ga *OIDCAuth) getUserInformation(toktype, token string) (user string, err error) {
+func (ga *OIDCAuth) getUserInformation(toktype string, token string) (user string, err error) {
 	req, _ := http.NewRequest("GET", ga.config.Issuer+"/userinfo", nil)
 	req.Header.Add("Authorization", fmt.Sprintf("%s %s", toktype, token))
 	resp, err := ga.client.Do(req)
@@ -359,6 +360,9 @@ func (ga *OIDCAuth) validateServerToken(user string) (*TokenDBValue, error) {
 			err = errors.New("no db value, please sign out and sign in again")
 		}
 		return nil, err
+	}
+	if v.RefreshToken != "" {
+		return nil, errors.New("refresh of your session is not possible. Please sign out and sign in again")
 	}
 	if time.Now().After(v.ValidUntil) {
 		glog.V(2).Infof("Refreshing token for %s", user)
@@ -396,7 +400,7 @@ TODO: remove if not necessary
 */
 //func (ga *OIDCAuth) doOIDCAuthCheck(rw http.ResponseWriter, token string) {
 //	// First, authenticate web user.
-//	ui, err := ga.getIDTokenInfo(token)
+//	ui, err := ga.validateIDToken(token)
 //	if err != nil || ui == ""{
 //		http.Error(rw, fmt.Sprintf("Could not verify user token: %s", err), http.StatusBadRequest)
 //		return
@@ -418,7 +422,7 @@ TODO: Maybe change it so that the user can sign out at the page after he has sig
 */
 //func (ga *OIDCAuth) doOIDCAuthSignOut(rw http.ResponseWriter, token string) {
 //	// Authenticate web user.
-//	ui, err := ga.getIDTokenInfo(token)
+//	ui, err := ga.validateIDToken(token)
 //	if err != nil || ui == ""{
 //		http.Error(rw, fmt.Sprintf("Could not verify user token: %s", err), http.StatusBadRequest)
 //		return
@@ -456,7 +460,7 @@ func (ga *OIDCAuth) Stop() {
 	glog.Info("Token DB closed")
 }
 
-// TODO: remove it, if it is not used in getIDTokenInfo
+// TODO: remove it, if it is not used in validateIDToken
 func contains(s []string, str string) bool {
 	for _, i := range s {
 		if i == str {

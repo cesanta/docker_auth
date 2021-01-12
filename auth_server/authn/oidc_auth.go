@@ -36,58 +36,24 @@ import (
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
+// All configuration options
 type OIDCAuthConfig struct {
-	Issuer           string `yaml:"issuer,omitempty"`
-	RedirectURL      string `yaml:"redirect_url,omitempty"`
+	// --- necessary ---
+	// URL of the authentication provider. Must be able to serve the /.well-known/openid-configuration
+	Issuer string `yaml:"issuer,omitempty"`
+	// URL of the auth server. Has to end with /oidc_auth
+	RedirectURL string `yaml:"redirect_url,omitempty"`
+	// ID and secret, priovided by the OIDC provider after registration of the auth server
 	ClientId         string `yaml:"client_id,omitempty"`
 	ClientSecret     string `yaml:"client_secret,omitempty"`
 	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-	TokenDB          string `yaml:"token_db,omitempty"`
-	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
-	RegistryURL      string `yaml:"registry_url,omitempty"`
+	// path where the tokendb should be stored within the container
+	TokenDB string `yaml:"token_db,omitempty"`
+	// --- optional ---
+	HTTPTimeout int `yaml:"http_timeout,omitempty"`
+	// the URL of the docker registry. Used to generate a full docker login command after authentication
+	RegistryURL string `yaml:"registry_url,omitempty"`
 }
-
-/*
-These are the information that are given in the ID tokens.
-// TODO: maybe remove, we do not need
-*/
-//type OIDCIDToken struct {
-//	// Issuer identifier of the ID token. Usually it should be the same issuer as OIDCAuthConfig.Issuer.
-//	Issuer string `json:"iss,omitempty"`
-//
-//	// Subject identifier is a unique identifier of the user at the OIDC provider.
-//	Subject string `json:"sub,omitempty"`
-//
-//	// Audience that the ID token is for. It has to contain the client_id.
-//	Audience []string `json:"aud,omitempty"`
-//
-//	// Nonce to associate the ID token with a client session. It is optional and used to mitigate replay attacks.
-//	Nonce string `json:"nonce,omitempty"`
-//
-//	// ExpiresIn: The expiry time of the token, as number of seconds left until expiry.
-//	ExpiresIn int64 `json:"exp,omitempty"`
-//
-//	// IssuedAt: Time at which the ID token was issued
-//	IssuedAt int64 `json:"iat,omitempty"`
-//
-//	// Returned in case of error.
-//	Error            string `json:"error,omitempty"`
-//	ErrorDescription string `json:"error_description,omitempty"`
-//}
-
-// CodeToTokenResponse is sent by OIDC provider in response to the grant_type=authorization_code request.
-// already defined in google_auth, here just for overview
-//type CodeToTokenResponse struct {
-//	IDToken      string `json:"id_token,omitempty"`
-//	AccessToken  string `json:"access_token,omitempty"`
-//	RefreshToken string `json:"refresh_token,omitempty"`
-//	ExpiresIn    int64  `json:"expires_in,omitempty"`
-//	TokenType    string `json:"token_type,omitempty"`
-//
-//	// Returned in case of error.
-//	Error            string `json:"error,omitempty"`
-//	ErrorDescription string `json:"error_description,omitempty"`
-//}
 
 // OIDCRefreshTokenResponse is sent by OIDC provider in response to the grant_type=refresh_token request.
 type OIDCRefreshTokenResponse struct {
@@ -109,6 +75,7 @@ type OIDCProfileResponse struct {
 	// There are more fields, but we only need email.
 }
 
+// The specific OIDC authenticator
 type OIDCAuth struct {
 	config     *OIDCAuthConfig
 	db         TokenDB
@@ -174,6 +141,9 @@ func (ga *OIDCAuth) doOIDCAuthPage(rw http.ResponseWriter) {
 	}
 }
 
+/*
+Executes tmplResult for the result of the login process
+*/
 func (ga *OIDCAuth) doOIDCAuthResultPage(rw http.ResponseWriter, un string, pw string) {
 	if err := ga.tmplResult.Execute(rw, struct {
 		Username, Password, RegistryUrl string
@@ -187,7 +157,7 @@ func (ga *OIDCAuth) doOIDCAuthResultPage(rw http.ResponseWriter, un string, pw s
 }
 
 /*
-Requests at OIDC provider for a token by reacting to the code that was responded. If token was given by OIDC provider,
+Requests a token from the OIDC provider by reacting to the code that was responded. If token was given by OIDC provider,
 new DB token is created based on the information given in the OIDC token
 */
 func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
@@ -269,31 +239,6 @@ func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
 Validates the ID token and extracts user information (only extraction of email since it is the only necessary information)
 */
 func (ga *OIDCAuth) validateIDToken(idToken string) (bool, error) {
-	// TODO: remove it if everything will be done correctly by the verifier
-	//parts := strings.Split(token, ".")
-	//rawIDTok, err := base64.StdEncoding.DecodeString(parts[1])
-	//if err!= nil {
-	//	return nil, fmt.Errorf("could not decode the ID token %s", token)
-	//}
-	//
-	//var idTok OIDCIDToken
-	//err = json.Unmarshal(rawIDTok, &idTok)
-	//if err != nil{
-	//	return nil, fmt.Errorf("could not unmarshal id token %s from decoded id token %s", token, rawIDTok)
-	//}
-	//glog.V(2).Infof("ID Token info: %+v", strings.Replace(string(rawIDTok), "\n", " ", -1))
-	//if idTok.Error != "" || idTok.ErrorDescription != "" {
-	//	return nil, fmt.Errorf("bad ID token %q: %s %s", token, idTok.Error, idTok.ErrorDescription)
-	//}
-	//if idTok.Issuer != ga.config.Issuer {
-	//	return nil, fmt.Errorf("wrong id token issuer. Token was provided by %s, not %s", idTok.Issuer, ga.config.Issuer)
-	//}
-	//if !contains(idTok.Audience, ga.config.ClientId) {
-	//	return nil, fmt.Errorf("client_id not in aud set. Token intended for %s, not %s", idTok.Audience, ga.config.ClientId)
-	//}
-	//if time.Now().Unix() >= idTok.ExpiresIn {
-	//	return nil, fmt.Errorf("ID Token expired")
-	//}
 	var verifier = ga.provider.Verifier(&oidc.Config{ClientID: ga.config.ClientId})
 	_, err := verifier.Verify(ga.ctx, idToken)
 	if err != nil {
@@ -306,14 +251,15 @@ func (ga *OIDCAuth) validateIDToken(idToken string) (bool, error) {
 Refreshs the access token of the user. Not usable with all OIDC provider, since not all provide refresh tokens.
 */
 func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshTokenResponse, err error) {
-	resp, err := ga.client.PostForm(
-		ga.provider.Endpoint().TokenURL,
+	req, _ := http.NewRequest("POST", ga.provider.Endpoint().TokenURL, strings.NewReader(
 		url.Values{
-			"refresh_token":       []string{refreshToken},
-			"client_id":           []string{ga.config.ClientId},
-			"client_secret_basic": []string{ga.config.ClientSecret},
-			"grant_type":          []string{"refresh_token"},
-		})
+			"refresh_token": []string{refreshToken},
+			"grant_type":    []string{"refresh_token"},
+		}.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Authorization",
+		"Basic "+base64.StdEncoding.EncodeToString([]byte(ga.config.ClientId+":"+ga.config.ClientSecret)))
+	resp, err := ga.client.Do(req)
 	if err != nil {
 		err = fmt.Errorf("error talking to OIDC auth backend: %s", err)
 		return
@@ -329,8 +275,8 @@ func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshToke
 }
 
 /*
-validates the access token of the user that is stored in the database against OIDC provider. Furthermore gets the user
-information by doing a UserInfo request
+Validates the access token of the user that is stored in the database against OIDC provider by requesting for user information
+at the /userinfo endpoint. Responses the mail information of the user.
 */
 func (ga *OIDCAuth) getUserInformation(toktype string, token string) (user string, err error) {
 	req, _ := http.NewRequest("GET", ga.config.Issuer+"/userinfo", nil)
@@ -395,30 +341,8 @@ func (ga *OIDCAuth) validateServerToken(user string) (*TokenDBValue, error) {
 }
 
 /*
-First checks if OIDC token is valid. Then checks if DB token is valid.
-TODO: remove if not necessary
-*/
-//func (ga *OIDCAuth) doOIDCAuthCheck(rw http.ResponseWriter, token string) {
-//	// First, authenticate web user.
-//	ui, err := ga.validateIDToken(token)
-//	if err != nil || ui == ""{
-//		http.Error(rw, fmt.Sprintf("Could not verify user token: %s", err), http.StatusBadRequest)
-//		return
-//	}
-//	// User authenticated, now verify our token.
-//	dbv, err := ga.validateServerToken(ui)
-//	if err != nil {
-//		http.Error(rw, fmt.Sprintf("Could not verify server token: %s", err), http.StatusBadRequest)
-//		return
-//	}
-//	// Truncate to seconds for presentation.
-//	texp := time.Duration(int64(dbv.ValidUntil.Sub(time.Now()).Seconds())) * time.Second
-//	fmt.Fprintf(rw, "Server token for %s validated, expires in %s", ui, texp)
-//}
-
-/*
 First checks if OIDC token is valid. Then delete the corresponding DB token from the database. The user is now signed out
-TODO: Maybe change it so that the user can sign out at the page after he has signed in.
+Not deleted because maybe it will be implemented in the future.
 */
 //func (ga *OIDCAuth) doOIDCAuthSignOut(rw http.ResponseWriter, token string) {
 //	// Authenticate web user.
@@ -435,12 +359,8 @@ TODO: Maybe change it so that the user can sign out at the page after he has sig
 //}
 
 /*
-Authenticates user with password that was given in the docker CLI command. The function checks if the user and password
-are correct and the corresponding DB token is valid.
-If:
-expired token -> token of user expired. next step, try to create new token for this user
-error -> user not authenticated
-no error -> user authenticated
+Authenticates user with credentials that were given in the docker CLI. If the token in the DB is expired, the access token
+is validated and, if possible, refreshed.
 */
 func (ga *OIDCAuth) Authenticate(user string, password api.PasswordString) (bool, api.Labels, error) {
 	err := ga.db.ValidateToken(user, password)
@@ -458,16 +378,6 @@ func (ga *OIDCAuth) Authenticate(user string, password api.PasswordString) (bool
 func (ga *OIDCAuth) Stop() {
 	ga.db.Close()
 	glog.Info("Token DB closed")
-}
-
-// TODO: remove it, if it is not used in validateIDToken
-func contains(s []string, str string) bool {
-	for _, i := range s {
-		if i == str {
-			return true
-		}
-	}
-	return false
 }
 
 func (ga *OIDCAuth) Name() string {

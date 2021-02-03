@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/casbin/casbin/v2"
 	"github.com/cesanta/glog"
 	"github.com/docker/distribution/registry/auth/token"
 
@@ -135,6 +136,17 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 			return nil, err
 		}
 		as.authorizers = append(as.authorizers, pluginAuthz)
+	}
+	if c.CasbinAuthz != nil {
+		enforcer, err := casbin.NewEnforcer(c.CasbinAuthz.ModelFilePath, c.CasbinAuthz.PolicyFilePath)
+		if err != nil {
+			return nil, err
+		}
+		casbinAuthz, err := authz.NewCasbinAuthorizer(enforcer)
+		if err != nil {
+			return nil, err
+		}
+		as.authorizers = append(as.authorizers, casbinAuthz)
 	}
 	return as, nil
 }

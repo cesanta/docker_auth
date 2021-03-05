@@ -16,11 +16,13 @@ Supported authentication methods:
  * [Github Sign-In](docs/auth-methods.md#github)
  * LDAP bind ([demo](https://github.com/kwk/docker-registry-setup))
  * MongoDB user collection
+ * MySQL/MariaDB, PostgreSQL, SQLite database table
  * [External program](https://github.com/cesanta/docker_auth/blob/master/examples/ext_auth.sh)
 
 Supported authorization methods:
  * Static ACL
  * MongoDB-backed ACL
+ * MySQL/MariaDB, PostgreSQL, SQLite backed ACL
  * External program
 
 ## Installation and Examples

@@ -4,14 +4,14 @@ COMPRESS_BINARY ?= false
 CA_BUNDLE = /etc/ssl/certs/ca-certificates.crt
 VERSION = $(shell cat version.txt)
 
-BUILDER_IMAGE ?= golang:1.15-alpine3.12
+BUILDER_IMAGE ?= golang:1.16-alpine3.13
 
 .PHONY: %
 
 all: build
 
 deps:
-	go get -v github.com/go-bindata/go-bindata/...
+	go install github.com/go-bindata/go-bindata/go-bindata@latest
 
 generate:
 	go generate \
@@ -33,7 +33,7 @@ build-release: ca-certificates.crt
 	    apk update && apk add git make py3-pip && pip install GitPython && \
 	    cd /src/auth_server && \
 	    umask 0 && \
-	    go get -u github.com/go-bindata/go-bindata/... && \
+	    go install github.com/go-bindata/go-bindata/go-bindata@latest && \
 	    make generate && \
 	    CGO_ENABLED=0 go build -v --ldflags=--s"
 	@echo === Built version $$(cat version.txt) ===

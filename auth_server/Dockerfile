@@ -6,7 +6,7 @@ ARG BUILD_ID
 ENV BUILD_ID "${BUILD_ID}"
 ARG CGO_EXTRA_CFLAGS
 
-RUN apk add -U --no-cache ca-certificates make git gcc musl-dev binutils
+RUN apk add -U --no-cache ca-certificates make git gcc musl-dev binutils-gold
 
 COPY . /build
 WORKDIR /build

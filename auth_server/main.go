@@ -14,8 +14,6 @@
    limitations under the License.
 */
 
-//go:generate ./gen_version.py
-
 package main // import "github.com/cesanta/docker_auth/auth_server"
 
 import (

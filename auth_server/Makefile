@@ -15,7 +15,6 @@ deps:
 
 generate:
 	go generate \
-	  github.com/cesanta/docker_auth/auth_server \
 	  github.com/cesanta/docker_auth/auth_server/authn/... \
 	  github.com/cesanta/docker_auth/auth_server/authz/... \
 	  github.com/cesanta/docker_auth/auth_server/mgo_session/... \
@@ -30,7 +29,6 @@ ca-certificates.crt:
 build-release: ca-certificates.crt
 	docker run --rm -v $(PWD)/..:/src \
 	  $(BUILDER_IMAGE) sh -x -c "\
-	    apk update && apk add git make py3-pip && pip install GitPython && \
 	    cd /src/auth_server && \
 	    umask 0 && \
 	    go install github.com/go-bindata/go-bindata/go-bindata@latest && \

@@ -2,7 +2,6 @@
 
 ```
 # copy ca certificate to /etc/ssl/certs/ca-certificates.crt
-pip install gitpython
 mkdir -p /var/tmp/go/src/github.com/cesanta
 cd /var/tmp/go/src/github.com/cesanta
 git clone https://github.com/cesanta/docker_auth.git

@@ -21,18 +21,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Get Build Date
+      - name: Get Build Data
         id: info
         run: |
           echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           export TEMP=$(cd auth_server && go run gen_version.go)
           echo ::set-output name=version::$(echo -n $TEMP | awk '{print $1}')
           echo ::set-output name=build_id::$(echo -n $TEMP | awk '{print $2}')
-      
-      - name: Get Build Date
-        id: info
-        run: |
-          echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
       - name: Determine Docker Tag
         uses: haya14busa/action-cond@v1

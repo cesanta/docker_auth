@@ -14,9 +14,7 @@
    limitations under the License.
 */
 
-//go:generate ./gen_version.py
-
-package main // import "github.com/cesanta/docker_auth/auth_server"
+package main
 
 import (
 	"crypto/tls"
@@ -35,6 +33,13 @@ import (
 	fsnotify "gopkg.in/fsnotify.v1"
 
 	"github.com/cesanta/docker_auth/auth_server/server"
+)
+
+var (
+	// Version comment
+	Version = ""
+	// BuildID comment
+	BuildID = ""
 )
 
 type RestartableServer struct {
@@ -205,7 +210,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	glog.CopyStandardLogTo("INFO")
 
-	glog.Infof("docker_auth %s build %s", Version, BuildId)
+	glog.Infof("docker_auth %s build %s", Version, BuildID)
 
 	cf := flag.Arg(0)
 	if cf == "" {

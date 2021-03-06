@@ -21,20 +21,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Get Version
+      - name: Get Build Data
         id: info
         run: |
           echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-
-      - name: make generate build
-        run: |
-          /usr/bin/env python3 -m pip install GitPython
-          cd auth_server
-          make deps generate build
-
-      - name: cp ca-certificates.crt
-        run: |
-          cp /etc/ssl/certs/ca-certificates.crt auth_server/ca-certificates.crt
+          export TEMP=$(cd auth_server && go run gen_version.go)
+          echo ::set-output name=version::$(echo -n $TEMP | awk '{print $1}')
+          echo ::set-output name=build_id::$(echo -n $TEMP | awk '{print $2}')
 
       - name: Determine Docker Tag
         uses: haya14busa/action-cond@v1
@@ -73,6 +66,9 @@ jobs:
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' }}
           tags: cesanta/docker_auth:${{ steps.imagetag.outputs.value }}
+          build-args: |
+            VERSION=${{ steps.info.outputs.version }}
+            BUILD_ID=${{ steps.info.outputs.build_id }}
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.description=${{ github.event.repository.description }}

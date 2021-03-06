@@ -186,12 +186,14 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 		return nil, err
 	}
 	glog.Infof("GitHub auth token DB at %s", dbName)
+	github_auth, _ := static.ReadFile("data/github_auth.tmpl")
+	github_auth_result, _ := static.ReadFile("data/github_auth_result.tmpl")
 	return &GitHubAuth{
 		config:     c,
 		db:         db,
 		client:     &http.Client{Timeout: 10 * time.Second},
-		tmpl:       template.Must(template.New("github_auth").Parse(string(MustAsset("data/github_auth.tmpl")))),
-		tmplResult: template.Must(template.New("github_auth_result").Parse(string(MustAsset("data/github_auth_result.tmpl")))),
+		tmpl:       template.Must(template.New("github_auth").Parse(string(github_auth))),
+		tmplResult: template.Must(template.New("github_auth_result").Parse(string(github_auth_result))),
 	}, nil
 }
 

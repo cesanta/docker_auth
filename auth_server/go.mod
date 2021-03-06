@@ -1,6 +1,6 @@
 module github.com/cesanta/docker_auth/auth_server
 
-go 1.15
+go 1.16
 
 require (
 	cloud.google.com/go v0.68.0 // indirect
@@ -25,8 +25,10 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.7.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/schwarmco/go-cartesian-product v0.0.0-20180515110546-d5ee747a6dc9
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0
@@ -39,6 +41,7 @@ require (
 	google.golang.org/genproto v0.0.0-20201009135657-4d944d34d83c // indirect
 	google.golang.org/grpc v1.33.0 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 	gopkg.in/yaml.v2 v2.3.0

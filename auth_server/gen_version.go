@@ -16,18 +16,18 @@
    limitations under the License.
 */
 
-package main // import "github.com/cesanta/docker_auth/auth_server"
+package main
 
 import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 	"strings"
+	"time"
 
+	"github.com/cooldrip/cstrftime" // strftime implemented with cgo
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/cooldrip/cstrftime" // strftime implemented with cgo
 )
 
 func main() {

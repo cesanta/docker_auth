@@ -132,11 +132,12 @@ func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
 		return nil, err
 	}
 	glog.Infof("Google auth token DB at %s", c.TokenDB)
+	google_auth, _ := static.ReadFile("data/google_auth.tmpl")
 	return &GoogleAuth{
 		config: c,
 		db:     db,
 		client: &http.Client{Timeout: 10 * time.Second},
-		tmpl:   template.Must(template.New("google_auth").Parse(string(MustAsset("data/google_auth.tmpl")))),
+		tmpl:   template.Must(template.New("google_auth").Parse(string(google_auth))),
 	}, nil
 }
 

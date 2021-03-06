@@ -16,4 +16,7 @@
 
 package authn
 
-//go:generate go-bindata -pkg authn -modtime 1 -mode 420 -nocompress data/
+import "embed"
+
+//go:embed data/*
+var static embed.FS

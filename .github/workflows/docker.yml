@@ -5,6 +5,8 @@ on:
     branches:
       - main
   pull_request:
+  tags:
+      - '*.*.*'
 
 jobs:
 
@@ -29,13 +31,15 @@ jobs:
           echo ::set-output name=version::$(echo -n $TEMP | awk '{print $1}')
           echo ::set-output name=build_id::$(echo -n $TEMP | awk '{print $2}')
 
-      - name: Determine Docker Tag
-        uses: haya14busa/action-cond@v1
-        id: imagetag
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
         with:
-          cond: ${{ github.event_name == 'pull_request' }}
-          if_true: ${{ github.sha }}
-          if_false: 'latest'
+          images: cesanta/docker_auth
+          tag-semver: |
+            {{version}}
+            {{major}}
+            {{major}}.{{minor}}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -65,7 +69,7 @@ jobs:
           file: auth_server/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: ${{ github.event_name == 'push' }}
-          tags: cesanta/docker_auth:${{ steps.imagetag.outputs.value }}
+          tags: ${{ steps.docker_meta.outputs.tags }}
           build-args: |
             VERSION=${{ steps.info.outputs.version }}
             BUILD_ID=${{ steps.info.outputs.build_id }}

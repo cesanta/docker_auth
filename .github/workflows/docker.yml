@@ -36,6 +36,7 @@ jobs:
         uses: crazy-max/ghaction-docker-meta@v1
         with:
           images: cesanta/docker_auth
+          tag-edge: true
           tag-semver: |
             {{version}}
             {{major}}

@@ -1,3 +1,3 @@
 # Helm repo for Docker Auth
 
-Documentation available here: <https://github.com/pfisterer/docker_auth>
+Documentation available here: <https://github.com/cesanta/docker_auth>

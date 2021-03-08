@@ -36,7 +36,8 @@ A helm chart is available in the folder [chart/docker-auth](chart/docker-auth).
 A public Docker image is available on Docker Hub: [cesanta/docker_auth](https://hub.docker.com/r/cesanta/docker_auth/).
 
 Tags available:
- - `:latest` - bleeding edge, usually works but breaking config changes are possible. You probably do not want to use this in production.
+ - `:edge` - bleeding edge, usually works but breaking config changes are possible. You probably do not want to use this in production.
+ - `:latest` - latest tagged release, will line up with `:1` tag
  - `:1` - the `1.x` version, will have fixes, no breaking config changes. Previously known as `:stable`.
  - `:1.x` - specific release, see [here](https://github.com/cesanta/docker_auth/releases) for the list of current releases.
 

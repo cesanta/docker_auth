@@ -16,7 +16,7 @@ Install the docker-auth helm chart:
 Add repository to helm
 
 ```bash
-helm repo add cesanta-charts https://cesanta.github.io/docker_auth/
+helm repo add cesanta https://cesanta.github.io/docker_auth/
 helm repo update
 ```
 
@@ -24,7 +24,7 @@ Installation:
 
 ```bash
 helm dependency update
-helm install --name=docker-auth cesanta-charts/docker_auth
+helm install --name=docker-auth cesanta/docker-auth
 ```
 
 To delete the `my-release` deployment, run:

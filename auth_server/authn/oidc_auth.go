@@ -199,7 +199,7 @@ func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
 		return
 	}
 
-	glog.Infof("New OIDC auth token for %s (exp %d)", prof.Email, tok.Expiry)
+	glog.V(2).Infof("New OIDC auth token for %s (Current time: %s, expiration time: %s)", prof.Email, time.Now().String(), tok.Expiry.String())
 
 	dbVal := &TokenDBValue{
 		TokenType:    tok.TokenType,
@@ -221,6 +221,7 @@ func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
 Refreshes the access token of the user. Not usable with all OIDC provider, since not all provide refresh tokens.
 */
 func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshTokenResponse, err error) {
+
 	url := ga.provider.Endpoint().TokenURL
 	pl := strings.NewReader(fmt.Sprintf(
 		"grant_type=refresh_token&client_id=%s&client_secret=%s&refresh_token=%s",
@@ -230,6 +231,8 @@ func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshToke
 		err = fmt.Errorf("could not create refresh request: %s", err)
 		return
 	}
+	req.Header.Add("content-type", "application/x-www-form-urlencoded")
+
 	resp, err := ga.client.Do(req)
 	if err != nil {
 		err = fmt.Errorf("error talking to OIDC auth backend: %s", err)

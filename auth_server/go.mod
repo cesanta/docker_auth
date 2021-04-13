@@ -7,6 +7,7 @@ require (
 	cloud.google.com/go/storage v1.12.0
 	github.com/cesanta/glog v0.0.0-20150527111657-22eb27a0ae19
 	github.com/coreos/go-oidc v2.2.1+incompatible
+	github.com/coreos/go-oidc/v3 v3.0.0 // indirect
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/distribution v2.7.1+incompatible

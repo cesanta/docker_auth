@@ -18,18 +18,17 @@ package authn
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/oauth2"
 	"html/template"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
-	oidc "github.com/coreos/go-oidc"
+	"github.com/coreos/go-oidc/v3/oidc"
 
 	"github.com/cesanta/glog"
 
@@ -67,7 +66,7 @@ type OIDCRefreshTokenResponse struct {
 	ErrorDescription string `json:"error_description,omitempty"`
 }
 
-// ProfileResponse is sent by the /userinfo endpoint.
+// ProfileResponse is sent by the /userinfo endpoint or contained in the ID token.
 // We use it to validate access token and (re)verify the email address associated with it.
 type OIDCProfileResponse struct {
 	Email         string `json:"email,omitempty"`
@@ -84,6 +83,8 @@ type OIDCAuth struct {
 	tmplResult *template.Template
 	ctx        context.Context
 	provider   *oidc.Provider
+	verifier   *oidc.IDTokenVerifier
+	oauth      oauth2.Config
 }
 
 /*
@@ -96,9 +97,17 @@ func NewOIDCAuth(c *OIDCAuthConfig) (*OIDCAuth, error) {
 	}
 	glog.Infof("OIDC auth token DB at %s", c.TokenDB)
 	ctx := context.Background()
+
 	prov, err := oidc.NewProvider(ctx, c.Issuer)
 	if err != nil {
 		return nil, err
+	}
+	conf := oauth2.Config{
+		ClientID:     c.ClientId,
+		ClientSecret: c.ClientSecret,
+		Endpoint:     prov.Endpoint(),
+		RedirectURL:  c.RedirectURL,
+		Scopes:       []string{oidc.ScopeOpenID, "email"},
 	}
 	return &OIDCAuth{
 		config:     c,
@@ -108,12 +117,14 @@ func NewOIDCAuth(c *OIDCAuthConfig) (*OIDCAuth, error) {
 		tmplResult: template.Must(template.New("oidc_auth_result").Parse(string(MustAsset("data/oidc_auth_result.tmpl")))),
 		ctx:        ctx,
 		provider:   prov,
+		verifier:   prov.Verifier(&oidc.Config{ClientID: conf.ClientID}),
+		oauth:      conf,
 	}, nil
 }
 
 /*
-This function will be used by the server if the OIDC auth method is selected. It starts the OIDC auth page or serves the
-different actions that are sent by the page to the server by calling the functions.
+This function will be used by the server if the OIDC auth method is selected. It starts the page for OIDC login or
+requests an access token by using the code given by the OIDC provider.
 */
 func (ga *OIDCAuth) DoOIDCAuth(rw http.ResponseWriter, req *http.Request) {
 	code := req.URL.Query().Get("code")
@@ -127,22 +138,22 @@ func (ga *OIDCAuth) DoOIDCAuth(rw http.ResponseWriter, req *http.Request) {
 }
 
 /*
-Executes tmpl for the login page of the docker auth server
+Executes tmpl for the OIDC login page.
 */
 func (ga *OIDCAuth) doOIDCAuthPage(rw http.ResponseWriter) {
 	if err := ga.tmpl.Execute(rw, struct {
 		AuthEndpoint, RedirectURI, ClientId string
 	}{
 		AuthEndpoint: ga.provider.Endpoint().AuthURL,
-		RedirectURI:  ga.config.RedirectURL,
-		ClientId:     ga.config.ClientId,
+		RedirectURI:  ga.oauth.RedirectURL,
+		ClientId:     ga.oauth.ClientID,
 	}); err != nil {
 		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
 	}
 }
 
 /*
-Executes tmplResult for the result of the login process
+Executes tmplResult for the result of the login process.
 */
 func (ga *OIDCAuth) doOIDCAuthResultPage(rw http.ResponseWriter, un string, pw string) {
 	if err := ga.tmplResult.Execute(rw, struct {
@@ -157,108 +168,68 @@ func (ga *OIDCAuth) doOIDCAuthResultPage(rw http.ResponseWriter, un string, pw s
 }
 
 /*
-Requests a token from the OIDC provider by reacting to the code that was responded. If token was given by OIDC provider,
-new DB token is created based on the information given in the OIDC token
+Requests an OIDC token by using the code that was provided by the OIDC provider. If it was successfull,
+the access token and refresh token is used to create a new token for the users mail address, which is taken from the ID
+token.
 */
 func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
-	req, _ := http.NewRequest("POST", ga.provider.Endpoint().TokenURL, strings.NewReader(
-		url.Values{
-			"code":         []string{code},
-			"redirect_uri": []string{ga.config.RedirectURL},
-			"grant_type":   []string{"authorization_code"},
-		}.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization",
-		"Basic "+base64.StdEncoding.EncodeToString([]byte(ga.config.ClientId+":"+ga.config.ClientSecret)))
-	resp, err := ga.client.Do(req)
+
+	tok, err := ga.oauth.Exchange(ga.ctx, code)
 	if err != nil {
-		http.Error(rw, fmt.Sprintf("Error talking to OIDC auth backend: %s", err), http.StatusServiceUnavailable)
+		http.Error(rw, fmt.Sprintf("Error talking to OIDC auth backend: %s", err), http.StatusInternalServerError)
 		return
 	}
-	codeResp, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	glog.V(2).Infof("Code to token resp: %s", strings.Replace(string(codeResp), "\n", " ", -1))
-
-	var c2t CodeToTokenResponse
-	err = json.Unmarshal(codeResp, &c2t)
-	if err != nil || c2t.Error != "" || c2t.ErrorDescription != "" {
-		var et string
-		if err != nil {
-			et = err.Error()
-		} else {
-			et = fmt.Sprintf("%s: %s", c2t.Error, c2t.ErrorDescription)
-		}
-		http.Error(rw, fmt.Sprintf("Failed to get token: %s", et), http.StatusBadRequest)
+	rawIdTok, ok := tok.Extra("id_token").(string)
+	if !ok {
+		http.Error(rw, "No id_token field in oauth2 token.", http.StatusInternalServerError)
 		return
 	}
-
-	if c2t.RefreshToken == "" {
-		glog.V(2).Infof("No refresh token was send by the OIDC provider")
-	}
-
-	if c2t.ExpiresIn < 60 {
-		http.Error(rw, "New token is too short-lived", http.StatusInternalServerError)
-		return
-	}
-
-	valid, err := ga.validateIDToken(c2t.IDToken)
-	if err != nil || !valid {
-		glog.Errorf("Newly-acquired ID token is invalid: %+v %s", c2t, err)
-		http.Error(rw, "Newly-acquired ID token is invalid", http.StatusInternalServerError)
-		return
-	}
-
-	ui, err := ga.getUserInformation(c2t.TokenType, c2t.AccessToken)
+	idTok, err := ga.verifier.Verify(ga.ctx, rawIdTok)
 	if err != nil {
-		glog.Errorf("Could not get user information from /userinfo endpoint with access token: %s", c2t.AccessToken)
-	} else if ui == "" {
-		glog.Errorf("There are no information about the users email address at /userinfo endpoint with access token: %s", c2t.AccessToken)
-		http.Error(rw, "There are no information about the users email address given by the OIDC provider", http.StatusInternalServerError)
+		http.Error(rw, fmt.Sprintf("Failed to verify ID token: %s", err), http.StatusInternalServerError)
+		return
+	}
+	var prof OIDCProfileResponse
+	if err := idTok.Claims(&prof); err != nil {
+		http.Error(rw, fmt.Sprintf("Failed to get mail information from ID token: %s", err), http.StatusInternalServerError)
+		return
+	}
+	if prof.Email == "" {
+		http.Error(rw, fmt.Sprintf("No mail information given in ID token"), http.StatusInternalServerError)
 		return
 	}
 
-	glog.Infof("New OIDC auth token for %s (exp %d)", ui, c2t.ExpiresIn)
+	glog.Infof("New OIDC auth token for %s (exp %d)", prof.Email, tok.Expiry)
 
-	v := &TokenDBValue{
-		TokenType:    c2t.TokenType,
-		AccessToken:  c2t.AccessToken,
-		RefreshToken: c2t.RefreshToken,
-		ValidUntil:   time.Now().Add(time.Duration(c2t.ExpiresIn-30) * time.Second),
+	dbVal := &TokenDBValue{
+		TokenType:    tok.TokenType,
+		AccessToken:  tok.AccessToken,
+		RefreshToken: tok.RefreshToken,
+		ValidUntil:   tok.Expiry.Add(time.Duration(-30) * time.Second),
 	}
-	dp, err := ga.db.StoreToken(ui, v, true)
+	dp, err := ga.db.StoreToken(prof.Email, dbVal, true)
 	if err != nil {
 		glog.Errorf("Failed to record server token: %s", err)
 		http.Error(rw, "Failed to record server token: %s", http.StatusInternalServerError)
 		return
 	}
 
-	ga.doOIDCAuthResultPage(rw, ui, dp)
+	ga.doOIDCAuthResultPage(rw, prof.Email, dp)
 }
 
 /*
-Validates the ID token and extracts user information (only extraction of email since it is the only necessary information)
-*/
-func (ga *OIDCAuth) validateIDToken(idToken string) (bool, error) {
-	var verifier = ga.provider.Verifier(&oidc.Config{ClientID: ga.config.ClientId})
-	_, err := verifier.Verify(ga.ctx, idToken)
-	if err != nil {
-		return false, fmt.Errorf("could not verify ID token %s. %s", idToken, err)
-	}
-	return true, nil
-}
-
-/*
-Refreshs the access token of the user. Not usable with all OIDC provider, since not all provide refresh tokens.
+Refreshes the access token of the user. Not usable with all OIDC provider, since not all provide refresh tokens.
 */
 func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshTokenResponse, err error) {
-	req, _ := http.NewRequest("POST", ga.provider.Endpoint().TokenURL, strings.NewReader(
-		url.Values{
-			"refresh_token": []string{refreshToken},
-			"grant_type":    []string{"refresh_token"},
-		}.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Authorization",
-		"Basic "+base64.StdEncoding.EncodeToString([]byte(ga.config.ClientId+":"+ga.config.ClientSecret)))
+	url := ga.provider.Endpoint().TokenURL
+	pl := strings.NewReader(fmt.Sprintf(
+		"grant_type=refresh_token&client_id=%s&client_secret=%s&refresh_token=%s",
+		ga.oauth.ClientID, ga.oauth.ClientSecret, refreshToken))
+	req, err := http.NewRequest("POST", url, pl)
+	if err != nil {
+		err = fmt.Errorf("could not create refresh request: %s", err)
+		return
+	}
 	resp, err := ga.client.Do(req)
 	if err != nil {
 		err = fmt.Errorf("error talking to OIDC auth backend: %s", err)
@@ -268,36 +239,20 @@ func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshToke
 	glog.V(2).Infof("Refresh token resp: %s", strings.Replace(string(respStr), "\n", " ", -1))
 
 	err = json.Unmarshal(respStr, &rtr)
-	if err == nil && rtr.Error != "" || rtr.ErrorDescription != "" {
+	if err != nil {
+		err = fmt.Errorf("error in reading response of refresh request: %s", err)
+		return
+	}
+	if rtr.Error != "" || rtr.ErrorDescription != "" {
 		err = fmt.Errorf("%s: %s", rtr.Error, rtr.ErrorDescription)
+		return
 	}
-	return
+	return rtr, err
 }
 
 /*
-Validates the access token of the user that is stored in the database against OIDC provider by requesting for user information
-at the /userinfo endpoint. Responses the mail information of the user.
-*/
-func (ga *OIDCAuth) getUserInformation(toktype string, token string) (user string, err error) {
-	req, _ := http.NewRequest("GET", ga.config.Issuer+"/userinfo", nil)
-	req.Header.Add("Authorization", fmt.Sprintf("%s %s", toktype, token))
-	resp, err := ga.client.Do(req)
-	if err != nil {
-		return
-	}
-	respStr, _ := ioutil.ReadAll(resp.Body)
-	glog.V(2).Infof("Access token validation response: %s", strings.Replace(string(respStr), "\n", " ", -1))
-	var pr ProfileResponse
-	err = json.Unmarshal(respStr, &pr)
-	if err != nil {
-		return
-	}
-	return pr.Email, nil
-}
-
-/*
-Check if DB token is expired and in case try to refresh it. Secondly check if the user of the DB token is validated against
-the OIDC provider.
+In case the DB token is expired, this function uses the refresh token and tries to refresh the access token stored in the
+DB. Afterwards, checks if the access token really authenticates the user trying to log in.
 */
 func (ga *OIDCAuth) validateServerToken(user string) (*TokenDBValue, error) {
 	v, err := ga.db.GetValue(user)
@@ -307,32 +262,35 @@ func (ga *OIDCAuth) validateServerToken(user string) (*TokenDBValue, error) {
 		}
 		return nil, err
 	}
-	if v.RefreshToken != "" {
+	if v.RefreshToken == "" {
 		return nil, errors.New("refresh of your session is not possible. Please sign out and sign in again")
 	}
-	if time.Now().After(v.ValidUntil) {
-		glog.V(2).Infof("Refreshing token for %s", user)
-		rtr, err := ga.refreshAccessToken(v.RefreshToken)
-		if err != nil {
-			glog.Warningf("Failed to refresh token for %q: %s", user, err)
-			return nil, fmt.Errorf("failed to refresh token: %s", err)
-		}
-		v.AccessToken = rtr.AccessToken
-		v.ValidUntil = time.Now().Add(time.Duration(rtr.ExpiresIn-30) * time.Second)
-		glog.Infof("Refreshed auth token for %s (exp %d)", user, rtr.ExpiresIn)
-		_, err = ga.db.StoreToken(user, v, false)
-		if err != nil {
-			glog.Errorf("Failed to record refreshed token: %s", err)
-			return nil, fmt.Errorf("failed to record refreshed token: %s", err)
-		}
+
+	glog.V(2).Infof("Refreshing token for %s", user)
+	rtr, err := ga.refreshAccessToken(v.RefreshToken)
+	if err != nil {
+		glog.Warningf("Failed to refresh token for %q: %s", user, err)
+		return nil, fmt.Errorf("failed to refresh token: %s", err)
 	}
-	tokenUser, err := ga.getUserInformation(v.TokenType, v.AccessToken)
+	v.AccessToken = rtr.AccessToken
+	v.ValidUntil = time.Now().Add(time.Duration(rtr.ExpiresIn-30) * time.Second)
+	glog.Infof("Refreshed auth token for %s (exp %d)", user, rtr.ExpiresIn)
+	_, err = ga.db.StoreToken(user, v, false)
+	if err != nil {
+		glog.Errorf("Failed to record refreshed token: %s", err)
+		return nil, fmt.Errorf("failed to record refreshed token: %s", err)
+	}
+	tokUser, err := ga.provider.UserInfo(ga.ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: v.AccessToken,
+		TokenType:    v.TokenType,
+		RefreshToken: v.RefreshToken,
+		Expiry:       v.ValidUntil,
+	}))
 	if err != nil {
 		glog.Warningf("Token for %q failed validation: %s", user, err)
 		return nil, fmt.Errorf("server token invalid: %s", err)
 	}
-	if tokenUser != user {
-		glog.Errorf("token for wrong user: expected %s, found %s", user, tokenUser)
+	if tokUser.Email != user {
+		glog.Errorf("token for wrong user: expected %s, found %s", user, tokUser)
 		return nil, fmt.Errorf("found token for wrong user")
 	}
 	texp := v.ValidUntil.Sub(time.Now())
@@ -359,8 +317,8 @@ Not deleted because maybe it will be implemented in the future.
 //}
 
 /*
-Authenticates user with credentials that were given in the docker CLI. If the token in the DB is expired, the access token
-is validated and, if possible, refreshed.
+Called by server. Authenticates user with credentials that were given in the docker login command. If the token in the
+DB is expired, the OIDC access token is validated and, if possible, refreshed.
 */
 func (ga *OIDCAuth) Authenticate(user string, password api.PasswordString) (bool, api.Labels, error) {
 	err := ga.db.ValidateToken(user, password)
@@ -376,8 +334,12 @@ func (ga *OIDCAuth) Authenticate(user string, password api.PasswordString) (bool
 }
 
 func (ga *OIDCAuth) Stop() {
-	ga.db.Close()
-	glog.Info("Token DB closed")
+	err := ga.db.Close()
+	if err != nil {
+		glog.Info("Problems at closing the token DB")
+	} else {
+		glog.Info("Token DB closed")
+	}
 }
 
 func (ga *OIDCAuth) Name() string {

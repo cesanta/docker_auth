@@ -1,3 +1,5 @@
+//+build sqlite
+
 /*
    Copyright 2020 Cesanta Software Ltd.
 
@@ -14,9 +16,12 @@
    limitations under the License.
 */
 
-package authn
+package authz
 
-import "embed"
+import (
+	_ "github.com/mattn/go-sqlite3"
+)
 
-//go:embed data/*
-var static embed.FS
+func init() {
+	EnableSQLite3 = true
+}

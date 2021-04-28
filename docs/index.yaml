@@ -2,8 +2,77 @@ apiVersion: v1
 entries:
   docker-auth:
   - apiVersion: v2
+    appVersion: 1.7.0
+    created: "2021-03-09T22:56:13.951514-05:00"
+    description: Docker Registry V2 authentication server
+    digest: 6bbc2e554c5b3f27cf063dd23fc52f6f0ff227c0b97e6772cfcbaf178375ba19
+    home: https://github.com/cesanta/docker_auth
+    keywords:
+    - docker
+    - registry
+    - docker-auth
+    - docker-registry
+    - token
+    maintainers:
+    - email: 1294057873@qq.com
+      name: duyanghao
+    - email: github@farberg.de
+      name: pfisterer
+    name: docker-auth
+    sources:
+    - https://github.com/cesanta/docker_auth
+    urls:
+    - https://cesanta.github.io/docker_auth/docker-auth-1.2.0.tgz
+    version: 1.2.0
+  - apiVersion: v2
+    appVersion: 1.7.0
+    created: "2021-03-09T22:56:13.948893-05:00"
+    description: Docker Registry V2 authentication server
+    digest: add7b754e9b8ff9f0b9e839c0759aebb3e6a59f0db91a111b5c92009a5bd1ab6
+    home: https://github.com/cesanta/docker_auth
+    keywords:
+    - docker
+    - registry
+    - docker-auth
+    - docker-registry
+    - token
+    maintainers:
+    - email: 1294057873@qq.com
+      name: duyanghao
+    - email: github@farberg.de
+      name: pfisterer
+    name: docker-auth
+    sources:
+    - https://github.com/cesanta/docker_auth
+    urls:
+    - https://cesanta.github.io/docker_auth/docker-auth-1.1.1.tgz
+    version: 1.1.1
+  - apiVersion: v2
+    appVersion: 1.7.0
+    created: "2021-03-09T22:56:13.946489-05:00"
+    description: Docker Registry V2 authentication server
+    digest: e20ff37b10dcfaa3b7cfcf78d6b9bdabfb5b1bfcdb2384fcd5ba99459297df56
+    home: https://github.com/cesanta/docker_auth
+    keywords:
+    - docker
+    - registry
+    - docker-auth
+    - docker-registry
+    - token
+    maintainers:
+    - email: 1294057873@qq.com
+      name: duyanghao
+    - email: github@farberg.de
+      name: pfisterer
+    name: docker-auth
+    sources:
+    - https://github.com/cesanta/docker_auth
+    urls:
+    - https://cesanta.github.io/docker_auth/docker-auth-1.1.0.tgz
+    version: 1.1.0
+  - apiVersion: v2
     appVersion: 1.4.0
-    created: "2020-10-02T22:56:32.134675-04:00"
+    created: "2021-03-09T22:56:13.943393-05:00"
     description: Docker Registry V2 authentication server
     digest: 7842a1c2672bb63393cec4df2ec6f554d114e32dcc91ced98e427f365be423c7
     home: https://github.com/cesanta/docker_auth
@@ -24,4 +93,4 @@ entries:
     urls:
     - https://cesanta.github.io/docker_auth/docker-auth-1.0.3.tgz
     version: 1.0.3
-generated: "2020-10-02T22:56:32.133348-04:00"
+generated: "2021-03-09T22:56:13.935846-05:00"

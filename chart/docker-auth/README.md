@@ -1,11 +1,6 @@
 Helm Chart for docker_auth
 =======================
 
-**This is a fork of <https://github.com/cesanta/docker_auth> with support for token based authentication using a token server (specified by Docker's [Token Authentication Specification](https://docs.docker.com/registry/spec/auth/token/)).**
-
-Open issues:
-- Add this chart to helm hub (cf. [Guidelines for Repository Inclusion](https://github.com/helm/hub/blob/master/Repositories.md))
-
 ## Introduction
 
 This [Helm](https://github.com/kubernetes/helm) chart installs a private Docker registry with token based authentication and support for authorization in a Kubernetes cluster. 
@@ -21,7 +16,7 @@ Install the docker-auth helm chart:
 Add repository to helm
 
 ```bash
-helm repo add cesanta-charts https://cesanta.github.io/docker_auth/
+helm repo add cesanta https://cesanta.github.io/docker_auth/
 helm repo update
 ```
 
@@ -29,7 +24,7 @@ Installation:
 
 ```bash
 helm dependency update
-helm install --name=docker-auth cesanta-charts/docker_auth
+helm install --name=docker-auth cesanta/docker-auth
 ```
 
 To delete the `my-release` deployment, run:
@@ -262,5 +257,5 @@ mv docker-auth-*.tgz ../../docs/
 helm repo index ../../docs/ --url https://cesanta.github.io/docker_auth/
 git add ../../docs/
 git commit -a -m "Updated helm repository"
-git push origin master
+git push origin main
 ```

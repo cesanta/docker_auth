@@ -97,6 +97,8 @@ func NewOIDCAuth(c *OIDCAuthConfig) (*OIDCAuth, error) {
 	}
 	glog.Infof("OIDC auth token DB at %s", c.TokenDB)
 	ctx := context.Background()
+	oidcAuth, _ := static.ReadFile("data/oidc_auth.tmpl")
+	oidcAuthResult, _ := static.ReadFile("data/oidc_auth_result.tmpl")
 
 	prov, err := oidc.NewProvider(ctx, c.Issuer)
 	if err != nil {
@@ -113,8 +115,8 @@ func NewOIDCAuth(c *OIDCAuthConfig) (*OIDCAuth, error) {
 		config:     c,
 		db:         db,
 		client:     &http.Client{Timeout: 10 * time.Second},
-		tmpl:       template.Must(template.New("oidc_auth").Parse(string(MustAsset("data/oidc_auth.tmpl")))),
-		tmplResult: template.Must(template.New("oidc_auth_result").Parse(string(MustAsset("data/oidc_auth_result.tmpl")))),
+		tmpl:       template.Must(template.New("oidc_auth").Parse(string(oidcAuth))),
+		tmplResult: template.Must(template.New("oidc_auth_result").Parse(string(oidcAuthResult))),
 		ctx:        ctx,
 		provider:   prov,
 		verifier:   prov.Verifier(&oidc.Config{ClientID: conf.ClientID}),

@@ -7,9 +7,7 @@ require (
 	cloud.google.com/go/storage v1.14.0
 	github.com/casbin/casbin/v2 v2.24.0
 	github.com/cesanta/glog v0.0.0-20150527111657-22eb27a0ae19
-	github.com/cooldrip/cstrftime v0.0.0-20180425110708-e16e2f942e1e // indirect
-	github.com/coreos/go-oidc v2.2.1+incompatible
-	github.com/coreos/go-oidc/v3 v3.0.0 // indirect
+	github.com/coreos/go-oidc/v3 v3.0.0
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/distribution v2.7.1+incompatible
@@ -21,7 +19,6 @@ require (
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4 // indirect
 	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
-	github.com/go-git/go-git/v5 v5.2.0 // indirect
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
@@ -38,7 +35,7 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
-	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93 // indirect
+	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93
 	golang.org/x/sys v0.0.0-20210305230114-8fe3ee5dd75b // indirect
 	google.golang.org/api v0.40.0
 	google.golang.org/genproto v0.0.0-20210303154014-9728d6b83eeb // indirect

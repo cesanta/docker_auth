@@ -18,3 +18,5 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 ENTRYPOINT ["/docker_auth/auth_server"]
 CMD ["/config/auth_config.yml"]
 EXPOSE 5001
+ENTRYPOINT ["/app/auth_server"]
+CMD ["/config/auth_config.yml"]

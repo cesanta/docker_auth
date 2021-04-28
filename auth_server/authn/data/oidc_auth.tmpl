@@ -1,0 +1,18 @@
+<!doctype html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Docker Registry Authentication</title>
+</head>
+
+<body>
+  <div id="panel">
+    <p>
+      <a id="login-with-oidc" href="{{.AuthEndpoint}}?response_type=code&scope=openid%20email&client_id={{.ClientId}}&redirect_uri={{.RedirectURI}}">
+        Login with OIDC Provider
+      </a>
+    </p>
+  </div>
+</body>
+</html>

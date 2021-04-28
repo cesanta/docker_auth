@@ -1,34 +1,22 @@
-ARG BASE_IMAGE=scratch
+FROM golang:1.16-alpine3.13 as build
 
-#################################################################
-####                         Stage 1                         ####
-#################################################################
+ARG VERSION
+ENV VERSION "${VERSION}"
+ARG BUILD_ID
+ENV BUILD_ID "${BUILD_ID}"
+ARG CGO_EXTRA_CFLAGS
 
-FROM golang:1.15-alpine AS build-env
-RUN apk --no-cache add git make py3-pip && \
-    pip3 install gitpython
-RUN apk --no-cache add ca-certificates
-RUN apk add --no-cache gcc musl-dev
-COPY . /go/src/app/auth_server
-WORKDIR /go/src/app/auth_server/
+RUN apk add -U --no-cache ca-certificates make git gcc musl-dev binutils-gold
 
+COPY . /build
+WORKDIR /build
+RUN make build
 
-RUN make deps
-
-RUN make generate
-
-RUN make
-
-
-#################################################################
-####                         Stage 2                         ####
-#################################################################
-
-FROM ${BASE_IMAGE}
-
-WORKDIR /app/
-COPY --from=build-env /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=build-env /go/src/app/auth_server /app/
+FROM alpine:3.13
+COPY --from=build /build/auth_server /docker_auth/
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+ENTRYPOINT ["/docker_auth/auth_server"]
+CMD ["/config/auth_config.yml"]
 EXPOSE 5001
 ENTRYPOINT ["/app/auth_server"]
 CMD ["/config/auth_config.yml"]

@@ -3,7 +3,9 @@ name: docker-nightly
 on:
   push:
     branches:
-      - master
+      - main
+    tags:
+      - '*.*.*'
   pull_request:
 
 jobs:
@@ -16,33 +18,29 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: "1.15.x"
+          go-version: "1.16.x"
 
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Get Version
+      - name: Get Build Data
         id: info
         run: |
           echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          export TEMP=$(cd auth_server && go run gen_version.go)
+          echo ::set-output name=version::$(echo -n $TEMP | awk '{print $1}')
+          echo ::set-output name=build_id::$(echo -n $TEMP | awk '{print $2}')
 
-      - name: make generate build
-        run: |
-          /usr/bin/env python3 -m pip install GitPython
-          cd auth_server
-          make deps generate build
-
-      - name: cp ca-certificates.crt
-        run: |
-          cp /etc/ssl/certs/ca-certificates.crt auth_server/ca-certificates.crt
-
-      - name: Determine Docker Tag
-        uses: haya14busa/action-cond@v1
-        id: imagetag
+      - name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
         with:
-          cond: ${{ github.event_name == 'pull_request' }}
-          if_true: ${{ github.sha }}
-          if_false: 'latest'
+          images: cesanta/docker_auth
+          tag-edge: true
+          tag-semver: |
+            {{version}}
+            {{major}}
+            {{major}}.{{minor}}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -70,9 +68,12 @@ jobs:
         with:
           context: auth_server
           file: auth_server/Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: ${{ github.event_name == 'push' }}
-          tags: cesanta/docker_auth:${{ steps.imagetag.outputs.value }}
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          build-args: |
+            VERSION=${{ steps.info.outputs.version }}
+            BUILD_ID=${{ steps.info.outputs.build_id }}
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.description=${{ github.event.repository.description }}

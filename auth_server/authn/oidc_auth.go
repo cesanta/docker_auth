@@ -295,7 +295,7 @@ func (ga *OIDCAuth) validateServerToken(user string) (*TokenDBValue, error) {
 		return nil, fmt.Errorf("server token invalid: %s", err)
 	}
 	if tokUser.Email != user {
-		glog.Errorf("token for wrong user: expected %s, found %s", user, tokUser)
+		glog.Errorf("token for wrong user: expected %s, found %s", user, tokUser.Email)
 		return nil, fmt.Errorf("found token for wrong user")
 	}
 	texp := v.ValidUntil.Sub(time.Now())

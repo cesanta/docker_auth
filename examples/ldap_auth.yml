@@ -24,6 +24,11 @@ ldap_auth:
   # specify them here. Plain text password is read from the file.
   bind_dn:
   bind_password_file:
+  # If the auth request credentials shall be used for the initial LDAP bind,
+  # set this to true and refer to ${account} in the bind_dn field.
+  # The bind_password_file setting is ignored in this case.
+  initial_bind_as_user: true
+  bind_dn: "cn=${account},cn=users,dc=example,dc=com"
   # User query settings. ${account} is expanded from auth request 
   base: o=example.com
   filter: (&(uid=${account})(objectClass=person))

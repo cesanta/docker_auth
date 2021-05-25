@@ -74,6 +74,9 @@ func (la *LDAPAuth) Authenticate(account string, password api.PasswordString) (b
 	account = la.escapeAccountInput(account)
 	if la.config.InitialBindAsUser {
 		if bindErr := la.bindInitialAsUser(l, account, password); bindErr != nil {
+			if ldap.IsErrorWithCode(bindErr, ldap.LDAPResultInvalidCredentials) {
+				return false, nil, api.WrongPass
+			}
 			return false, nil, bindErr
 		}
 	} else {

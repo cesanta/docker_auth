@@ -44,6 +44,7 @@ type LDAPAuthConfig struct {
 	BindDN                string              `yaml:"bind_dn,omitempty"`
 	BindPasswordFile      string              `yaml:"bind_password_file,omitempty"`
 	LabelMaps             map[string]LabelMap `yaml:"labels,omitempty"`
+	InitialBindAsUser     bool                `yaml:"initial_bind_as_user,omitempty"`
 }
 
 type LDAPAuth struct {
@@ -70,12 +71,20 @@ func (la *LDAPAuth) Authenticate(account string, password api.PasswordString) (b
 	}
 	defer l.Close()
 
-	// First bind with a read only user, to prevent the following search won't perform any write action
-	if bindErr := la.bindReadOnlyUser(l); bindErr != nil {
-		return false, nil, bindErr
-	}
-
 	account = la.escapeAccountInput(account)
+	if la.config.InitialBindAsUser {
+		if bindErr := la.bindInitialAsUser(l, account, password); bindErr != nil {
+			if ldap.IsErrorWithCode(bindErr, ldap.LDAPResultInvalidCredentials) {
+				return false, nil, api.WrongPass
+			}
+			return false, nil, bindErr
+		}
+	} else {
+		// First bind with a read only user, to prevent the following search won't perform any write action
+		if bindErr := la.bindReadOnlyUser(l); bindErr != nil {
+			return false, nil, bindErr
+		}
+	}
 
 	filter := la.getFilter(account)
 
@@ -103,8 +112,10 @@ func (la *LDAPAuth) Authenticate(account string, password api.PasswordString) (b
 		}
 	}
 	// Rebind as the read only user for any futher queries
-	if bindErr := la.bindReadOnlyUser(l); bindErr != nil {
-		return false, nil, bindErr
+	if !la.config.InitialBindAsUser {
+		if bindErr := la.bindReadOnlyUser(l); bindErr != nil {
+			return false, nil, bindErr
+		}
 	}
 
 	// Extract labels from the attribute values
@@ -128,6 +139,22 @@ func (la *LDAPAuth) bindReadOnlyUser(l *ldap.Conn) error {
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (la *LDAPAuth) getInitialBindDN(account string) string {
+	initialBindDN := strings.NewReplacer("${account}", account).Replace(la.config.BindDN)
+	glog.V(2).Infof("Initial BindDN is %s", initialBindDN)
+	return initialBindDN
+}
+
+func (la *LDAPAuth) bindInitialAsUser(l *ldap.Conn, account string, password api.PasswordString) error {
+	accountEntryDN := la.getInitialBindDN(account)
+	glog.V(2).Infof("Bind as initial user (DN = %s)", accountEntryDN)
+	err := l.Bind(accountEntryDN, string(password))
+	if err != nil {
+		return err
 	}
 	return nil
 }

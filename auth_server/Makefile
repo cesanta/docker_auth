@@ -8,7 +8,7 @@ BUILD_ID ?= $(shell go run ./gen_version.go | awk '{print $$2}')
 all: build
 
 build:
-	go build -v -ldflags="-X 'main.Version=${VERSION}' -X 'main.BuildID=${BUILD_ID}'"
+	go build -v -ldflags="-extldflags '-static' -X 'main.Version=${VERSION}' -X 'main.BuildID=${BUILD_ID}'"
 
 auth_server:
 	@echo

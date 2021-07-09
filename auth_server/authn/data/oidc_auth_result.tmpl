@@ -1,0 +1,17 @@
+<!doctype html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Docker Registry Authentication</title>
+</head>
+
+<body>
+  <p class="message">
+    You are successfully authenticated for the Docker Registry.
+    Use the following username and password to login into the registry:
+  </p>
+  <hr>
+  <pre class="command"><span>$ </span>docker login -u {{.Username}} -p {{.Password}} {{if .RegistryUrl}}{{.RegistryUrl}}{{else}}docker.example.com{{end}}</pre>
+</body>
+</html>

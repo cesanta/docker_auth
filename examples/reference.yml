@@ -158,6 +158,32 @@ github_auth:
   # Set an URL to display in the `docker login` command when succesfully authenticated. Optional.
   registry_url: localhost:5000
 
+# OpenID Connect authentication
+# ==! NB: DO NOT ENTER YOUR OIDC PASSWORD AT "docker login". IT WILL NOT WORK.
+# Instead, Auth server maintains a database of OIDC authentication tokens.
+# Go to the server's port as HTTPS with your browser and follow the "Login with OIDC account" link.
+# Once signed in, you will get a throw-away password which you can use for Docker login.
+oidc_auth:
+  # --- required ---
+  # The issuer URL of your OIDC provider. It has to be extendable with /.well-known/openid-configuration to request all
+  # OIDC endpoints for token and authorization requests
+  issuer: "my_issuer_url"
+  # The redirect URI which is registered for this client at your OIDC provider. It has to end with /oidc_auth.
+  redirect_url: "my_redirect_uri/oidc_auth"
+  # The client id and client secret of the client that is registered at your OIDC provider for docker_auth
+  client_id: "be4ut1fu1-cl13n7-1d"
+  client_secret: "be4ut1fu1-cl13n7-s3cr37"
+  # you can also give the client_secret in a file. Either a client_secret or a client_secret_file has to be provided
+  # client_secret_file: "/path/to/client_secret.txt"
+  #
+  # a file in which the tokens should be stored. Does not have to exist, it will be generated in this case
+  token_db: "/path/to/tokens.ldb"
+  # --- optional ---
+  # How long to wait when talking to the OIDC provider.
+  http_timeout: 10
+  # the url of the registry where you want to login. Is used to present the full docker login command.
+  registry_url: "url_of_my_beautiful_docker_registry"
+
 # LDAP authentication.
 # Authentication is performed by first binding to the server, looking up the user entry
 # by using the specified filter, and then re-binding using the matched DN and the password provided.

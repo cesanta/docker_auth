@@ -206,6 +206,7 @@ docker-registry:
       kubernetes.io/ingress.class: "nginx"
       nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
       nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    path: /
     tls:
       - hosts:
           - $DOCKER_REG_HOSTNAME
@@ -225,6 +226,7 @@ docker-registry:
 
 ingress:
   enabled: true
+  path: /
   hosts:
     - $DOCKER_AUTH_HOSTNAME
   annotations:

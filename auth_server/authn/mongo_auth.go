@@ -67,10 +67,10 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 
 	// Enforce a username index. See. If index still exists
 	// mongodb will do no operation if index still exists https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.Indexes
-	_, err := collection.Indexes().CreateOne(context.TODO(), index)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil, err
+	_, erri := collection.Indexes().CreateOne(context.TODO(), index)
+	if erri != nil {
+		fmt.Println(erri.Error())
+		return nil, erri
 	}
 
 	return &MongoAuth{

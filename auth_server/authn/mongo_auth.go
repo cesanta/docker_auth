@@ -26,6 +26,7 @@ import (
 	"github.com/cesanta/glog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
@@ -55,24 +56,22 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 	if err != nil {
 		return nil, err
 	}
-	//// determine collection
-	//collection := tmp_session.DB(c.MongoConfig.DialInfo.Database).C(c.Collection)
-	//
-	//// Create username index obj
-	//index := mgo.Index{
-	//	Key:      []string{"username"},
-	//	Unique:   true,
-	//	DropDups: false, // Error on duplicate key document instead of drop.
-	//}
-	//
-	//// Enforce a username index. This is fine to do frequently per the docs:
-	//// https://godoc.org/gopkg.in/mgo.v2#Collection.EnsureIndex:
-	////    Once EnsureIndex returns successfully, following requests for the same index
-	////    will not contact the server unless Collection.DropIndex is used to drop the same
-	////    index, or Session.ResetIndexCache is called.
-	//if err := collection.EnsureIndex(index); err != nil {
-	//	return nil, err
-	//}
+	// determine collection
+	collection := session.Database(c.MongoConfig.DialInfo.Database).Collection(c.Collection)
+
+	// Create username index obj
+	index := mongo.IndexModel{
+		Keys:    bson.M{"username": 1},
+		Options: options.Index().SetUnique(true),
+	}
+
+	// Enforce a username index. See. If index still exists
+	// mongodb will do no operation if index still exists https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.Indexes
+	_, err := collection.Indexes().CreateOne(context.TODO(), index)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
 
 	return &MongoAuth{
 		config:  c,

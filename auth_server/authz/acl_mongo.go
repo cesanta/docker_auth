@@ -11,6 +11,7 @@ import (
 
 	"github.com/cesanta/glog"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
@@ -141,23 +142,19 @@ func (ma *aclMongoAuthorizer) updateACLCache() error {
 
 	collection := ma.session.Database(ma.config.MongoConfig.DialInfo.Database).Collection(ma.config.Collection)
 
-	//collection := tmp_session.DB(ma.config.MongoConfig.DialInfo.Database).C(ma.config.Collection)
-	//
-	//// Create sequence index obj
-	//index := mgo.Index{
-	//	Key:      []string{"seq"},
-	//	Unique:   true,
-	//	DropDups: false, // Error on duplicate key document instead of drop.
-	//}
-	//
-	//// Enforce a sequence index. This is fine to do frequently per the docs:
-	//// https://godoc.org/gopkg.in/mgo.v2#Collection.EnsureIndex:
-	////    Once EnsureIndex returns successfully, following requests for the same index
-	////    will not contact the server unless Collection.DropIndex is used to drop the same
-	////    index, or Session.ResetIndexCache is called.
-	//if err := collection.EnsureIndex(index); err != nil {
-	//	return err
-	//}
+	// Create username index obj
+	index := mongo.IndexModel{
+		Keys:    bson.M{"seq": 1},
+		Options: options.Index().SetUnique(true),
+	}
+
+	// Enforce a username index. See. If index still exists
+	// mongodb will do no operation if index still exists https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.Indexes
+	_, err := collection.Indexes().CreateOne(context.TODO(), index)
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
 
 	// Get all ACLs that have the required key
 	cur, err := collection.Find(context.TODO(), bson.M{})

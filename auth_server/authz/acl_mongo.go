@@ -148,8 +148,9 @@ func (ma *aclMongoAuthorizer) updateACLCache() error {
 		Options: options.Index().SetUnique(true),
 	}
 
-	// Enforce a username index. See. If index still exists
-	// mongodb will do no operation if index still exists https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.Indexes
+	// Enforce a username index.
+	// mongodb will do no operation if index still exists.
+	// see: https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.Indexes
 	_, err := collection.Indexes().CreateOne(context.TODO(), index)
 	if err != nil {
 		fmt.Println(err.Error())

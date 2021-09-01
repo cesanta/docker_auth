@@ -1,14 +1,17 @@
 package authz
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/cesanta/glog"
-	"gopkg.in/mgo.v2"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
@@ -33,7 +36,8 @@ type aclMongoAuthorizer struct {
 	lock             sync.RWMutex
 	config           *ACLMongoConfig
 	staticAuthorizer api.Authorizer
-	session          *mgo.Session
+	session          *mongo.Client
+	context          context.Context
 	updateTicker     *time.Ticker
 	Collection       string        `yaml:"collection,omitempty"`
 	CacheTTL         time.Duration `yaml:"cache_ttl,omitempty"`
@@ -99,9 +103,6 @@ func (ma *aclMongoAuthorizer) Stop() {
 	ma.updateTicker.Stop()
 
 	// Close connection to MongoDB database (if any)
-	if ma.session != nil {
-		ma.session.Close()
-	}
 }
 
 func (ma *aclMongoAuthorizer) Name() string {
@@ -139,33 +140,43 @@ func (ma *aclMongoAuthorizer) updateACLCache() error {
 	// Get ACL from MongoDB
 	var newACL MongoACL
 
-	// Copy our session
-	tmp_session := ma.session.Copy()
+	collection := ma.session.Database(ma.config.MongoConfig.DialInfo.Database).Collection(ma.config.Collection)
 
-	// Close up when we are done
-	defer tmp_session.Close()
-
-	collection := tmp_session.DB(ma.config.MongoConfig.DialInfo.Database).C(ma.config.Collection)
-
-	// Create sequence index obj
-	index := mgo.Index{
-		Key:      []string{"seq"},
-		Unique:   true,
-		DropDups: false, // Error on duplicate key document instead of drop.
+	// Create username index obj
+	index := mongo.IndexModel{
+		Keys:    bson.M{"seq": 1},
+		Options: options.Index().SetUnique(true),
 	}
 
-	// Enforce a sequence index. This is fine to do frequently per the docs:
-	// https://godoc.org/gopkg.in/mgo.v2#Collection.EnsureIndex:
-	//    Once EnsureIndex returns successfully, following requests for the same index
-	//    will not contact the server unless Collection.DropIndex is used to drop the same
-	//    index, or Session.ResetIndexCache is called.
-	if err := collection.EnsureIndex(index); err != nil {
+	// Enforce a username index.
+	// mongodb will do no operation if index still exists.
+	// see: https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.Indexes
+	_, err := collection.Indexes().CreateOne(context.TODO(), index)
+	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 
 	// Get all ACLs that have the required key
-	if err := collection.Find(bson.M{}).Sort("seq").All(&newACL); err != nil {
+	cur, err := collection.Find(context.TODO(), bson.M{})
+
+	if err != nil {
 		return err
+	}
+
+	defer cur.Close(context.TODO())
+	for cur.Next(context.TODO()) {
+		var result MongoACLEntry
+		err := cur.Decode(&result) //Sort("seq")
+		if err != nil {
+			log.Fatal(err)
+		} else {
+			newACL = append(newACL, result)
+		}
+		// do something with result....
+	}
+	if err := cur.Err(); err != nil {
+		log.Fatal(err)
 	}
 
 	glog.V(2).Infof("Number of new ACL entries from MongoDB: %d", len(newACL))

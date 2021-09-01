@@ -17,15 +17,17 @@
 package authn
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"time"
 
 	"github.com/cesanta/glog"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
 	"github.com/cesanta/docker_auth/auth_server/mgo_session"
@@ -38,7 +40,7 @@ type MongoAuthConfig struct {
 
 type MongoAuth struct {
 	config     *MongoAuthConfig
-	session    *mgo.Session
+	session    *mongo.Client
 	Collection string `yaml:"collection,omitempty"`
 }
 
@@ -54,29 +56,22 @@ func NewMongoAuth(c *MongoAuthConfig) (*MongoAuth, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Copy our session
-	tmp_session := session.Copy()
-	// Close up when we are done
-	defer tmp_session.Close()
-
 	// determine collection
-	collection := tmp_session.DB(c.MongoConfig.DialInfo.Database).C(c.Collection)
+	collection := session.Database(c.MongoConfig.DialInfo.Database).Collection(c.Collection)
 
 	// Create username index obj
-	index := mgo.Index{
-		Key:      []string{"username"},
-		Unique:   true,
-		DropDups: false, // Error on duplicate key document instead of drop.
+	index := mongo.IndexModel{
+		Keys:    bson.M{"username": 1},
+		Options: options.Index().SetUnique(true),
 	}
 
-	// Enforce a username index. This is fine to do frequently per the docs:
-	// https://godoc.org/gopkg.in/mgo.v2#Collection.EnsureIndex:
-	//    Once EnsureIndex returns successfully, following requests for the same index
-	//    will not contact the server unless Collection.DropIndex is used to drop the same
-	//    index, or Session.ResetIndexCache is called.
-	if err := collection.EnsureIndex(index); err != nil {
-		return nil, err
+	// Enforce a username index.
+	// mongodb will do no operation if index still exists.
+	// see: https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Collection.Indexes
+	_, erri := collection.Indexes().CreateOne(context.TODO(), index)
+	if erri != nil {
+		fmt.Println(erri.Error())
+		return nil, erri
 	}
 
 	return &MongoAuth{
@@ -100,20 +95,19 @@ func (mauth *MongoAuth) Authenticate(account string, password api.PasswordString
 }
 
 func (mauth *MongoAuth) authenticate(account string, password api.PasswordString) (bool, api.Labels, error) {
-	// Copy our session
-	tmp_session := mauth.session.Copy()
-	// Close up when we are done
-	defer tmp_session.Close()
 
 	// Get Users from MongoDB
 	glog.V(2).Infof("Checking user %s against Mongo Users. DB: %s, collection:%s",
 		account, mauth.config.MongoConfig.DialInfo.Database, mauth.config.Collection)
 	var dbUserRecord authUserEntry
-	collection := tmp_session.DB(mauth.config.MongoConfig.DialInfo.Database).C(mauth.config.Collection)
-	err := collection.Find(bson.M{"username": account}).One(&dbUserRecord)
+	collection := mauth.session.Database(mauth.config.MongoConfig.DialInfo.Database).Collection(mauth.config.Collection)
+
+
+        filter := bson.D{{"username", account}}
+	err := collection.FindOne(context.TODO(), filter).Decode(&dbUserRecord)
 
 	// If we connect and get no results we return a NoMatch so auth can fall-through
-	if err == mgo.ErrNotFound {
+	if err == mongo.ErrNoDocuments {
 		return false, nil, api.NoMatch
 	} else if err != nil {
 		return false, nil, err
@@ -147,10 +141,7 @@ func (c *MongoAuthConfig) Validate(configKey string) error {
 }
 
 func (ma *MongoAuth) Stop() {
-	// Close connection to MongoDB database (if any)
-	if ma.session != nil {
-		ma.session.Close()
-	}
+
 }
 
 func (ga *MongoAuth) Name() string {

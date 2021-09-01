@@ -102,7 +102,9 @@ func (mauth *MongoAuth) authenticate(account string, password api.PasswordString
 	var dbUserRecord authUserEntry
 	collection := mauth.session.Database(mauth.config.MongoConfig.DialInfo.Database).Collection(mauth.config.Collection)
 
-	err := collection.FindOne(context.TODO(), bson.M{"username": account}).Decode(&dbUserRecord)
+
+        filter := bson.D{{"username", account}}
+	err := collection.FindOne(context.TODO(), filter).Decode(&dbUserRecord)
 
 	// If we connect and get no results we return a NoMatch so auth can fall-through
 	if err == mongo.ErrNoDocuments {

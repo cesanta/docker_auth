@@ -38,7 +38,7 @@ import (
 )
 
 var (
-	hostPortRegex = regexp.MustCompile(`\[?(.+?)\]?:\d+$`)
+	hostPortRegex = regexp.MustCompile(`^(?:\[(.+)\]:\d+|([^:]+):\d+)$`)
 	scopeRegex    = regexp.MustCompile(`([a-z0-9]+)(\([a-z0-9]+\))?`)
 )
 
@@ -182,7 +182,11 @@ func (ar authRequest) String() string {
 func parseRemoteAddr(ra string) net.IP {
 	hp := hostPortRegex.FindStringSubmatch(ra)
 	if hp != nil {
-		ra = string(hp[1])
+		if hp[1] != "" {
+			ra = hp[1]
+		} else if hp[2] != "" {
+			ra = hp[2]
+		}
 	}
 	res := net.ParseIP(ra)
 	return res

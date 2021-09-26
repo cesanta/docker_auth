@@ -1,0 +1,42 @@
+<!doctype html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Docker Registry Authentication</title>
+  <style>
+    body {
+      color: #000;
+      background: #fff;
+      font-family: sans-serif;
+      padding: 4em 4em;
+    }
+    a { color: #000; }
+    #panel p { text-align:center; }
+    #login-with-gitlab code {
+      font-size: 1.4em;
+    }
+    #revoke-access {
+      color: #666;
+      font-size: 0.8em;
+      text-decoration: none;
+    }
+    #revoke-access:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="panel">
+    <p>
+      <a id="gitlab-icon" href="{{.GitlabWebUri}}/oauth/authorize?client_id={{.ClientId}}&redirect_uri={{.RedirectUri}}&response_type=code&state=&scope=read_user">
+        <img src="https://about.gitlab.com/images/press/logo/png/gitlab-logo-gray-stacked-rgb.png" width="155px" height="155px"></img>
+      </a>
+    </p>
+    <p>
+      <a id="revoke-access" href="{{.GitlabWebUri}}/-/profile/applications">Revoke access</a>
+    </p>
+  </div>
+</body>
+</html>

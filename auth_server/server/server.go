@@ -49,7 +49,7 @@ type AuthServer struct {
 	ga             *authn.GoogleAuth
 	gha            *authn.GitHubAuth
 	oidc           *authn.OIDCAuth
-	glab		       *authn.GitlabAuth
+	glab           *authn.GitlabAuth
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
@@ -111,6 +111,7 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authenticators = append(as.authenticators, oidc)
 		as.oidc = oidc
+	}
 	if c.GitlabAuth != nil {
 		glab, err := authn.NewGitlabAuth(c.GitlabAuth)
 		if err != nil {
@@ -466,6 +467,7 @@ func (as *AuthServer) doIndex(rw http.ResponseWriter, req *http.Request) {
 		http.Redirect(rw, req, url, 301)
 	case as.oidc != nil:
 		url := as.config.Server.PathPrefix + "/oidc_auth"
+		http.Redirect(rw, req, url, 301)
 	case as.glab != nil:
 		url := as.config.Server.PathPrefix + "/gitlab_auth"
 		http.Redirect(rw, req, url, 301)

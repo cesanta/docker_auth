@@ -232,6 +232,7 @@ func validate(c *Config) error {
 		if oidc.HTTPTimeout <= 0 {
 			oidc.HTTPTimeout = 10
 		}
+	}
 	if glab := c.GitlabAuth; glab != nil {
 		if glab.ClientSecretFile != "" {
 			contents, err := ioutil.ReadFile(glab.ClientSecretFile)
@@ -302,7 +303,7 @@ func validate(c *Config) error {
 	return nil
 }
 
-func loadCertAndKey(certFile, keyFile string) (pk libtrust.PublicKey, prk libtrust.PrivateKey, err error) {
+func loadCertAndKey(certFile string, keyFile string) (pk libtrust.PublicKey, prk libtrust.PrivateKey, err error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return

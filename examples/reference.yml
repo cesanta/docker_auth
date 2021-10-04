@@ -184,6 +184,46 @@ oidc_auth:
   # the url of the registry where you want to login. Is used to present the full docker login command.
   registry_url: "url_of_my_beautiful_docker_registry"
 
+# Gitlab authentication.
+# ==! NB: DO NOT ENTER YOUR Gitlab PASSWORD AT "docker login". IT WILL NOT WORK.
+# Instead, Auth server maintains a database of Gitlab authentication tokens.
+# Go to the server's port as HTTPS with your browser and follow the "Login with Gitlab account" link.
+# Once signed in, you will get a throw-away password which you can use for Docker login.
+gitlab_auth:
+  client_id: "1223123456"
+  # Either client_secret or client_secret_file is required. Use client_secret_file if you don't
+  # want to have sensitive information checked in.
+  # client_secret: "verysecret"
+  client_secret_file: "/path/to/client_secret.txt"
+  # Either token_db file for storing of server tokens.
+  token_db: "/somewhere/to/put/gitlab_tokens.ldb"
+  # or google cloud storage for storing of the sensitive information,
+  gcs_token_db:
+    bucket: "tokenBucket"
+    client_secret_file: "/path/to/client_secret.json"
+  # or Redis,
+  redis_token_db:
+    redis_options:
+      # with a single instance,
+      addr: localhost:6379
+    redis_cluster_options:
+      # or in the cluster mode.
+      addrs: ["localhost:7000"]
+  # How long to wait when talking to GitLab servers. Optional.
+  http_timeout: "10s"
+  # How long to wait before revalidating the Gitlab token. Optional.
+  revalidate_after: "1h"
+  # Includes the protocol, without trailing slash. Optional - defaults to: https://gitlab.com
+  gitlab_web_uri: "https://gitlab.com"
+  # Includes the protocol, without trailing slash. - defaults to: https://gitlab.com/api/v4
+  gitlab_api_uri: "https://gitlab.com/api/v4"
+  # Set an URL to display in the `docker login` command when successfully authenticated. Optional.
+  registry_url: localhost:5000
+  # grant_type is used for the authentication purpose. Required.
+  grant_type: "authorization_code"
+  # Redirect uri is used for the authentication purpose. Must end with '/gitlab_auth' prefix. Required.
+  redirect_uri: "https://localhost:5001/gitlab_auth"
+
 # LDAP authentication.
 # Authentication is performed by first binding to the server, looking up the user entry
 # by using the specified filter, and then re-binding using the matched DN and the password provided.

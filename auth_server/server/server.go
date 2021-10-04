@@ -48,7 +48,8 @@ type AuthServer struct {
 	authorizers    []api.Authorizer
 	ga             *authn.GoogleAuth
 	gha            *authn.GitHubAuth
-	glab		   *authn.GitlabAuth
+	oidc           *authn.OIDCAuth
+	glab		       *authn.GitlabAuth
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
@@ -103,6 +104,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		as.authenticators = append(as.authenticators, gha)
 		as.gha = gha
 	}
+	if c.OIDCAuth != nil {
+		oidc, err := authn.NewOIDCAuth(c.OIDCAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, oidc)
+		as.oidc = oidc
 	if c.GitlabAuth != nil {
 		glab, err := authn.NewGitlabAuth(c.GitlabAuth)
 		if err != nil {
@@ -436,6 +444,8 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		as.ga.DoGoogleAuth(rw, req)
 	case req.URL.Path == path_prefix+"/github_auth" && as.gha != nil:
 		as.gha.DoGitHubAuth(rw, req)
+	case req.URL.Path == path_prefix+"/oidc_auth" && as.oidc != nil:
+		as.oidc.DoOIDCAuth(rw, req)
 	case req.URL.Path == path_prefix+"/gitlab_auth" && as.glab != nil:
 		as.glab.DoGitlabAuth(rw, req)
 	default:
@@ -454,6 +464,8 @@ func (as *AuthServer) doIndex(rw http.ResponseWriter, req *http.Request) {
 	case as.gha != nil:
 		url := as.config.Server.PathPrefix + "/github_auth"
 		http.Redirect(rw, req, url, 301)
+	case as.oidc != nil:
+		url := as.config.Server.PathPrefix + "/oidc_auth"
 	case as.glab != nil:
 		url := as.config.Server.PathPrefix + "/gitlab_auth"
 		http.Redirect(rw, req, url, 301)

@@ -51,6 +51,22 @@ func NewRedisTokenDB(options *GitHubRedisStoreConfig) (TokenDB, error) {
 	return &redisTokenDB{client}, nil
 }
 
+// NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
+//
+func NewRedisGitlabTokenDB(options *GitlabRedisStoreConfig) (TokenDB, error) {
+	var client RedisClient
+	if options.ClusterOptions != nil {
+		if options.ClientOptions != nil {
+			glog.Infof("Both redis_token_db.configs and redis_token_db.cluster_configs have been set. Only the latter will be used")
+		}
+		client = redis.NewClusterClient(options.ClusterOptions)
+	} else {
+		client = redis.NewClient(options.ClientOptions)
+	}
+
+	return &redisTokenDB{client}, nil
+}
+
 type redisTokenDB struct {
 	client RedisClient
 }

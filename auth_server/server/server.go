@@ -48,6 +48,7 @@ type AuthServer struct {
 	authorizers    []api.Authorizer
 	ga             *authn.GoogleAuth
 	gha            *authn.GitHubAuth
+	glab		   *authn.GitlabAuth
 }
 
 func NewAuthServer(c *Config) (*AuthServer, error) {
@@ -101,6 +102,14 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		}
 		as.authenticators = append(as.authenticators, gha)
 		as.gha = gha
+	}
+	if c.GitlabAuth != nil {
+		glab, err := authn.NewGitlabAuth(c.GitlabAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, glab)
+		as.glab = glab
 	}
 	if c.LDAPAuth != nil {
 		la, err := authn.NewLDAPAuth(c.LDAPAuth)
@@ -427,6 +436,8 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		as.ga.DoGoogleAuth(rw, req)
 	case req.URL.Path == path_prefix+"/github_auth" && as.gha != nil:
 		as.gha.DoGitHubAuth(rw, req)
+	case req.URL.Path == path_prefix+"/gitlab_auth" && as.glab != nil:
+		as.glab.DoGitlabAuth(rw, req)
 	default:
 		http.Error(rw, "Not found", http.StatusNotFound)
 		return
@@ -442,6 +453,9 @@ func (as *AuthServer) doIndex(rw http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(rw, `<p><a href="/google_auth">Login with Google account</a></p>`)
 	case as.gha != nil:
 		url := as.config.Server.PathPrefix + "/github_auth"
+		http.Redirect(rw, req, url, 301)
+	case as.glab != nil:
+		url := as.config.Server.PathPrefix + "/gitlab_auth"
 		http.Redirect(rw, req, url, 301)
 	default:
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")

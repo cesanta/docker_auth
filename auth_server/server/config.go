@@ -39,6 +39,7 @@ type Config struct {
 	Users       map[string]*authn.Requirements `yaml:"users,omitempty"`
 	GoogleAuth  *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
 	GitHubAuth  *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
+	GitlabAuth  *authn.GitlabAuthConfig        `yaml:"gitlab_auth,omitempty"`
 	LDAPAuth    *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
 	MongoAuth   *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
 	XormAuthn   *authn.XormAuthnConfig         `yaml:"xorm_auth,omitempty"`
@@ -160,7 +161,7 @@ func validate(c *Config) error {
 	if c.Token.Expiration <= 0 {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
-	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.XormAuthn == nil && c.PluginAuthn == nil {
+	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.GitlabAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.XormAuthn == nil && c.PluginAuthn == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
 	}
 	if c.MongoAuth != nil {
@@ -214,6 +215,34 @@ func validate(c *Config) error {
 		if ghac.RevalidateAfter == 0 {
 			// Token expires after 1 hour by default
 			ghac.RevalidateAfter = time.Duration(1 * time.Hour)
+		}
+	}
+	if glab := c.GitlabAuth; glab != nil {
+		if glab.ClientSecretFile != "" {
+			contents, err := ioutil.ReadFile(glab.ClientSecretFile)
+			if err != nil {
+				return fmt.Errorf("could not read %s: %s", glab.ClientSecretFile, err)
+			}
+			glab.ClientSecret = strings.TrimSpace(string(contents))
+		}
+		if glab.ClientId == "" || glab.ClientSecret == "" || (glab.TokenDB == "" && (glab.GCSTokenDB == nil && glab.RedisTokenDB == nil)) {
+			return errors.New("gitlab_auth.{client_id,client_secret,token_db} are required")
+		}
+
+		if glab.ClientId == "" || glab.ClientSecret == "" || (glab.GCSTokenDB != nil && (glab.GCSTokenDB.Bucket == "" || glab.GCSTokenDB.ClientSecretFile == "")) {
+			return errors.New("gitlab_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
+		}
+
+		if glab.ClientId == "" || glab.ClientSecret == "" || (glab.RedisTokenDB != nil && glab.RedisTokenDB.ClientOptions == nil && glab.RedisTokenDB.ClusterOptions == nil) {
+			return errors.New("gitlab_auth.{client_id,client_secret,redis_token_db.{redis_options,redis_cluster_options}} are required")
+		}
+
+		if glab.HTTPTimeout <= 0 {
+			glab.HTTPTimeout = time.Duration(10 * time.Second)
+		}
+		if glab.RevalidateAfter == 0 {
+			// Token expires after 1 hour by default
+			glab.RevalidateAfter = time.Duration(1 * time.Hour)
 		}
 	}
 	if c.ExtAuth != nil {

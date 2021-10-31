@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"math/rand"
@@ -28,7 +29,6 @@ import (
 	"time"
 
 	"github.com/cesanta/glog"
-	"github.com/facebookgo/httpdown"
 	"golang.org/x/crypto/acme/autocert"
 	fsnotify "gopkg.in/fsnotify.v1"
 
@@ -44,9 +44,8 @@ var (
 
 type RestartableServer struct {
 	configFile string
-	hd         *httpdown.HTTP
 	authServer *server.AuthServer
-	hs         httpdown.Server
+	hs         *http.Server
 }
 
 func stringToUint16(s string) uint16 {
@@ -57,7 +56,7 @@ func stringToUint16(s string) uint16 {
 	return uint16(v)
 }
 
-func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServer, httpdown.Server) {
+func ServeOnce(c *server.Config, cf string) (*server.AuthServer, *http.Server) {
 	glog.Infof("Config from %s (%d users, %d ACL static entries)", cf, len(c.Users), len(c.ACL))
 	as, err := server.NewAuthServer(c)
 	if err != nil {
@@ -129,22 +128,25 @@ func ServeOnce(c *server.Config, cf string, hd *httpdown.HTTP) (*server.AuthServ
 		glog.Warning("Running without TLS")
 		tlsConfig = nil
 	}
+
 	hs := &http.Server{
 		Addr:      c.Server.ListenAddress,
 		Handler:   as,
 		TLSConfig: tlsConfig,
 	}
-
-	s, err := hd.ListenAndServe(hs)
-	if err != nil {
-		glog.Exitf("Failed to set up listener: %s", err)
-	}
+	go func() {
+		if err := hs.ListenAndServeTLS(c.Server.CertFile, c.Server.KeyFile); err != nil {
+			if err == http.ErrServerClosed {
+				return
+			}
+		}
+	}()
 	glog.Infof("Serving on %s", c.Server.ListenAddress)
-	return as, s
+	return as, hs
 }
 
 func (rs *RestartableServer) Serve(c *server.Config) {
-	rs.authServer, rs.hs = ServeOnce(c, rs.configFile, rs.hd)
+	rs.authServer, rs.hs = ServeOnce(c, rs.configFile)
 	rs.WatchConfig()
 }
 
@@ -185,7 +187,9 @@ func (rs *RestartableServer) WatchConfig() {
 		case s := <-stopSignals:
 			signal.Stop(stopSignals)
 			glog.Infof("Signal: %s", s)
-			rs.hs.Stop()
+			if err := rs.hs.Shutdown(context.Background()); err != nil {
+				glog.Errorf("HTTP server Shutdown: %v", err)
+			}
 			rs.authServer.Stop()
 			glog.Exitf("Exiting")
 		}
@@ -200,9 +204,9 @@ func (rs *RestartableServer) MaybeRestart() {
 		return
 	}
 	glog.Infof("Config ok, restarting server")
-	rs.hs.Stop()
+	rs.hs.Close()
 	rs.authServer.Stop()
-	rs.authServer, rs.hs = ServeOnce(c, rs.configFile, rs.hd)
+	rs.authServer, rs.hs = ServeOnce(c, rs.configFile)
 }
 
 func main() {
@@ -216,13 +220,12 @@ func main() {
 	if cf == "" {
 		glog.Exitf("Config file not specified")
 	}
-	c, err := server.LoadConfig(cf)
+	config, err := server.LoadConfig(cf)
 	if err != nil {
 		glog.Exitf("Failed to load config: %s", err)
 	}
 	rs := RestartableServer{
 		configFile: cf,
-		hd:         &httpdown.HTTP{},
 	}
-	rs.Serve(c)
+	rs.Serve(config)
 }

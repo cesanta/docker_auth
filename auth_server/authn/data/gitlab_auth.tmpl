@@ -16,12 +16,12 @@
     #login-with-gitlab code {
       font-size: 1.4em;
     }
-    #revoke-access {
+    #revoke-access, #sign-in {
       color: #666;
       font-size: 0.8em;
       text-decoration: none;
     }
-    #revoke-access:hover {
+    #revoke-access:hover, #sign-in:hover {
       text-decoration: underline;
     }
   </style>
@@ -30,8 +30,11 @@
 <body>
   <div id="panel">
     <p>
-      <a id="gitlab-icon" href="{{.GitlabWebUri}}/oauth/authorize?client_id={{.ClientId}}&redirect_uri={{.RedirectUri}}&response_type=code&state=&scope=read_user">
-        <img src="https://about.gitlab.com/images/press/logo/png/gitlab-logo-gray-stacked-rgb.png" width="155px" height="155px"></img>
+      <img src="https://about.gitlab.com/images/press/logo/png/gitlab-logo-gray-stacked-rgb.png" width="155px" height="155px"></img>
+    </p>
+    <p>
+      <a id="sign-in" href="{{.GitlabWebUri}}/oauth/authorize?client_id={{.ClientId}}&redirect_uri={{.RedirectUri}}&response_type=code&state=&scope=read_user">
+        Login
       </a>
     </p>
     <p>

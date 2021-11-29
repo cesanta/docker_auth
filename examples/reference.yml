@@ -12,7 +12,11 @@
 
 server:  # Server settings.
   # Address to listen on.
+  # Can be HOST:PORT for TCP or file path (e.g. /run/docker_auth.sock) for Unix socket.
   addr: ":5001"
+
+  # Network, can be "tcp" or "unix" ("tcp" if unspecified).
+  net: "tcp"
 
   # URL path prefix to use.
   path_prefix: ""

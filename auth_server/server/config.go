@@ -56,6 +56,7 @@ type Config struct {
 
 type ServerConfig struct {
 	ListenAddress       string            `yaml:"addr,omitempty"`
+	Net                 string            `yaml:"net,omitempty"`
 	PathPrefix          string            `yaml:"path_prefix,omitempty"`
 	RealIPHeader        string            `yaml:"real_ip_header,omitempty"`
 	RealIPPos           int               `yaml:"real_ip_pos,omitempty"`
@@ -149,6 +150,13 @@ var TLSCurveIDValues = map[string]tls.CurveID{
 func validate(c *Config) error {
 	if c.Server.ListenAddress == "" {
 		return errors.New("server.addr is required")
+	}
+	if c.Server.Net != "unix" && c.Server.Net != "tcp" {
+		if c.Server.Net == "" {
+			c.Server.Net = "tcp"
+		} else {
+			return errors.New("server.net must be unix or tcp")
+		}
 	}
 	if c.Server.PathPrefix != "" && !strings.HasPrefix(c.Server.PathPrefix, "/") {
 		return errors.New("server.path_prefix must be an absolute path")

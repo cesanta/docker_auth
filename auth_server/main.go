@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -134,15 +135,35 @@ func ServeOnce(c *server.Config, cf string) (*server.AuthServer, *http.Server) {
 		Handler:   as,
 		TLSConfig: tlsConfig,
 	}
+
+	var listener net.Listener
+	if c.Server.Net == "unix" {
+		// Remove socket, if exists
+		if _, err := os.Stat(c.Server.ListenAddress); err == nil {
+			if err := os.Remove(c.Server.ListenAddress); err != nil {
+				glog.Fatal(err.Error())
+			}
+		}
+		listener, err = net.Listen("unix", c.Server.ListenAddress)
+		if err != nil {
+			glog.Fatal(err.Error())
+		}
+	} else {
+		listener, err = net.Listen("tcp", c.Server.ListenAddress)
+		if err != nil {
+			glog.Fatal(err.Error())
+		}
+	}
+
 	go func() {
 		if c.Server.CertFile == "" && c.Server.KeyFile == "" {
-			if err := hs.ListenAndServe(); err != nil {
+			if err := hs.Serve(listener); err != nil {
 				if err == http.ErrServerClosed {
 					return
 				}
 			}
 		} else {
-			if err := hs.ListenAndServeTLS(c.Server.CertFile, c.Server.KeyFile); err != nil {
+			if err := hs.ServeTLS(listener, c.Server.CertFile, c.Server.KeyFile); err != nil {
 				if err == http.ErrServerClosed {
 					return
 				}

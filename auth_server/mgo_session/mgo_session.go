@@ -90,10 +90,10 @@ type DialInfo struct {
 
 // Config stores how to connect to the MongoDB server and an optional password file
 type Config struct {
-	DialInfo DialInfo `yaml:",inline"`
+	DialInfo DialInfo `mapstructure:",squash"`
 
-	PasswordFile string `yaml:"password_file,omitempty"`
-	EnableTLS    bool   `yaml:"enable_tls,omitempty"`
+	PasswordFile string `mapstructure:"password_file,omitempty"`
+	EnableTLS    bool   `mapstructure:"enable_tls,omitempty"`
 }
 
 // Validate ensures the most common fields inside the mgo.DialInfo portion of

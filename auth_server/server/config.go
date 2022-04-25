@@ -19,70 +19,73 @@ package server
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/docker/libtrust"
-	yaml "gopkg.in/yaml.v2"
+	"github.com/spf13/viper"
+    yaml "gopkg.in/yaml.v2"
 
 	"github.com/cesanta/docker_auth/auth_server/authn"
 	"github.com/cesanta/docker_auth/auth_server/authz"
 )
 
 type Config struct {
-	Server      ServerConfig                   `yaml:"server"`
-	Token       TokenConfig                    `yaml:"token"`
-	Users       map[string]*authn.Requirements `yaml:"users,omitempty"`
-	GoogleAuth  *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	GitHubAuth  *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
-	OIDCAuth    *authn.OIDCAuthConfig          `yaml:"oidc_auth,omitempty"`
-	GitlabAuth  *authn.GitlabAuthConfig        `yaml:"gitlab_auth,omitempty"`
-	LDAPAuth    *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
-	MongoAuth   *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
-	XormAuthn   *authn.XormAuthnConfig         `yaml:"xorm_auth,omitempty"`
-	ExtAuth     *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
-	PluginAuthn *authn.PluginAuthnConfig       `yaml:"plugin_authn,omitempty"`
-	ACL         authz.ACL                      `yaml:"acl,omitempty"`
-	ACLMongo    *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
-	ACLXorm     *authz.XormAuthzConfig         `yaml:"acl_xorm,omitempty"`
-	ExtAuthz    *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
-	PluginAuthz *authz.PluginAuthzConfig       `yaml:"plugin_authz,omitempty"`
-	CasbinAuthz *authz.CasbinAuthzConfig       `yaml:"casbin_authz,omitempty"`
+	Server      ServerConfig                   `mapstructure:"server"`
+	Token       TokenConfig                    `mapstructure:"token"`
+	Users       map[string]*authn.Requirements `mapstructure:"users,omitempty"`
+	GoogleAuth  *authn.GoogleAuthConfig        `mapstructure:"google_auth,omitempty"`
+	GitHubAuth  *authn.GitHubAuthConfig        `mapstructure:"github_auth,omitempty"`
+	OIDCAuth    *authn.OIDCAuthConfig          `mapstructure:"oidc_auth,omitempty"`
+	GitlabAuth  *authn.GitlabAuthConfig        `mapstructure:"gitlab_auth,omitempty"`
+	LDAPAuth    *authn.LDAPAuthConfig          `mapstructure:"ldap_auth,omitempty"`
+	MongoAuth   *authn.MongoAuthConfig         `mapstructure:"mongo_auth,omitempty"`
+	XormAuthn   *authn.XormAuthnConfig         `mapstructure:"xorm_auth,omitempty"`
+	ExtAuth     *authn.ExtAuthConfig           `mapstructure:"ext_auth,omitempty"`
+	PluginAuthn *authn.PluginAuthnConfig       `mapstructure:"plugin_authn,omitempty"`
+	ACL         authz.ACL                      `mapstructure:"acl,omitempty"`
+	ACLMongo    *authz.ACLMongoConfig          `mapstructure:"acl_mongo,omitempty"`
+	ACLXorm     *authz.XormAuthzConfig         `mapstructure:"acl_xorm,omitempty"`
+	ExtAuthz    *authz.ExtAuthzConfig          `mapstructure:"ext_authz,omitempty"`
+	PluginAuthz *authz.PluginAuthzConfig       `mapstructure:"plugin_authz,omitempty"`
+	CasbinAuthz *authz.CasbinAuthzConfig       `mapstructure:"casbin_authz,omitempty"`
 }
 
 type ServerConfig struct {
-	ListenAddress       string            `yaml:"addr,omitempty"`
-	Net                 string            `yaml:"net,omitempty"`
-	PathPrefix          string            `yaml:"path_prefix,omitempty"`
-	RealIPHeader        string            `yaml:"real_ip_header,omitempty"`
-	RealIPPos           int               `yaml:"real_ip_pos,omitempty"`
-	CertFile            string            `yaml:"certificate,omitempty"`
-	KeyFile             string            `yaml:"key,omitempty"`
-	HSTS                bool              `yaml:"hsts,omitempty"`
-	TLSMinVersion       string            `yaml:"tls_min_version,omitempty"`
-	TLSCurvePreferences []string          `yaml:"tls_curve_preferences,omitempty"`
-	TLSCipherSuites     []string          `yaml:"tls_cipher_suites,omitempty"`
-	LetsEncrypt         LetsEncryptConfig `yaml:"letsencrypt,omitempty"`
+	ListenAddress       string            `mapstructure:"addr,omitempty"`
+	Net                 string            `mapstructure:"net,omitempty"`
+	PathPrefix          string            `mapstructure:"path_prefix,omitempty"`
+	RealIPHeader        string            `mapstructure:"real_ip_header,omitempty"`
+	RealIPPos           int               `mapstructure:"real_ip_pos,omitempty"`
+	CertFile            string            `mapstructure:"certificate,omitempty"`
+	KeyFile             string            `mapstructure:"key,omitempty"`
+	HSTS                bool              `mapstructure:"hsts,omitempty"`
+	TLSMinVersion       string            `mapstructure:"tls_min_version,omitempty"`
+	TLSCurvePreferences []string          `mapstructure:"tls_curve_preferences,omitempty"`
+	TLSCipherSuites     []string          `mapstructure:"tls_cipher_suites,omitempty"`
+	LetsEncrypt         LetsEncryptConfig `mapstructure:"letsencrypt,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
 }
 
 type LetsEncryptConfig struct {
-	Host     string `yaml:"host,omitempty"`
-	Email    string `yaml:"email,omitempty"`
-	CacheDir string `yaml:"cache_dir,omitempty"`
+	Host     string `mapstructure:"host,omitempty"`
+	Email    string `mapstructure:"email,omitempty"`
+	CacheDir string `mapstructure:"cachedir,omitempty"`
 }
 
 type TokenConfig struct {
-	Issuer     string `yaml:"issuer,omitempty"`
-	CertFile   string `yaml:"certificate,omitempty"`
-	KeyFile    string `yaml:"key,omitempty"`
-	Expiration int64  `yaml:"expiration,omitempty"`
+	Issuer     string `mapstructure:"issuer,omitempty"`
+	CertFile   string `mapstructure:"certificate,omitempty"`
+	KeyFile    string `mapstructure:"key,omitempty"`
+	Expiration int64  `mapstructure:"expiration,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey

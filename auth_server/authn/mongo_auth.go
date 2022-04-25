@@ -34,8 +34,8 @@ import (
 )
 
 type MongoAuthConfig struct {
-	MongoConfig *mgo_session.Config `yaml:"dial_info,omitempty"`
-	Collection  string              `yaml:"collection,omitempty"`
+	MongoConfig *mgo_session.Config `mapstructure:"dialinfo,omitempty"`
+	Collection  string              `mapstructure:"collection,omitempty"`
 }
 
 type MongoAuth struct {

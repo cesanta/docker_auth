@@ -26,9 +26,9 @@ type MongoACLEntry struct {
 }
 
 type ACLMongoConfig struct {
-	MongoConfig *mgo_session.Config `yaml:"dial_info,omitempty"`
-	Collection  string              `yaml:"collection,omitempty"`
-	CacheTTL    time.Duration       `yaml:"cache_ttl,omitempty"`
+	MongoConfig *mgo_session.Config `mapstructure:"dial_info,omitempty"`
+	Collection  string              `mapstructure:"collection,omitempty"`
+	CacheTTL    time.Duration       `mapstructure:"cache_ttl,omitempty"`
 }
 
 type aclMongoAuthorizer struct {

@@ -21,12 +21,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/oauth2"
 	"html/template"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/oauth2"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 
@@ -39,19 +40,19 @@ import (
 type OIDCAuthConfig struct {
 	// --- necessary ---
 	// URL of the authentication provider. Must be able to serve the /.well-known/openid-configuration
-	Issuer string `yaml:"issuer,omitempty"`
+	Issuer string `mapstructure:"issuer,omitempty"`
 	// URL of the auth server. Has to end with /oidc_auth
-	RedirectURL string `yaml:"redirect_url,omitempty"`
+	RedirectURL string `mapstructure:"redirect_url,omitempty"`
 	// ID and secret, priovided by the OIDC provider after registration of the auth server
-	ClientId         string `yaml:"client_id,omitempty"`
-	ClientSecret     string `yaml:"client_secret,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
+	ClientId         string `mapstructure:"client_id,omitempty"`
+	ClientSecret     string `mapstructure:"client_secret,omitempty"`
+	ClientSecretFile string `mapstructure:"client_secret_file,omitempty"`
 	// path where the tokendb should be stored within the container
-	TokenDB string `yaml:"token_db,omitempty"`
+	TokenDB string `mapstructure:"token_db,omitempty"`
 	// --- optional ---
-	HTTPTimeout int `yaml:"http_timeout,omitempty"`
+	HTTPTimeout int `mapstructure:"http_timeout,omitempty"`
 	// the URL of the docker registry. Used to generate a full docker login command after authentication
-	RegistryURL string `yaml:"registry_url,omitempty"`
+	RegistryURL string `mapstructure:"registry_url,omitempty"`
 }
 
 // OIDCRefreshTokenResponse is sent by OIDC provider in response to the grant_type=refresh_token request.

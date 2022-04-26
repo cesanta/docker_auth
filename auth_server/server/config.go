@@ -77,7 +77,7 @@ type ServerConfig struct {
 type LetsEncryptConfig struct {
 	Host     string `mapstructure:"host,omitempty"`
 	Email    string `mapstructure:"email,omitempty"`
-	CacheDir string `mapstructure:"cachedir,omitempty"`
+	CacheDir string `mapstructure:"cache_dir,omitempty"`
 }
 
 type TokenConfig struct {
@@ -344,12 +344,12 @@ func processEnvVars(envPrefix, fileName string) error {
 	envs := os.Environ()
 	for _, envKey := range envs {
 		keyVal := strings.SplitN(envKey, "=", 2)
-		ks := strings.SplitAfterN(keyVal[0], envPrefix+"_", 2)
+		ks := strings.SplitAfterN(keyVal[0], envPrefix+"__", 2)
 		if len(ks) != 2 {
 			continue
 		}
 
-		vKey := strings.ToLower(strings.Replace(ks[1], "_", ".", -1))
+		vKey := strings.ToLower(strings.Replace(ks[1], "__", ".", -1))
 
 		var val interface{}
 		var parseErr error
@@ -375,7 +375,7 @@ func LoadConfig(fileName string, envPrefix string) (*Config, error) {
 	}
 	viper.SetConfigFile(fileName)
 	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "__"))
 	viper.SetEnvPrefix(envPrefix)
 
 	if err := viper.ReadConfig(configFile); err != nil {

@@ -1,51 +1,51 @@
 package server
 
 import (
-	"io/ioutil"
 	"os"
-	"path/filepath"
-	"reflect"
 	"testing"
-
-	"github.com/moby/moby/pkg/fileutils"
-	"gopkg.in/yaml.v2"
 )
 
 func TestLoadConfig(t *testing.T) {
+
 	conf, err := LoadConfig("../../examples/reference.yml", "AUTH")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-
-	dir, err := ioutil.TempDir("", "docker_auth_test")
-	fname := filepath.Join(dir, "conf.yml")
-	if err := fileutils.CreateIfNotExists(fname, false); err != nil {
-		t.Fatal(err)
-		return
+	if conf.Server.Net != "tcp" {
+		t.Errorf("expected tcp, got %s", conf.Server.Net)
 	}
 
-	f, err := os.OpenFile(fname, os.O_RDWR, 0666)
+}
+
+func TestOverwritingConfig(t *testing.T) {
+	os.Setenv("AUTH__SERVER__LETSENCRYPT__EMAIL", "test@email.com")
+
+	conf, err := LoadConfig("../../examples/reference.yml", "AUTH")
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 		return
 	}
+	if conf.Server.Net != "tcp" {
+		t.Errorf("expected tcp, got %s", conf.Server.Net)
+	}
+	if conf.Server.LetsEncrypt.Email != "test@email.com" {
+		t.Errorf("expected test@email.com, got %s", conf.Server.LetsEncrypt.Email)
+	}
+}
 
-	out, err := yaml.Marshal(conf)
-	_, err = f.Write(out)
+func TestOverwritingConfigWithUnderscore(t *testing.T) {
+	os.Setenv("AUTH__SERVER__LETSENCRYPT__CACHE_DIR", "/cache/dir")
+
+	conf, err := LoadConfig("../../examples/reference.yml", "AUTH")
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 		return
 	}
-
-	reconf, err := LoadConfig(f.Name(), "AUTH")
-	if err != nil {
-		t.Fatal(err)
-		return
+	if conf.Server.Net != "tcp" {
+		t.Errorf("expected tcp, got %s", conf.Server.Net)
 	}
-
-	if !reflect.DeepEqual(conf, reconf) {
-		t.Error("reloaded config is not same")
-		return
+	if conf.Server.LetsEncrypt.CacheDir != "/cache/dir" {
+		t.Errorf("expected /cache/dir, got %s", conf.Server.LetsEncrypt.CacheDir)
 	}
 }

@@ -34,11 +34,11 @@ import (
 
 type GoogleAuthConfig struct {
 	Domain           string `mapstructure:"domain,omitempty"`
-	ClientId         string `mapstructure:"clientid,omitempty"`
-	ClientSecret     string `mapstructure:"clientsecret,omitempty"`
-	ClientSecretFile string `mapstructure:"clientsecretfile,omitempty"`
-	TokenDB          string `mapstructure:"tokendb,omitempty"`
-	HTTPTimeout      int    `mapstructure:"httptimeout,omitempty"`
+	ClientId         string `mapstructure:"client_id,omitempty"`
+	ClientSecret     string `mapstructure:"client_secret,omitempty"`
+	ClientSecretFile string `mapstructure:"client_secret_file,omitempty"`
+	TokenDB          string `mapstructure:"token_db,omitempty"`
+	HTTPTimeout      int    `mapstructure:"http_timeout,omitempty"`
 }
 
 type GoogleAuthRequest struct {

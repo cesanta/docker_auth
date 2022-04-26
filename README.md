@@ -36,6 +36,8 @@ A helm chart is available in the folder [chart/docker-auth](chart/docker-auth).
 
 A public Docker image is available on Docker Hub: [cesanta/docker_auth](https://hub.docker.com/r/cesanta/docker_auth/).
 
+----------
+
 Tags available:
  - `:edge` - bleeding edge, usually works but breaking config changes are possible. You probably do not want to use this in production.
  - `:latest` - latest tagged release, will line up with `:1` tag
@@ -44,6 +46,19 @@ Tags available:
 
 The binary takes a single argument - path to the config file.
 If no arguments are given, the Dockerfile defaults to `/config/auth_config.yml`.
+
+----------
+
+You may also overwrite any configs in the file using `ENV` variables. This is useful to inject secrets or other sensitive data from external stores into your configs without having to manage building a whole file. 
+Follow these guidelines:
+
+- All variables must start with `AUTH__`
+- A double underscore `__` is used to delineate between levels. This is to account for variables with a single underscore in their name. e.g. `AUTH__SERVER__LETSENCRYPT__CACHE_DIR=/some/dir`
+
+see the [config_test.go](auth_server/server/config_test.go) for sample usage
+
+----------
+
 
 Example command line:
 
@@ -56,6 +71,8 @@ $ docker run \
 ```
 
 See the [example config files](https://github.com/cesanta/docker_auth/tree/master/examples/) to get an idea of what is possible.
+
+----------
 
 ## Troubleshooting
 

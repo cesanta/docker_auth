@@ -7,19 +7,11 @@ require (
 	cloud.google.com/go/storage v1.14.0
 	github.com/casbin/casbin/v2 v2.24.0
 	github.com/cesanta/glog v0.0.0-20150527111657-22eb27a0ae19
-	github.com/cooldrip/cstrftime v0.0.0-20180425110708-e16e2f942e1e // indirect
 	github.com/coreos/go-oidc/v3 v3.0.0
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/deckarep/golang-set v1.7.1
-	github.com/docker/distribution v2.7.1+incompatible
+	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7
-	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
-	github.com/facebookgo/ensure v0.0.0-20200202191622-63f1cf65ac4c // indirect
-	github.com/facebookgo/freeport v0.0.0-20150612182905-d4adf43b75b9 // indirect
-	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
-	github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4 // indirect
-	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
-	github.com/go-git/go-git/v5 v5.4.2 // indirect
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
@@ -42,6 +34,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	google.golang.org/api v0.74.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
 	gopkg.in/yaml.v2 v2.4.0

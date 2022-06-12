@@ -243,6 +243,9 @@ func validate(c *Config) error {
 		if oidc.UserClaim == "" {
 			oidc.UserClaim = "email"
 		}
+		if oidc.Scopes == nil {
+			oidc.Scopes = []string{"openid", "email"}
+		}
 	}
 	if glab := c.GitlabAuth; glab != nil {
 		if glab.ClientSecretFile != "" {

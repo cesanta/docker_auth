@@ -59,6 +59,8 @@ type OIDCAuthConfig struct {
 	// --- optional ---
 	// []string to add as labels.
 	LabelsClaims []string `yaml:"labels_claims,omitempty"`
+	// --- optional ---
+	Scopes []string `yaml:"scopes,omitempty"`
 }
 
 // OIDCRefreshTokenResponse is sent by OIDC provider in response to the grant_type=refresh_token request.
@@ -108,7 +110,7 @@ func NewOIDCAuth(c *OIDCAuthConfig) (*OIDCAuth, error) {
 		ClientSecret: c.ClientSecret,
 		Endpoint:     prov.Endpoint(),
 		RedirectURL:  c.RedirectURL,
-		Scopes:       []string{oidc.ScopeOpenID, "email"},
+		Scopes:       c.Scopes,
 	}
 	return &OIDCAuth{
 		config:     c,

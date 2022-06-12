@@ -193,6 +193,11 @@ oidc_auth:
   # String array claims that will be used as labels.
   label_claims:
     - groups
+  # Default: [openid, email]
+  scopes:
+    - openid
+    - email
+
 
 # Gitlab authentication.
 # ==! NB: DO NOT ENTER YOUR Gitlab PASSWORD AT "docker login". IT WILL NOT WORK.

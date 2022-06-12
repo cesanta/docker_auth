@@ -145,11 +145,12 @@ Executes tmpl for the OIDC login page.
 */
 func (ga *OIDCAuth) doOIDCAuthPage(rw http.ResponseWriter) {
 	if err := ga.tmpl.Execute(rw, struct {
-		AuthEndpoint, RedirectURI, ClientId string
+		AuthEndpoint, RedirectURI, ClientId, Scope string
 	}{
 		AuthEndpoint: ga.provider.Endpoint().AuthURL,
 		RedirectURI:  ga.oauth.RedirectURL,
 		ClientId:     ga.oauth.ClientID,
+		Scope:        strings.Join(ga.config.Scopes, " "),
 	}); err != nil {
 		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
 	}

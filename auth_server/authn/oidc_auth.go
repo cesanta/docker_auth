@@ -21,12 +21,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/oauth2"
 	"html/template"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/oauth2"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 
@@ -52,6 +53,12 @@ type OIDCAuthConfig struct {
 	HTTPTimeout int `yaml:"http_timeout,omitempty"`
 	// the URL of the docker registry. Used to generate a full docker login command after authentication
 	RegistryURL string `yaml:"registry_url,omitempty"`
+	// --- optional ---
+	// String claim to use for the username
+	UserClaim string `yaml:"user_claim,omitempty"`
+	// --- optional ---
+	// []string to add as labels.
+	LabelsClaims []string `yaml:"labels_claims,omitempty"`
 }
 
 // OIDCRefreshTokenResponse is sent by OIDC provider in response to the grant_type=refresh_token request.
@@ -64,14 +71,6 @@ type OIDCRefreshTokenResponse struct {
 	// Returned in case of error.
 	Error            string `json:"error,omitempty"`
 	ErrorDescription string `json:"error_description,omitempty"`
-}
-
-// ProfileResponse is sent by the /userinfo endpoint or contained in the ID token.
-// We use it to validate access token and (re)verify the email address associated with it.
-type OIDCProfileResponse struct {
-	Email         string `json:"email,omitempty"`
-	VerifiedEmail bool   `json:"verified_email,omitempty"`
-	// There are more fields, but we only need email.
 }
 
 // The specific OIDC authenticator
@@ -191,32 +190,47 @@ func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
 		http.Error(rw, fmt.Sprintf("Failed to verify ID token: %s", err), http.StatusInternalServerError)
 		return
 	}
-	var prof OIDCProfileResponse
-	if err := idTok.Claims(&prof); err != nil {
-		http.Error(rw, fmt.Sprintf("Failed to get mail information from ID token: %s", err), http.StatusInternalServerError)
+	var claims map[string]interface{}
+	if err := idTok.Claims(&claims); err != nil {
+		http.Error(rw, fmt.Sprintf("Failed to get claims from ID token: %s", err), http.StatusInternalServerError)
 		return
 	}
-	if prof.Email == "" {
-		http.Error(rw, fmt.Sprintf("No mail information given in ID token"), http.StatusInternalServerError)
+	username, _ := claims[ga.config.UserClaim].(string)
+	if username == "" {
+		http.Error(rw, fmt.Sprintf("No %q claim in ID token", ga.config.UserClaim), http.StatusInternalServerError)
 		return
 	}
 
-	glog.V(2).Infof("New OIDC auth token for %s (Current time: %s, expiration time: %s)", prof.Email, time.Now().String(), tok.Expiry.String())
+	glog.V(2).Infof("New OIDC auth token for %s (Current time: %s, expiration time: %s)", username, time.Now().String(), tok.Expiry.String())
 
 	dbVal := &TokenDBValue{
 		TokenType:    tok.TokenType,
 		AccessToken:  tok.AccessToken,
 		RefreshToken: tok.RefreshToken,
 		ValidUntil:   tok.Expiry.Add(time.Duration(-30) * time.Second),
+		Labels:       ga.getLabels(claims),
 	}
-	dp, err := ga.db.StoreToken(prof.Email, dbVal, true)
+	dp, err := ga.db.StoreToken(username, dbVal, true)
 	if err != nil {
 		glog.Errorf("Failed to record server token: %s", err)
 		http.Error(rw, "Failed to record server token: %s", http.StatusInternalServerError)
 		return
 	}
 
-	ga.doOIDCAuthResultPage(rw, prof.Email, dp)
+	ga.doOIDCAuthResultPage(rw, username, dp)
+}
+
+func (ga *OIDCAuth) getLabels(claims map[string]interface{}) api.Labels {
+	labels := make(api.Labels, len(ga.config.LabelsClaims))
+	for _, claim := range ga.config.LabelsClaims {
+		values, _ := claims[claim].([]interface{})
+		for _, v := range values {
+			if str, _ := v.(string); str != "" {
+				labels[claim] = append(labels[claim], str)
+			}
+		}
+	}
+	return labels
 }
 
 /*
@@ -294,8 +308,15 @@ func (ga *OIDCAuth) validateServerToken(user string) (*TokenDBValue, error) {
 		glog.Warningf("Token for %q failed validation: %s", user, err)
 		return nil, fmt.Errorf("server token invalid: %s", err)
 	}
-	if tokUser.Email != user {
-		glog.Errorf("token for wrong user: expected %s, found %s", user, tokUser.Email)
+
+	var claims map[string]interface{}
+	if err := tokUser.Claims(&claims); err != nil {
+		glog.Errorf("error retrieving claims: %v", err)
+		return nil, fmt.Errorf("error retrieving claims: %w", err)
+	}
+	claimUsername, _ := claims[ga.config.UserClaim].(string)
+	if claimUsername != user {
+		glog.Errorf("token for wrong user: expected %s, found %s", user, claimUsername)
 		return nil, fmt.Errorf("found token for wrong user")
 	}
 	texp := v.ValidUntil.Sub(time.Now())

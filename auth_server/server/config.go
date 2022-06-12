@@ -240,6 +240,9 @@ func validate(c *Config) error {
 		if oidc.HTTPTimeout <= 0 {
 			oidc.HTTPTimeout = 10
 		}
+		if oidc.UserClaim == "" {
+			oidc.UserClaim = "email"
+		}
 	}
 	if glab := c.GitlabAuth; glab != nil {
 		if glab.ClientSecretFile != "" {

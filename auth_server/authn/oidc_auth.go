@@ -359,7 +359,15 @@ func (ga *OIDCAuth) Authenticate(user string, password api.PasswordString) (bool
 	} else if err != nil {
 		return false, nil, err
 	}
-	return true, nil, nil
+
+	v, err := ga.db.GetValue(user)
+	if err != nil || v == nil {
+		if err == nil {
+			err = errors.New("no db value, please sign out and sign in again")
+		}
+		return false, nil, err
+	}
+	return true, v.Labels, err
 }
 
 func (ga *OIDCAuth) Stop() {

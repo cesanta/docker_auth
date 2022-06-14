@@ -33,25 +33,33 @@ import (
 	"github.com/cesanta/docker_auth/auth_server/authz"
 )
 
+const (
+	sourceHeader = "header"
+	sourceCN     = "cn"
+	sourceStatic = "static"
+)
+
 type Config struct {
-	Server      ServerConfig                   `yaml:"server"`
-	Token       TokenConfig                    `yaml:"token"`
-	Users       map[string]*authn.Requirements `yaml:"users,omitempty"`
-	GoogleAuth  *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
-	GitHubAuth  *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
-	OIDCAuth    *authn.OIDCAuthConfig          `yaml:"oidc_auth,omitempty"`
-	GitlabAuth  *authn.GitlabAuthConfig        `yaml:"gitlab_auth,omitempty"`
-	LDAPAuth    *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
-	MongoAuth   *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
-	XormAuthn   *authn.XormAuthnConfig         `yaml:"xorm_auth,omitempty"`
-	ExtAuth     *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
-	PluginAuthn *authn.PluginAuthnConfig       `yaml:"plugin_authn,omitempty"`
-	ACL         authz.ACL                      `yaml:"acl,omitempty"`
-	ACLMongo    *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
-	ACLXorm     *authz.XormAuthzConfig         `yaml:"acl_xorm,omitempty"`
-	ExtAuthz    *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
-	PluginAuthz *authz.PluginAuthzConfig       `yaml:"plugin_authz,omitempty"`
-	CasbinAuthz *authz.CasbinAuthzConfig       `yaml:"casbin_authz,omitempty"`
+	Server               ServerConfig                   `yaml:"server"`
+	Token                TokenConfig                    `yaml:"token"`
+	Users                map[string]*authn.Requirements `yaml:"users,omitempty"`
+	GoogleAuth           *authn.GoogleAuthConfig        `yaml:"google_auth,omitempty"`
+	GitHubAuth           *authn.GitHubAuthConfig        `yaml:"github_auth,omitempty"`
+	OIDCAuth             *authn.OIDCAuthConfig          `yaml:"oidc_auth,omitempty"`
+	GitlabAuth           *authn.GitlabAuthConfig        `yaml:"gitlab_auth,omitempty"`
+	LDAPAuth             *authn.LDAPAuthConfig          `yaml:"ldap_auth,omitempty"`
+	MongoAuth            *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
+	XormAuthn            *authn.XormAuthnConfig         `yaml:"xorm_auth,omitempty"`
+	ExtAuth              *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
+	PluginAuthn          *authn.PluginAuthnConfig       `yaml:"plugin_authn,omitempty"`
+	ACL                  authz.ACL                      `yaml:"acl,omitempty"`
+	ACLMongo             *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
+	ACLXorm              *authz.XormAuthzConfig         `yaml:"acl_xorm,omitempty"`
+	ExtAuthz             *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
+	PluginAuthz          *authz.PluginAuthzConfig       `yaml:"plugin_authz,omitempty"`
+	CasbinAuthz          *authz.CasbinAuthzConfig       `yaml:"casbin_authz,omitempty"`
+	ClientCertLabels     string                         `yaml:"client_cert_labels,omitempty"`
+	AlternateCredentials *AlternateCredentialsConfig    `yaml:"alternate_credentials"`
 }
 
 type ServerConfig struct {
@@ -62,6 +70,8 @@ type ServerConfig struct {
 	RealIPPos           int               `yaml:"real_ip_pos,omitempty"`
 	CertFile            string            `yaml:"certificate,omitempty"`
 	KeyFile             string            `yaml:"key,omitempty"`
+	ClientAuth          string            `yaml:"client_auth_type,omitempty"`
+	ClientCA            string            `yaml:"client_ca,omitempty"`
 	HSTS                bool              `yaml:"hsts,omitempty"`
 	TLSMinVersion       string            `yaml:"tls_min_version,omitempty"`
 	TLSCurvePreferences []string          `yaml:"tls_curve_preferences,omitempty"`
@@ -86,6 +96,17 @@ type TokenConfig struct {
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
+}
+
+type AlternateCredentialsConfig struct {
+	Label    string                  `yaml:"label,omitempty"`
+	Username *CredentialSourceConfig `yaml:"username,omitempty"`
+	Password *CredentialSourceConfig `yaml:"password,omitempty"`
+}
+
+type CredentialSourceConfig struct {
+	Source string `yaml:"source,omitempty"`
+	Value  string `yaml:"value,omitempty"`
 }
 
 // TLSCipherSuitesValues maps CipherSuite names as strings to the actual values
@@ -145,6 +166,24 @@ var TLSCurveIDValues = map[string]tls.CurveID{
 	"P384":   tls.CurveP384,
 	"P521":   tls.CurveP521,
 	"X25519": tls.X25519,
+}
+
+var ClientAuthValues = map[string]tls.ClientAuthType{
+	"NoClientCert":               tls.NoClientCert,
+	"RequestClientCert":          tls.RequestClientCert,
+	"RequireAndVerifyClientCert": tls.RequireAndVerifyClientCert,
+	"RequireAnyClientCert":       tls.RequireAnyClientCert,
+	"VerifyClientCertIfGiven":    tls.VerifyClientCertIfGiven,
+}
+
+func (c *CredentialSourceConfig) validate() error {
+	if c.Source != sourceHeader && c.Source != sourceCN && c.Source != sourceStatic {
+		return fmt.Errorf("invalid source: %s", c.Source)
+	}
+	if (c.Source == sourceHeader || c.Source == sourceStatic) && c.Value == "" {
+		return errors.New("value should not be empty")
+	}
+	return nil
 }
 
 func validate(c *Config) error {
@@ -306,6 +345,18 @@ func validate(c *Config) error {
 	if c.PluginAuthz != nil {
 		if err := c.PluginAuthz.Validate(); err != nil {
 			return fmt.Errorf("bad plugin_authz config: %s", err)
+		}
+	}
+
+	if c.AlternateCredentials != nil {
+		if c.AlternateCredentials.Username == nil || c.AlternateCredentials.Password == nil {
+			return errors.New("both username and password must be specified")
+		}
+		if err := c.AlternateCredentials.Username.validate(); err != nil {
+			return err
+		}
+		if err := c.AlternateCredentials.Password.validate(); err != nil {
+			return err
 		}
 	}
 	return nil

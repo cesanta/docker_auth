@@ -19,7 +19,9 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"flag"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -101,6 +103,23 @@ func ServeOnce(c *server.Config, cf string) (*server.AuthServer, *http.Server) {
 		}
 		tlsConfig.CipherSuites = values
 		glog.Infof("TLS CipherSuites: %s", c.Server.TLSCipherSuites)
+	}
+	if c.Server.ClientAuth != "" {
+		value, found := server.ClientAuthValues[c.Server.ClientAuth]
+		if !found {
+			value = tls.NoClientCert
+		}
+		tlsConfig.ClientAuth = value
+		glog.Infof("TLS ClientAuth: %s", tlsConfig.ClientAuth)
+	}
+	if c.Server.ClientCA != "" {
+		pool := x509.NewCertPool()
+		caFile, err := ioutil.ReadFile(c.Server.ClientCA)
+		if err != nil {
+			glog.Exitf("Failed to load client CA file: %v", err)
+		}
+		pool.AppendCertsFromPEM(caFile)
+		tlsConfig.ClientCAs = pool
 	}
 	if c.Server.CertFile != "" || c.Server.KeyFile != "" {
 		// Check for partial configuration.

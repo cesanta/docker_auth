@@ -28,8 +28,8 @@ server:  # Server settings.
   key: "/path/to/server.key"
   # Optional CA file for client certificate verification.
   client_ca: /path/to/ca.crt
-  # Optional. Defaults to NoClientCert
-  # Values can be found at  https://pkg.go.dev/crypto/tls#ClientAuthType
+  # Optional. Defaults to NoClientCert.
+  # Values can be found at https://pkg.go.dev/crypto/tls#ClientAuthType
   client_auth_type: NoClientCert
   #
   # The following optional settings will fine tune TLS configuration to improve security.
@@ -451,8 +451,8 @@ ext_authz:
 plugin_authz:
   plugin_path: ""
 
-# If not empty, and a clinet certificate is present, the following
-# lables will be added prefixed with the given value:
+# If not empty, and a client certificate is present, the following
+# lables prefixed with the given value, will be added:
 #   - <prefix>_O = <certificate O(s)>
 #   - <prefix>_OU = <certificate OU(s)>
 #   - <prefix>_DNS_NAMES = <certificate DNS SAN(s)>
@@ -467,12 +467,12 @@ alternate_credentials:
     # Required
     # Choices:
     #   cn - Client certificate CN.
-    #   header - Value of header specified in `value`.
+    #   header - The value of the header specified in `value`.
     #   static - The static value in `value`.
     source: header
-    # Required if source is static or header.
+    # Required if `source`` is static or header.
     value: X-Forwarded-User
-  # See above for configuration values
+  # See above for configuration values.
   password:
     # Required
     source:

@@ -8,17 +8,17 @@ While performing simple user authentication is pretty straightforward, performin
 Docker Registry 2.0 introduced a new, token-based authentication and authorization protocol, but the server to generate them was not released.
 Thus, most guides found on the internet still describe a set up with a reverse proxy performing access control.
 
-This server fills the gap and implements the protocol described [here](https://github.com/docker/distribution/blob/master/docs/spec/auth/token.md).
+This server fills the gap and implements the protocol described [here](https://github.com/docker/distribution/blob/main/docs/spec/auth/token.md).
 
 Supported authentication methods:
  * Static list of users
- * Google Sign-In (incl. Google for Work / GApps for domain) (documented [here](https://github.com/cesanta/docker_auth/blob/master/examples/reference.yml))
+ * Google Sign-In (incl. Google for Work / GApps for domain) (documented [here](https://github.com/cesanta/docker_auth/blob/main/examples/reference.yml))
  * [Github Sign-In](docs/auth-methods.md#github)
  * Gitlab Sign-In
  * LDAP bind ([demo](https://github.com/kwk/docker-registry-setup))
  * MongoDB user collection
  * MySQL/MariaDB, PostgreSQL, SQLite database table
- * [External program](https://github.com/cesanta/docker_auth/blob/master/examples/ext_auth.sh)
+ * [External program](https://github.com/cesanta/docker_auth/blob/main/examples/ext_auth.sh)
 
 Supported authorization methods:
  * Static ACL
@@ -55,7 +55,7 @@ $ docker run \
     cesanta/docker_auth:1 /config/auth_config.yml
 ```
 
-See the [example config files](https://github.com/cesanta/docker_auth/tree/master/examples/) to get an idea of what is possible.
+See the [example config files](https://github.com/cesanta/docker_auth/tree/main/examples/) to get an idea of what is possible.
 
 ## Troubleshooting
 

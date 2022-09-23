@@ -30,21 +30,21 @@ import (
 )
 
 type LabelMap struct {
-	Attribute string `yaml:"attribute,omitempty"`
-	ParseCN   bool   `yaml:"parse_cn,omitempty"`
+	Attribute string `mapstructure:"attribute,omitempty"`
+	ParseCN   bool   `mapstructure:"parse_cn,omitempty"`
 }
 
 type LDAPAuthConfig struct {
-	Addr                  string              `yaml:"addr,omitempty"`
-	TLS                   string              `yaml:"tls,omitempty"`
-	InsecureTLSSkipVerify bool                `yaml:"insecure_tls_skip_verify,omitempty"`
-	CACertificate         string              `yaml:"ca_certificate,omitempty"`
-	Base                  string              `yaml:"base,omitempty"`
-	Filter                string              `yaml:"filter,omitempty"`
-	BindDN                string              `yaml:"bind_dn,omitempty"`
-	BindPasswordFile      string              `yaml:"bind_password_file,omitempty"`
-	LabelMaps             map[string]LabelMap `yaml:"labels,omitempty"`
-	InitialBindAsUser     bool                `yaml:"initial_bind_as_user,omitempty"`
+	Addr                  string              `mapstructure:"addr,omitempty"`
+	TLS                   string              `mapstructure:"tls,omitempty"`
+	InsecureTLSSkipVerify bool                `mapstructure:"insecure_tls_skip_verify,omitempty"`
+	CACertificate         string              `mapstructure:"ca_certificate,omitempty"`
+	Base                  string              `mapstructure:"base,omitempty"`
+	Filter                string              `mapstructure:"filter,omitempty"`
+	BindDN                string              `mapstructure:"bind_dn,omitempty"`
+	BindPasswordFile      string              `mapstructure:"bind_password_file,omitempty"`
+	LabelMaps             map[string]LabelMap `mapstructure:"labels,omitempty"`
+	InitialBindAsUser     bool                `mapstructure:"initial_bind_as_user,omitempty"`
 }
 
 type LDAPAuth struct {

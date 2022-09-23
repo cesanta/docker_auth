@@ -33,12 +33,12 @@ import (
 )
 
 type GoogleAuthConfig struct {
-	Domain           string `yaml:"domain,omitempty"`
-	ClientId         string `yaml:"client_id,omitempty"`
-	ClientSecret     string `yaml:"client_secret,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-	TokenDB          string `yaml:"token_db,omitempty"`
-	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
+	Domain           string `mapstructure:"domain,omitempty"`
+	ClientId         string `mapstructure:"client_id,omitempty"`
+	ClientSecret     string `mapstructure:"client_secret,omitempty"`
+	ClientSecretFile string `mapstructure:"client_secret_file,omitempty"`
+	TokenDB          string `mapstructure:"token_db,omitempty"`
+	HTTPTimeout      int    `mapstructure:"http_timeout,omitempty"`
 }
 
 type GoogleAuthRequest struct {

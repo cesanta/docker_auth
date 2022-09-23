@@ -24,8 +24,8 @@ import (
 )
 
 type Requirements struct {
-	Password *api.PasswordString `yaml:"password,omitempty" json:"password,omitempty"`
-	Labels   api.Labels          `yaml:"labels,omitempty" json:"labels,omitempty"`
+	Password *api.PasswordString `mapstructure:"password,omitempty" json:"password,omitempty"`
+	Labels   api.Labels          `mapstructure:"labels,omitempty" json:"labels,omitempty"`
 }
 
 type staticUsersAuth struct {

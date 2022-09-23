@@ -57,20 +57,20 @@ type ParentGitlabTeam struct {
 }
 
 type GitlabAuthConfig struct {
-	Organization     string                  `yaml:"organization,omitempty"`
-	ClientId         string                  `yaml:"client_id,omitempty"`
-	ClientSecret     string                  `yaml:"client_secret,omitempty"`
-	ClientSecretFile string                  `yaml:"client_secret_file,omitempty"`
-	TokenDB          string                  `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GitlabGCSStoreConfig   `yaml:"gcs_token_db,omitempty"`
-	RedisTokenDB     *GitlabRedisStoreConfig `yaml:"redis_token_db,omitempty"`
-	HTTPTimeout      time.Duration           `yaml:"http_timeout,omitempty"`
-	RevalidateAfter  time.Duration           `yaml:"revalidate_after,omitempty"`
-	GitlabWebUri     string                  `yaml:"gitlab_web_uri,omitempty"`
-	GitlabApiUri     string                  `yaml:"gitlab_api_uri,omitempty"`
-	RegistryUrl      string                  `yaml:"registry_url,omitempty"`
-	GrantType        string                  `yaml:"grant_type,omitempty"`
-	RedirectUri      string                  `yaml:"redirect_uri,omitempty"`
+	Organization     string                  `mapstructure:"organization,omitempty"`
+	ClientId         string                  `mapstructure:"client_id,omitempty"`
+	ClientSecret     string                  `mapstructure:"client_secret,omitempty"`
+	ClientSecretFile string                  `mapstructure:"client_secret_file,omitempty"`
+	TokenDB          string                  `mapstructure:"token_db,omitempty"`
+	GCSTokenDB       *GitlabGCSStoreConfig   `mapstructure:"gcs_token_db,omitempty"`
+	RedisTokenDB     *GitlabRedisStoreConfig `mapstructure:"redis_token_db,omitempty"`
+	HTTPTimeout      time.Duration           `mapstructure:"http_timeout,omitempty"`
+	RevalidateAfter  time.Duration           `mapstructure:"revalidate_after,omitempty"`
+	GitlabWebUri     string                  `mapstructure:"gitlab_web_uri,omitempty"`
+	GitlabApiUri     string                  `mapstructure:"gitlab_api_uri,omitempty"`
+	RegistryUrl      string                  `mapstructure:"registry_url,omitempty"`
+	GrantType        string                  `mapstructure:"grant_type,omitempty"`
+	RedirectUri      string                  `mapstructure:"redirect_uri,omitempty"`
 }
 
 type CodeToGitlabTokenResponse struct {
@@ -86,13 +86,13 @@ type CodeToGitlabTokenResponse struct {
 }
 
 type GitlabGCSStoreConfig struct {
-	Bucket           string `yaml:"bucket,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
+	Bucket           string `mapstructure:"bucket,omitempty"`
+	ClientSecretFile string `mapstructure:"client_secret_file,omitempty"`
 }
 
 type GitlabRedisStoreConfig struct {
-	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
-	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
+	ClientOptions  *redis.Options        `mapstructure:"redis_options,omitempty"`
+	ClusterOptions *redis.ClusterOptions `mapstructure:"redis_cluster_options,omitempty"`
 }
 
 type GitlabAuthRequest struct {
@@ -113,7 +113,6 @@ type GitlabAuth struct {
 	tmpl       *template.Template
 	tmplResult *template.Template
 }
-
 
 func NewGitlabAuth(c *GitlabAuthConfig) (*GitlabAuth, error) {
 	var db TokenDB
@@ -240,7 +239,6 @@ func (glab *GitlabAuth) doGitlabAuthCreateToken(rw http.ResponseWriter, code str
 
 	glog.Infof("New GitLab auth token for %s", user)
 
-
 	v := &TokenDBValue{
 		TokenType:   c2t.TokenType,
 		AccessToken: c2t.AccessToken,
@@ -257,7 +255,7 @@ func (glab *GitlabAuth) doGitlabAuthCreateToken(rw http.ResponseWriter, code str
 
 func (glab *GitlabAuth) validateGitlabAccessToken(token string) (user string, err error) {
 	glog.Infof("Gitlab API: Fetching user info")
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", glab.getGitlabApiUri()),nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", glab.getGitlabApiUri()), nil)
 
 	if err != nil {
 		err = fmt.Errorf("could not create request to get information for token %s: %s", token, err)
@@ -311,7 +309,6 @@ func (glab *GitlabAuth) checkGitlabOrganization(token, user string) (err error) 
 
 	return fmt.Errorf("Unknown status for membership of organization %s: %s", glab.config.Organization, resp.Status)
 }
-
 
 func (glab *GitlabAuth) validateGitlabServerToken(user string) (*TokenDBValue, error) {
 	v, err := glab.db.GetValue(user)

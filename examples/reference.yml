@@ -260,6 +260,8 @@ ldap_auth:
       attribute: memberOf
       # Special handling to simplify the values to just the common name
       parse_cn: true
+      # lower case the value
+      lower_case: true
 
 mongo_auth:
   # Essentially all options are described here: https://godoc.org/gopkg.in/mgo.v2#DialInfo

@@ -32,6 +32,7 @@ import (
 type LabelMap struct {
 	Attribute string `yaml:"attribute,omitempty"`
 	ParseCN   bool   `yaml:"parse_cn,omitempty"`
+	LowerCase bool   `yaml:"lower_case",omitempty"`
 }
 
 type LDAPAuthConfig struct {
@@ -297,6 +298,11 @@ func (la *LDAPAuth) getLabelsFromMap(attrMap map[string][]string) (map[string][]
 				for i, value := range mappingValues {
 					cn := la.getCNFromDN(value)
 					mappingValues[i] = cn
+				}
+			}
+			if mapping.LowerCase {
+				for i, value := range mappingValues {
+					mappingValues[i] = strings.ToLower(value)
 				}
 			}
 			labels[key] = mappingValues

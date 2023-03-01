@@ -187,6 +187,17 @@ oidc_auth:
   http_timeout: 10
   # the url of the registry where you want to login. Is used to present the full docker login command.
   registry_url: "url_of_my_beautiful_docker_registry"
+  # The claim to use for the username.
+  # Default: email
+  user_claim: email
+  # String array claims that will be used as labels.
+  label_claims:
+    - groups
+  # Default: [openid, email]
+  scopes:
+    - openid
+    - email
+
 
 # Gitlab authentication.
 # ==! NB: DO NOT ENTER YOUR Gitlab PASSWORD AT "docker login". IT WILL NOT WORK.

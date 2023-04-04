@@ -78,3 +78,13 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# podAnnotations to use for the deployment. Optional
+podAnnotations: {}
+
+# SecurityContext at container level to use for the deployment. Optional
+containerSecurityContext: {}
+
+# SecurityContext at pod level to use for the deployment. Optional
+podSecurityContext: {}
+

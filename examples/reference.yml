@@ -180,6 +180,8 @@ oidc_auth:
   # you can also give the client_secret in a file. Either a client_secret or a client_secret_file has to be provided
   # client_secret_file: "/path/to/client_secret.txt"
   #
+  # optional. Example for google &access_type=offline&prompt=consent 
+  auth_parameter: "&access_type=offline&prompt=consent"
   # a file in which the tokens should be stored. Does not have to exist, it will be generated in this case
   token_db: "/path/to/tokens.ldb"
   # or Redis,

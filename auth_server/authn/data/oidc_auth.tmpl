@@ -9,7 +9,7 @@
 <body>
   <div id="panel">
     <p>
-      <a id="login-with-oidc" href="{{.AuthEndpoint}}?response_type=code&scope={{.Scope}}&client_id={{.ClientId}}&redirect_uri={{.RedirectURI}}">
+      <a id="login-with-oidc" href="{{.AuthEndpoint}}?response_type=code&scope={{.Scope}}&client_id={{.ClientId}}{{.AuthParameter}}&redirect_uri={{.RedirectURI}}">
         Login with OIDC Provider
       </a>
     </p>

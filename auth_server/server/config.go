@@ -234,8 +234,11 @@ func validate(c *Config) error {
 			}
 			oidc.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if oidc.ClientId == "" || oidc.ClientSecret == "" || oidc.TokenDB == "" || oidc.Issuer == "" || oidc.RedirectURL == "" {
-			return errors.New("oidc_auth.{issuer,redirect_url,client_id,client_secret,token_db} are required")
+		if oidc.ClientId == "" || oidc.ClientSecret == "" || oidc.Issuer == "" || oidc.RedirectURL == "" || (oidc.RedisTokenDB != nil && oidc.RedisTokenDB.ClientOptions == nil && oidc.RedisTokenDB.ClusterOptions == nil) {
+			return errors.New("oidc_auth.{issuer,redirect_url,client_id,client_secret,redis_token_db.{redis_options,redis_cluster_options}}} are required")
+		}
+		if oidc.ClientId == "" || oidc.ClientSecret == "" || (oidc.GCSTokenDB != nil && (oidc.GCSTokenDB.Bucket == "" || oidc.GCSTokenDB.ClientSecretFile == "")) {
+			return errors.New("oidc_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
 		}
 		if oidc.HTTPTimeout <= 0 {
 			oidc.HTTPTimeout = 10

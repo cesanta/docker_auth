@@ -182,6 +182,18 @@ oidc_auth:
   #
   # a file in which the tokens should be stored. Does not have to exist, it will be generated in this case
   token_db: "/path/to/tokens.ldb"
+  # or Redis,
+  redis_token_db:
+    redis_options:
+        # with a single instance,
+        addr: localhost:6379
+    redis_cluster_options:
+        # or in the cluster mode.
+        addrs: ["localhost:7000"]
+  # or google cloud storage for storing of the sensitive information,
+  gcs_token_db:
+    bucket: "tokenBucket"
+    client_secret_file: "/path/to/client_secret.json"
   # --- optional ---
   # How long to wait when talking to the OIDC provider.
   http_timeout: 10

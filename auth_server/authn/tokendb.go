@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	tokenDBPrefix = "t:" // Keys in the database are t:email@example.com
+	tokenDBPrefix = "docker_auth:" // Keys in the database are docker_auth:email@example.com
 )
 
 var ExpiredToken = errors.New("expired token")

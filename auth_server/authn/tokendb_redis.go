@@ -17,7 +17,9 @@
 package authn
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -26,49 +28,38 @@ import (
 	"github.com/cesanta/docker_auth/auth_server/api"
 	"github.com/cesanta/glog"
 	"github.com/dchest/uniuri"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v9"
 )
 
+var ctx = context.Background()
+
+type RedisStoreConfig struct {
+	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
+	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
+}
+
 type RedisClient interface {
-	Get(key string) *redis.StringCmd
-	Set(key string, value interface{}, expiration time.Duration) *redis.StatusCmd
-	Del(keys ...string) *redis.IntCmd
-}
-
-// NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
-//
-func NewRedisTokenDB(options *GitHubRedisStoreConfig) (TokenDB, error) {
-	var client RedisClient
-	if options.ClusterOptions != nil {
-		if options.ClientOptions != nil {
-			glog.Infof("Both redis_token_db.configs and redis_token_db.cluster_configs have been set. Only the latter will be used")
-		}
-		client = redis.NewClusterClient(options.ClusterOptions)
-	} else {
-		client = redis.NewClient(options.ClientOptions)
-	}
-
-	return &redisTokenDB{client}, nil
-}
-
-// NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
-//
-func NewRedisGitlabTokenDB(options *GitlabRedisStoreConfig) (TokenDB, error) {
-	var client RedisClient
-	if options.ClusterOptions != nil {
-		if options.ClientOptions != nil {
-			glog.Infof("Both redis_token_db.configs and redis_token_db.cluster_configs have been set. Only the latter will be used")
-		}
-		client = redis.NewClusterClient(options.ClusterOptions)
-	} else {
-		client = redis.NewClient(options.ClientOptions)
-	}
-
-	return &redisTokenDB{client}, nil
+	Get(ctx context.Context, key string) *redis.StringCmd
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	Del(ctx context.Context, keys ...string) *redis.IntCmd
 }
 
 type redisTokenDB struct {
 	client RedisClient
+}
+
+// NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
+func NewRedisTokenDB(opts *RedisStoreConfig) (TokenDB, error) {
+	var client redis.Cmdable
+	switch {
+	case opts.ClusterOptions != nil:
+		client = redis.NewClusterClient(opts.ClusterOptions)
+	case opts.ClientOptions != nil:
+		client = redis.NewClient(opts.ClientOptions)
+	default:
+		return nil, errors.New("redis configuration not found")
+	}
+	return &redisTokenDB{client}, nil
 }
 
 func (db *redisTokenDB) String() string {
@@ -83,7 +74,7 @@ func (db *redisTokenDB) GetValue(user string) (*TokenDBValue, error) {
 
 	key := string(getDBKey(user))
 
-	result, err := db.client.Get(key).Result()
+	result, err := db.client.Get(ctx, key).Result()
 	if err == redis.Nil {
 		glog.V(2).Infof("Key <%s> doesn't exist\n", key)
 		return nil, nil
@@ -117,7 +108,7 @@ func (db *redisTokenDB) StoreToken(user string, v *TokenDBValue, updatePassword 
 
 	key := string(getDBKey(user))
 
-	err = db.client.Set(key, data, 0).Err()
+	err = db.client.Set(ctx, key, data, 0).Err()
 	if err != nil {
 		glog.Errorf("Failed to store token data for user <%s>: %s\n", user, err)
 		return "", fmt.Errorf("Failed to store token data for user <%s>: %s", user, err)
@@ -153,7 +144,7 @@ func (db *redisTokenDB) DeleteToken(user string) error {
 	glog.Infof("Deleting token for user <%s>\n", user)
 
 	key := string(getDBKey(user))
-	err := db.client.Del(key).Err()
+	err := db.client.Del(ctx, key).Err()
 	if err != nil {
 		return fmt.Errorf("Failed to delete token for user <%s>: %s", user, err)
 	}

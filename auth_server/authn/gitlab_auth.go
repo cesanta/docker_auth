@@ -22,14 +22,13 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/cesanta/glog"
-	"github.com/go-redis/redis"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
@@ -57,20 +56,20 @@ type ParentGitlabTeam struct {
 }
 
 type GitlabAuthConfig struct {
-	Organization     string                  `yaml:"organization,omitempty"`
-	ClientId         string                  `yaml:"client_id,omitempty"`
-	ClientSecret     string                  `yaml:"client_secret,omitempty"`
-	ClientSecretFile string                  `yaml:"client_secret_file,omitempty"`
-	TokenDB          string                  `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GitlabGCSStoreConfig   `yaml:"gcs_token_db,omitempty"`
-	RedisTokenDB     *GitlabRedisStoreConfig `yaml:"redis_token_db,omitempty"`
-	HTTPTimeout      time.Duration           `yaml:"http_timeout,omitempty"`
-	RevalidateAfter  time.Duration           `yaml:"revalidate_after,omitempty"`
-	GitlabWebUri     string                  `yaml:"gitlab_web_uri,omitempty"`
-	GitlabApiUri     string                  `yaml:"gitlab_api_uri,omitempty"`
-	RegistryUrl      string                  `yaml:"registry_url,omitempty"`
-	GrantType        string                  `yaml:"grant_type,omitempty"`
-	RedirectUri      string                  `yaml:"redirect_uri,omitempty"`
+	Organization     string                `yaml:"organization,omitempty"`
+	ClientId         string                `yaml:"client_id,omitempty"`
+	ClientSecret     string                `yaml:"client_secret,omitempty"`
+	ClientSecretFile string                `yaml:"client_secret_file,omitempty"`
+	TokenDB          string                `yaml:"token_db,omitempty"`
+	GCSTokenDB       *GitlabGCSStoreConfig `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB     *RedisStoreConfig     `yaml:"redis_token_db,omitempty"`
+	HTTPTimeout      time.Duration         `yaml:"http_timeout,omitempty"`
+	RevalidateAfter  time.Duration         `yaml:"revalidate_after,omitempty"`
+	GitlabWebUri     string                `yaml:"gitlab_web_uri,omitempty"`
+	GitlabApiUri     string                `yaml:"gitlab_api_uri,omitempty"`
+	RegistryUrl      string                `yaml:"registry_url,omitempty"`
+	GrantType        string                `yaml:"grant_type,omitempty"`
+	RedirectUri      string                `yaml:"redirect_uri,omitempty"`
 }
 
 type CodeToGitlabTokenResponse struct {
@@ -88,11 +87,6 @@ type CodeToGitlabTokenResponse struct {
 type GitlabGCSStoreConfig struct {
 	Bucket           string `yaml:"bucket,omitempty"`
 	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-}
-
-type GitlabRedisStoreConfig struct {
-	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
-	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
 }
 
 type GitlabAuthRequest struct {
@@ -114,7 +108,6 @@ type GitlabAuth struct {
 	tmplResult *template.Template
 }
 
-
 func NewGitlabAuth(c *GitlabAuthConfig) (*GitlabAuth, error) {
 	var db TokenDB
 	var err error
@@ -125,7 +118,7 @@ func NewGitlabAuth(c *GitlabAuthConfig) (*GitlabAuth, error) {
 		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
 		dbName = "GCS: " + c.GCSTokenDB.Bucket
 	case c.RedisTokenDB != nil:
-		db, err = NewRedisGitlabTokenDB(c.RedisTokenDB)
+		db, err = NewRedisTokenDB(c.RedisTokenDB)
 		dbName = db.(*redisTokenDB).String()
 	default:
 		db, err = NewTokenDB(c.TokenDB)
@@ -215,7 +208,7 @@ func (glab *GitlabAuth) doGitlabAuthCreateToken(rw http.ResponseWriter, code str
 		http.Error(rw, fmt.Sprintf("Error talking to GitLab auth backend: %s", err), http.StatusServiceUnavailable)
 		return
 	}
-	codeResp, _ := ioutil.ReadAll(resp.Body)
+	codeResp, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	glog.V(2).Infof("Code to token resp: %s", strings.Replace(string(codeResp), "\n", " ", -1))
 
@@ -240,7 +233,6 @@ func (glab *GitlabAuth) doGitlabAuthCreateToken(rw http.ResponseWriter, code str
 
 	glog.Infof("New GitLab auth token for %s", user)
 
-
 	v := &TokenDBValue{
 		TokenType:   c2t.TokenType,
 		AccessToken: c2t.AccessToken,
@@ -257,7 +249,7 @@ func (glab *GitlabAuth) doGitlabAuthCreateToken(rw http.ResponseWriter, code str
 
 func (glab *GitlabAuth) validateGitlabAccessToken(token string) (user string, err error) {
 	glog.Infof("Gitlab API: Fetching user info")
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", glab.getGitlabApiUri()),nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", glab.getGitlabApiUri()), nil)
 
 	if err != nil {
 		err = fmt.Errorf("could not create request to get information for token %s: %s", token, err)
@@ -271,7 +263,7 @@ func (glab *GitlabAuth) validateGitlabAccessToken(token string) (user string, er
 		err = fmt.Errorf("could not verify token %s: %s", token, err)
 		return
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	var ti GitlabTokenUser
 	err = json.Unmarshal(body, &ti)
@@ -311,7 +303,6 @@ func (glab *GitlabAuth) checkGitlabOrganization(token, user string) (err error) 
 
 	return fmt.Errorf("Unknown status for membership of organization %s: %s", glab.config.Organization, resp.Status)
 }
-
 
 func (glab *GitlabAuth) validateGitlabServerToken(user string) (*TokenDBValue, error) {
 	v, err := glab.db.GetValue(user)

@@ -22,14 +22,13 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/cesanta/glog"
-	"github.com/go-redis/redis"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
@@ -57,28 +56,23 @@ type ParentGitHubTeam struct {
 }
 
 type GitHubAuthConfig struct {
-	Organization     string                  `yaml:"organization,omitempty"`
-	ClientId         string                  `yaml:"client_id,omitempty"`
-	ClientSecret     string                  `yaml:"client_secret,omitempty"`
-	ClientSecretFile string                  `yaml:"client_secret_file,omitempty"`
-	TokenDB          string                  `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GitHubGCSStoreConfig   `yaml:"gcs_token_db,omitempty"`
-	RedisTokenDB     *GitHubRedisStoreConfig `yaml:"redis_token_db,omitempty"`
-	HTTPTimeout      time.Duration           `yaml:"http_timeout,omitempty"`
-	RevalidateAfter  time.Duration           `yaml:"revalidate_after,omitempty"`
-	GithubWebUri     string                  `yaml:"github_web_uri,omitempty"`
-	GithubApiUri     string                  `yaml:"github_api_uri,omitempty"`
-	RegistryUrl      string                  `yaml:"registry_url,omitempty"`
+	Organization     string                `yaml:"organization,omitempty"`
+	ClientId         string                `yaml:"client_id,omitempty"`
+	ClientSecret     string                `yaml:"client_secret,omitempty"`
+	ClientSecretFile string                `yaml:"client_secret_file,omitempty"`
+	TokenDB          string                `yaml:"token_db,omitempty"`
+	GCSTokenDB       *GitHubGCSStoreConfig `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB     *RedisStoreConfig     `yaml:"redis_token_db,omitempty"`
+	HTTPTimeout      time.Duration         `yaml:"http_timeout,omitempty"`
+	RevalidateAfter  time.Duration         `yaml:"revalidate_after,omitempty"`
+	GithubWebUri     string                `yaml:"github_web_uri,omitempty"`
+	GithubApiUri     string                `yaml:"github_api_uri,omitempty"`
+	RegistryUrl      string                `yaml:"registry_url,omitempty"`
 }
 
 type GitHubGCSStoreConfig struct {
 	Bucket           string `yaml:"bucket,omitempty"`
 	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-}
-
-type GitHubRedisStoreConfig struct {
-	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
-	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -128,7 +122,6 @@ func execGHExperimentalApiRequest(url string, token string) (*http.Response, err
 }
 
 // removeSubstringsFromString removes all occurences of stringsToStrip from sourceStr
-//
 func removeSubstringsFromString(sourceStr string, stringsToStrip []string) string {
 	theNewString := sourceStr
 	for _, i := range stringsToStrip {
@@ -140,7 +133,6 @@ func removeSubstringsFromString(sourceStr string, stringsToStrip []string) strin
 // parseLinkHeader parses the HTTP headers from the Github API response
 //
 // https://developer.github.com/v3/guides/traversing-with-pagination/
-//
 func parseLinkHeader(linkLines []string) (linkHeader, error) {
 	var lH linkHeader
 	// URL in link is enclosed in < >
@@ -265,7 +257,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		http.Error(rw, fmt.Sprintf("Error talking to GitHub auth backend: %s", err), http.StatusServiceUnavailable)
 		return
 	}
-	codeResp, _ := ioutil.ReadAll(resp.Body)
+	codeResp, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	glog.V(2).Infof("Code to token resp: %s", strings.Replace(string(codeResp), "\n", " ", -1))
 
@@ -327,7 +319,7 @@ func (gha *GitHubAuth) validateAccessToken(token string) (user string, err error
 		err = fmt.Errorf("could not verify token %s: %s", token, err)
 		return
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	var ti GitHubTokenUser
@@ -396,7 +388,7 @@ func (gha *GitHubAuth) fetchTeams(token string) ([]string, error) {
 		}
 
 		respHeaders := resp.Header
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 
 		err = json.Unmarshal(body, &pagedTeams)

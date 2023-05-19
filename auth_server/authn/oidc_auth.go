@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -48,7 +48,9 @@ type OIDCAuthConfig struct {
 	ClientSecret     string `yaml:"client_secret,omitempty"`
 	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
 	// path where the tokendb should be stored within the container
-	TokenDB string `yaml:"token_db,omitempty"`
+	TokenDB      string              `yaml:"token_db,omitempty"`
+	RedisTokenDB *RedisStoreConfig   `yaml:"redis_token_db,omitempty"`
+	GCSTokenDB   *OidcGCSStoreConfig `yaml:"gcs_token_db,omitempty"`
 	// --- optional ---
 	HTTPTimeout int `yaml:"http_timeout,omitempty"`
 	// the URL of the docker registry. Used to generate a full docker login command after authentication
@@ -61,6 +63,11 @@ type OIDCAuthConfig struct {
 	LabelsClaims []string `yaml:"labels_claims,omitempty"`
 	// --- optional ---
 	Scopes []string `yaml:"scopes,omitempty"`
+}
+
+type OidcGCSStoreConfig struct {
+	Bucket           string `yaml:"bucket,omitempty"`
+	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
 }
 
 // OIDCRefreshTokenResponse is sent by OIDC provider in response to the grant_type=refresh_token request.
@@ -92,11 +99,26 @@ type OIDCAuth struct {
 Creates everything necessary for OIDC auth.
 */
 func NewOIDCAuth(c *OIDCAuthConfig) (*OIDCAuth, error) {
-	db, err := NewTokenDB(c.TokenDB)
+
+	var db TokenDB
+	var err error
+	dbName := c.TokenDB
+
+	switch {
+	case c.GCSTokenDB != nil:
+		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
+		dbName = "GCS: " + c.GCSTokenDB.Bucket
+	case c.RedisTokenDB != nil:
+		db, err = NewRedisTokenDB(c.RedisTokenDB)
+		dbName = db.(*redisTokenDB).String()
+	default:
+		db, err = NewTokenDB(c.TokenDB)
+	}
+
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("OIDC auth token DB at %s", c.TokenDB)
+	glog.Infof("OIDC auth token DB at %s", dbName)
 	ctx := context.Background()
 	oidcAuth, _ := static.ReadFile("data/oidc_auth.tmpl")
 	oidcAuthResult, _ := static.ReadFile("data/oidc_auth_result.tmpl")
@@ -147,10 +169,10 @@ func (ga *OIDCAuth) doOIDCAuthPage(rw http.ResponseWriter) {
 	if err := ga.tmpl.Execute(rw, struct {
 		AuthEndpoint, RedirectURI, ClientId, Scope string
 	}{
-		AuthEndpoint: ga.provider.Endpoint().AuthURL,
-		RedirectURI:  ga.oauth.RedirectURL,
-		ClientId:     ga.oauth.ClientID,
-		Scope:        strings.Join(ga.config.Scopes, " "),
+		AuthEndpoint:  ga.provider.Endpoint().AuthURL,
+		RedirectURI:   ga.oauth.RedirectURL,
+		ClientId:      ga.oauth.ClientID,
+		Scope:         strings.Join(ga.config.Scopes, " "),
 	}); err != nil {
 		http.Error(rw, fmt.Sprintf("Template error: %s", err), http.StatusInternalServerError)
 	}
@@ -203,8 +225,7 @@ func (ga *OIDCAuth) doOIDCAuthCreateToken(rw http.ResponseWriter, code string) {
 		http.Error(rw, fmt.Sprintf("No %q claim in ID token", ga.config.UserClaim), http.StatusInternalServerError)
 		return
 	}
-
-	glog.V(2).Infof("New OIDC auth token for %s (Current time: %s, expiration time: %s)", username, time.Now().String(), tok.Expiry.String())
+	glog.V(2).Infof("New OIDC auth token for %s (Current time: %s, expiration time: %s) - refreshtoken: %s", username, time.Now().String(), tok.Expiry.String(), tok.RefreshToken)
 
 	dbVal := &TokenDBValue{
 		TokenType:    tok.TokenType,
@@ -257,7 +278,7 @@ func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshToke
 		err = fmt.Errorf("error talking to OIDC auth backend: %s", err)
 		return
 	}
-	respStr, _ := ioutil.ReadAll(resp.Body)
+	respStr, _ := io.ReadAll(resp.Body)
 	glog.V(2).Infof("Refresh token resp: %s", strings.Replace(string(respStr), "\n", " ", -1))
 
 	err = json.Unmarshal(respStr, &rtr)

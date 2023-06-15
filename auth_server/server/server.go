@@ -120,6 +120,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		as.authenticators = append(as.authenticators, glab)
 		as.glab = glab
 	}
+	if c.GiteaAuth != nil {
+		gta, err := authn.NewGiteaAuth(c.GiteaAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, gta)
+	}
 	if c.LDAPAuth != nil {
 		la, err := authn.NewLDAPAuth(c.LDAPAuth)
 		if err != nil {

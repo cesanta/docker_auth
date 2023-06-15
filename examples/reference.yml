@@ -239,6 +239,18 @@ gitlab_auth:
   # Redirect uri is used for the authentication purpose. Must end with '/gitlab_auth' prefix. Required.
   redirect_uri: "https://localhost:5001/gitlab_auth"
 
+# Gitea authentication.
+# This uses gitea's basic authentication to validate credentials and returns the 
+# assigned organization as projects.
+gitea_auth:
+  # How long to wait when talking to Gitean servers. Optional.
+  http_timeout: "10s"
+    # How long to wait before revalidating the Github token. Optional.
+  revalidate_after: "1h"
+  # The Gitea API URI
+  # Includes the protocol, without trailing slash.
+  api_uri: https://localhost:3000/api
+
 # LDAP authentication.
 # Authentication is performed by first binding to the server, looking up the user entry
 # by using the specified filter, and then re-binding using the matched DN and the password provided.

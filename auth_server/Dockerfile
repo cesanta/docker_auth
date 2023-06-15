@@ -12,6 +12,7 @@ COPY . /build
 WORKDIR /build
 RUN make build
 
+
 FROM alpine:3.17
 COPY --from=build /build/auth_server /docker_auth/
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

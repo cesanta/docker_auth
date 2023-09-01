@@ -1,0 +1,39 @@
+name: Sample Orca IaC Scan Workflow
+on:
+  # Scan for each push event on your protected branch. If you have a different branch configured, please adjust the configuration accordingly by replacing 'main'.
+  push:
+    branches: ["main"]
+  # NOTE: To enable scanning for pull requests, uncomment the section below.
+  pull_request:
+    #branches: [ "main" ]
+  # NOTE: To schedule a daily scan at midnight, uncomment the section below.
+  schedule:
+    - cron: "0 0 * * *"
+jobs:
+  orca-iac_scan:
+    name: Orca IaC Scan
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_KEY: default # Set the desired project to run the cli scanning with
+    steps:
+      # Checkout your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Run Orca IaC Scan
+        uses: orcasecurity/shiftleft-iac-action@v1
+        with:
+          api_token: ${{ secrets.ORCA_SECURITY_API_TOKEN }}
+          format: "sarif"
+          output: "results/"
+          console_output: json
+          project_key: ${{ env.PROJECT_KEY }}
+          path:
+            # scanning directories: ./terraform/ ./sub-dir/ and a file: ./Dockerfile
+            "."
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: orca-results
+          path: results/

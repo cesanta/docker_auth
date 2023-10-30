@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"github.com/cesanta/glog"
-	"github.com/go-redis/redis"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
@@ -57,20 +56,20 @@ type ParentGitlabTeam struct {
 }
 
 type GitlabAuthConfig struct {
-	Organization     string                  `yaml:"organization,omitempty"`
-	ClientId         string                  `yaml:"client_id,omitempty"`
-	ClientSecret     string                  `yaml:"client_secret,omitempty"`
-	ClientSecretFile string                  `yaml:"client_secret_file,omitempty"`
-	TokenDB          string                  `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GitlabGCSStoreConfig   `yaml:"gcs_token_db,omitempty"`
-	RedisTokenDB     *GitlabRedisStoreConfig `yaml:"redis_token_db,omitempty"`
-	HTTPTimeout      time.Duration           `yaml:"http_timeout,omitempty"`
-	RevalidateAfter  time.Duration           `yaml:"revalidate_after,omitempty"`
-	GitlabWebUri     string                  `yaml:"gitlab_web_uri,omitempty"`
-	GitlabApiUri     string                  `yaml:"gitlab_api_uri,omitempty"`
-	RegistryUrl      string                  `yaml:"registry_url,omitempty"`
-	GrantType        string                  `yaml:"grant_type,omitempty"`
-	RedirectUri      string                  `yaml:"redirect_uri,omitempty"`
+	Organization     string            `yaml:"organization,omitempty"`
+	ClientId         string            `yaml:"client_id,omitempty"`
+	ClientSecret     string            `yaml:"client_secret,omitempty"`
+	ClientSecretFile string            `yaml:"client_secret_file,omitempty"`
+	TokenDB          string            `yaml:"token_db,omitempty"`
+	GCSTokenDB       *GCSStoreConfig   `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB     *RedisStoreConfig `yaml:"redis_token_db,omitempty"`
+	HTTPTimeout      time.Duration     `yaml:"http_timeout,omitempty"`
+	RevalidateAfter  time.Duration     `yaml:"revalidate_after,omitempty"`
+	GitlabWebUri     string            `yaml:"gitlab_web_uri,omitempty"`
+	GitlabApiUri     string            `yaml:"gitlab_api_uri,omitempty"`
+	RegistryUrl      string            `yaml:"registry_url,omitempty"`
+	GrantType        string            `yaml:"grant_type,omitempty"`
+	RedirectUri      string            `yaml:"redirect_uri,omitempty"`
 }
 
 type CodeToGitlabTokenResponse struct {
@@ -83,16 +82,6 @@ type CodeToGitlabTokenResponse struct {
 	// Returned in case of error.
 	Error            string `json:"error,omitempty"`
 	ErrorDescription string `json:"error_description,omitempty"`
-}
-
-type GitlabGCSStoreConfig struct {
-	Bucket           string `yaml:"bucket,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-}
-
-type GitlabRedisStoreConfig struct {
-	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
-	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
 }
 
 type GitlabAuthRequest struct {
@@ -125,7 +114,7 @@ func NewGitlabAuth(c *GitlabAuthConfig) (*GitlabAuth, error) {
 		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
 		dbName = "GCS: " + c.GCSTokenDB.Bucket
 	case c.RedisTokenDB != nil:
-		db, err = NewRedisGitlabTokenDB(c.RedisTokenDB)
+		db, err = NewRedisTokenDB(c.RedisTokenDB)
 		dbName = db.(*redisTokenDB).String()
 	default:
 		db, err = NewTokenDB(c.TokenDB)

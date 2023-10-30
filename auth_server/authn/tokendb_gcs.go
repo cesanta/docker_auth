@@ -31,6 +31,11 @@ import (
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
+type GCSStoreConfig struct {
+	Bucket           string `yaml:"bucket,omitempty"`
+	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
+}
+
 // NewGCSTokenDB return a new TokenDB structure which uses Google Cloud Storage as backend. The
 // created DB uses file-per-user strategy and stores credentials independently for each user.
 //

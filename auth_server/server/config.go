@@ -171,7 +171,7 @@ func validate(c *Config) error {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
 	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.GitlabAuth == nil && c.OIDCAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.XormAuthn == nil && c.PluginAuthn == nil {
-		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone.")
+		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone")
 	}
 	if c.MongoAuth != nil {
 		if err := c.MongoAuth.Validate("mongo_auth"); err != nil {
@@ -191,9 +191,18 @@ func validate(c *Config) error {
 			}
 			gac.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if gac.ClientId == "" || gac.ClientSecret == "" || gac.TokenDB == "" {
-			return errors.New("google_auth.{client_id,client_secret,token_db} are required.")
+		if gac.ClientId == "" || gac.ClientSecret == "" || (gac.TokenDB == "" && (gac.GCSTokenDB == nil && gac.RedisTokenDB == nil)) {
+			return errors.New("google_auth.{client_id,client_secret,token_db} are required")
 		}
+
+		if gac.ClientId == "" || gac.ClientSecret == "" || (gac.GCSTokenDB != nil && (gac.GCSTokenDB.Bucket == "" || gac.GCSTokenDB.ClientSecretFile == "")) {
+			return errors.New("google_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
+		}
+
+		if gac.ClientId == "" || gac.ClientSecret == "" || (gac.RedisTokenDB != nil && gac.RedisTokenDB.ClientOptions == nil && gac.RedisTokenDB.ClusterOptions == nil) {
+			return errors.New("google_auth.{client_id,client_secret,redis_token_db.{redis_options,redis_cluster_options}} are required")
+		}
+
 		if gac.HTTPTimeout <= 0 {
 			gac.HTTPTimeout = time.Duration(10 * time.Second)
 		}
@@ -234,9 +243,18 @@ func validate(c *Config) error {
 			}
 			oidc.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if oidc.ClientId == "" || oidc.ClientSecret == "" || oidc.TokenDB == "" || oidc.Issuer == "" || oidc.RedirectURL == "" {
+		if oidc.ClientId == "" || oidc.ClientSecret == "" || oidc.Issuer == "" || oidc.RedirectURL == "" || (oidc.TokenDB == "" && (oidc.GCSTokenDB == nil && oidc.RedisTokenDB == nil)) {
 			return errors.New("oidc_auth.{issuer,redirect_url,client_id,client_secret,token_db} are required")
 		}
+
+		if oidc.ClientId == "" || oidc.ClientSecret == "" || (oidc.GCSTokenDB != nil && (oidc.GCSTokenDB.Bucket == "" || oidc.GCSTokenDB.ClientSecretFile == "")) {
+			return errors.New("oidc_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
+		}
+
+		if oidc.ClientId == "" || oidc.ClientSecret == "" || (oidc.RedisTokenDB != nil && oidc.RedisTokenDB.ClientOptions == nil && oidc.RedisTokenDB.ClusterOptions == nil) {
+			return errors.New("oidc_auth.{client_id,client_secret,redis_token_db.{redis_options,redis_cluster_options}} are required")
+		}
+
 		if oidc.HTTPTimeout <= 0 {
 			oidc.HTTPTimeout = time.Duration(10 * time.Second)
 		}

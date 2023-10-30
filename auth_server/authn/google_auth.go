@@ -33,12 +33,12 @@ import (
 )
 
 type GoogleAuthConfig struct {
-	Domain           string `yaml:"domain,omitempty"`
-	ClientId         string `yaml:"client_id,omitempty"`
-	ClientSecret     string `yaml:"client_secret,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-	TokenDB          string `yaml:"token_db,omitempty"`
-	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
+	Domain           string        `yaml:"domain,omitempty"`
+	ClientId         string        `yaml:"client_id,omitempty"`
+	ClientSecret     string        `yaml:"client_secret,omitempty"`
+	ClientSecretFile string        `yaml:"client_secret_file,omitempty"`
+	TokenDB          string        `yaml:"token_db,omitempty"`
+	HTTPTimeout      time.Duration `yaml:"http_timeout,omitempty"`
 }
 
 type GoogleAuthRequest struct {
@@ -136,7 +136,7 @@ func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
 	return &GoogleAuth{
 		config: c,
 		db:     db,
-		client: &http.Client{Timeout: 10 * time.Second},
+		client: &http.Client{Timeout: c.HTTPTimeout},
 		tmpl:   template.Must(template.New("google_auth").Parse(string(google_auth))),
 	}, nil
 }

@@ -50,7 +50,7 @@ type OIDCAuthConfig struct {
 	// path where the tokendb should be stored within the container
 	TokenDB string `yaml:"token_db,omitempty"`
 	// --- optional ---
-	HTTPTimeout int `yaml:"http_timeout,omitempty"`
+	HTTPTimeout time.Duration `yaml:"http_timeout,omitempty"`
 	// the URL of the docker registry. Used to generate a full docker login command after authentication
 	RegistryURL string `yaml:"registry_url,omitempty"`
 	// --- optional ---
@@ -115,7 +115,7 @@ func NewOIDCAuth(c *OIDCAuthConfig) (*OIDCAuth, error) {
 	return &OIDCAuth{
 		config:     c,
 		db:         db,
-		client:     &http.Client{Timeout: 10 * time.Second},
+		client:     &http.Client{Timeout: c.HTTPTimeout},
 		tmpl:       template.Must(template.New("oidc_auth").Parse(string(oidcAuth))),
 		tmplResult: template.Must(template.New("oidc_auth_result").Parse(string(oidcAuthResult))),
 		ctx:        ctx,

@@ -191,7 +191,7 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 	return &GitHubAuth{
 		config:     c,
 		db:         db,
-		client:     &http.Client{Timeout: 10 * time.Second},
+		client:     &http.Client{Timeout: c.HTTPTimeout},
 		tmpl:       template.Must(template.New("github_auth").Parse(string(github_auth))),
 		tmplResult: template.Must(template.New("github_auth_result").Parse(string(github_auth_result))),
 	}, nil

@@ -140,7 +140,7 @@ func NewGitlabAuth(c *GitlabAuthConfig) (*GitlabAuth, error) {
 	return &GitlabAuth{
 		config:     c,
 		db:         db,
-		client:     &http.Client{Timeout: 10 * time.Second},
+		client:     &http.Client{Timeout: c.HTTPTimeout},
 		tmpl:       template.Must(template.New("gitlab_auth").Parse(string(gitlab_auth))),
 		tmplResult: template.Must(template.New("gitlab_auth_result").Parse(string(gitlab_auth_result))),
 	}, nil

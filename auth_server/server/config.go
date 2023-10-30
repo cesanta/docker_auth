@@ -195,7 +195,7 @@ func validate(c *Config) error {
 			return errors.New("google_auth.{client_id,client_secret,token_db} are required.")
 		}
 		if gac.HTTPTimeout <= 0 {
-			gac.HTTPTimeout = 10
+			gac.HTTPTimeout = time.Duration(10 * time.Second)
 		}
 	}
 	if ghac := c.GitHubAuth; ghac != nil {
@@ -238,7 +238,7 @@ func validate(c *Config) error {
 			return errors.New("oidc_auth.{issuer,redirect_url,client_id,client_secret,token_db} are required")
 		}
 		if oidc.HTTPTimeout <= 0 {
-			oidc.HTTPTimeout = 10
+			oidc.HTTPTimeout = time.Duration(10 * time.Second)
 		}
 		if oidc.UserClaim == "" {
 			oidc.UserClaim = "email"

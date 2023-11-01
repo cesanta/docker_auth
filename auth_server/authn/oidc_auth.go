@@ -48,9 +48,9 @@ type OIDCAuthConfig struct {
 	ClientSecret     string            `yaml:"client_secret,omitempty"`
 	ClientSecretFile string            `yaml:"client_secret_file,omitempty"`
 	// path where the tokendb should be stored within the container
-	TokenDB string                     `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GCSStoreConfig   `yaml:"gcs_token_db,omitempty"`
-	RedisTokenDB     *RedisStoreConfig `yaml:"redis_token_db,omitempty"`
+	LevelTokenDB     *LevelDBStoreConfig `yaml:"level_token_db,omitempty"`
+	GCSTokenDB       *GCSStoreConfig     `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB     *RedisStoreConfig   `yaml:"redis_token_db,omitempty"`
 	// --- optional ---
 	HTTPTimeout      time.Duration     `yaml:"http_timeout,omitempty"`
 	// the URL of the docker registry. Used to generate a full docker login command after authentication
@@ -96,17 +96,18 @@ Creates everything necessary for OIDC auth.
 func NewOIDCAuth(c *OIDCAuthConfig) (*OIDCAuth, error) {
 	var db TokenDB
 	var err error
-	dbName := c.TokenDB
+	var dbName string
 
 	switch {
 	case c.GCSTokenDB != nil:
-		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
+		db, err = NewGCSTokenDB(c.GCSTokenDB)
 		dbName = "GCS: " + c.GCSTokenDB.Bucket
 	case c.RedisTokenDB != nil:
 		db, err = NewRedisTokenDB(c.RedisTokenDB)
 		dbName = db.(*redisTokenDB).String()
 	default:
-		db, err = NewTokenDB(c.TokenDB)
+		db, err = NewTokenDB(c.LevelTokenDB)
+		dbName = c.LevelTokenDB.Path
 	}
 
 	if err != nil {

@@ -56,18 +56,18 @@ type ParentGitHubTeam struct {
 }
 
 type GitHubAuthConfig struct {
-	Organization     string                  `yaml:"organization,omitempty"`
-	ClientId         string                  `yaml:"client_id,omitempty"`
-	ClientSecret     string                  `yaml:"client_secret,omitempty"`
-	ClientSecretFile string                  `yaml:"client_secret_file,omitempty"`
-	TokenDB          string                  `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GCSStoreConfig         `yaml:"gcs_token_db,omitempty"`
-	RedisTokenDB     *RedisStoreConfig       `yaml:"redis_token_db,omitempty"`
-	HTTPTimeout      time.Duration           `yaml:"http_timeout,omitempty"`
-	RevalidateAfter  time.Duration           `yaml:"revalidate_after,omitempty"`
-	GithubWebUri     string                  `yaml:"github_web_uri,omitempty"`
-	GithubApiUri     string                  `yaml:"github_api_uri,omitempty"`
-	RegistryUrl      string                  `yaml:"registry_url,omitempty"`
+	Organization     string              `yaml:"organization,omitempty"`
+	ClientId         string              `yaml:"client_id,omitempty"`
+	ClientSecret     string              `yaml:"client_secret,omitempty"`
+	ClientSecretFile string              `yaml:"client_secret_file,omitempty"`
+	LevelTokenDB     *LevelDBStoreConfig `yaml:"level_token_db,omitempty"`
+	GCSTokenDB       *GCSStoreConfig     `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB     *RedisStoreConfig   `yaml:"redis_token_db,omitempty"`
+	HTTPTimeout      time.Duration       `yaml:"http_timeout,omitempty"`
+	RevalidateAfter  time.Duration       `yaml:"revalidate_after,omitempty"`
+	GithubWebUri     string              `yaml:"github_web_uri,omitempty"`
+	GithubApiUri     string              `yaml:"github_api_uri,omitempty"`
+	RegistryUrl      string              `yaml:"registry_url,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -158,17 +158,18 @@ func parseLinkHeader(linkLines []string) (linkHeader, error) {
 func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 	var db TokenDB
 	var err error
-	dbName := c.TokenDB
+	var dbName string
 
 	switch {
 	case c.GCSTokenDB != nil:
-		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
+		db, err = NewGCSTokenDB(c.GCSTokenDB)
 		dbName = "GCS: " + c.GCSTokenDB.Bucket
 	case c.RedisTokenDB != nil:
 		db, err = NewRedisTokenDB(c.RedisTokenDB)
 		dbName = db.(*redisTokenDB).String()
 	default:
-		db, err = NewTokenDB(c.TokenDB)
+		db, err = NewTokenDB(c.LevelTokenDB)
+		dbName = c.LevelTokenDB.Path
 	}
 
 	if err != nil {

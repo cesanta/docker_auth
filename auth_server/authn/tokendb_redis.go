@@ -32,6 +32,7 @@ import (
 type RedisStoreConfig struct {
 	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
 	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
+	TokenHashCost  int                   `yaml:"token_hash_cost,omitempty"`
 }
 
 type RedisClient interface {
@@ -52,12 +53,17 @@ func NewRedisTokenDB(options *RedisStoreConfig) (TokenDB, error) {
 	} else {
 		client = redis.NewClient(options.ClientOptions)
 	}
+	tokenHashCost := options.TokenHashCost
+	if tokenHashCost <= 0 {
+		tokenHashCost = bcrypt.DefaultCost
+	}
 
-	return &redisTokenDB{client}, nil
+	return &redisTokenDB{client,tokenHashCost}, nil
 }
 
 type redisTokenDB struct {
 	client RedisClient
+	tokenHashCost int
 }
 
 func (db *redisTokenDB) String() string {
@@ -95,7 +101,7 @@ func (db *redisTokenDB) GetValue(user string) (*TokenDBValue, error) {
 func (db *redisTokenDB) StoreToken(user string, v *TokenDBValue, updatePassword bool) (dp string, err error) {
 	if updatePassword {
 		dp = uniuri.New()
-		dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
+		dph, _ := bcrypt.GenerateFromPassword([]byte(dp), db.tokenHashCost)
 		v.DockerPassword = string(dph)
 	}
 

@@ -29,6 +29,11 @@ import (
 	"github.com/go-redis/redis"
 )
 
+type RedisStoreConfig struct {
+	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
+	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
+}
+
 type RedisClient interface {
 	Get(key string) *redis.StringCmd
 	Set(key string, value interface{}, expiration time.Duration) *redis.StatusCmd
@@ -37,23 +42,7 @@ type RedisClient interface {
 
 // NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
 //
-func NewRedisTokenDB(options *GitHubRedisStoreConfig) (TokenDB, error) {
-	var client RedisClient
-	if options.ClusterOptions != nil {
-		if options.ClientOptions != nil {
-			glog.Infof("Both redis_token_db.configs and redis_token_db.cluster_configs have been set. Only the latter will be used")
-		}
-		client = redis.NewClusterClient(options.ClusterOptions)
-	} else {
-		client = redis.NewClient(options.ClientOptions)
-	}
-
-	return &redisTokenDB{client}, nil
-}
-
-// NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
-//
-func NewRedisGitlabTokenDB(options *GitlabRedisStoreConfig) (TokenDB, error) {
+func NewRedisTokenDB(options *RedisStoreConfig) (TokenDB, error) {
 	var client RedisClient
 	if options.ClusterOptions != nil {
 		if options.ClientOptions != nil {

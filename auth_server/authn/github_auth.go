@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"github.com/cesanta/glog"
-	"github.com/go-redis/redis"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
@@ -62,23 +61,13 @@ type GitHubAuthConfig struct {
 	ClientSecret     string                  `yaml:"client_secret,omitempty"`
 	ClientSecretFile string                  `yaml:"client_secret_file,omitempty"`
 	TokenDB          string                  `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GitHubGCSStoreConfig   `yaml:"gcs_token_db,omitempty"`
-	RedisTokenDB     *GitHubRedisStoreConfig `yaml:"redis_token_db,omitempty"`
+	GCSTokenDB       *GCSStoreConfig         `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB     *RedisStoreConfig       `yaml:"redis_token_db,omitempty"`
 	HTTPTimeout      time.Duration           `yaml:"http_timeout,omitempty"`
 	RevalidateAfter  time.Duration           `yaml:"revalidate_after,omitempty"`
 	GithubWebUri     string                  `yaml:"github_web_uri,omitempty"`
 	GithubApiUri     string                  `yaml:"github_api_uri,omitempty"`
 	RegistryUrl      string                  `yaml:"registry_url,omitempty"`
-}
-
-type GitHubGCSStoreConfig struct {
-	Bucket           string `yaml:"bucket,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-}
-
-type GitHubRedisStoreConfig struct {
-	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
-	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
 }
 
 type GitHubAuthRequest struct {
@@ -191,7 +180,7 @@ func NewGitHubAuth(c *GitHubAuthConfig) (*GitHubAuth, error) {
 	return &GitHubAuth{
 		config:     c,
 		db:         db,
-		client:     &http.Client{Timeout: 10 * time.Second},
+		client:     &http.Client{Timeout: c.HTTPTimeout},
 		tmpl:       template.Must(template.New("github_auth").Parse(string(github_auth))),
 		tmplResult: template.Must(template.New("github_auth_result").Parse(string(github_auth_result))),
 	}, nil

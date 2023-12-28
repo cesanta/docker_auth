@@ -70,6 +70,7 @@ type ServerConfig struct {
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
+	sigAlg string
 }
 
 type LetsEncryptConfig struct {
@@ -86,6 +87,7 @@ type TokenConfig struct {
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
+	sigAlg string
 }
 
 // TLSCipherSuitesValues maps CipherSuite names as strings to the actual values
@@ -335,7 +337,7 @@ func validate(c *Config) error {
 	return nil
 }
 
-func loadCertAndKey(certFile string, keyFile string) (pk libtrust.PublicKey, prk libtrust.PrivateKey, err error) {
+func loadCertAndKey(certFile string, keyFile string) (pk libtrust.PublicKey, prk libtrust.PrivateKey, sigAlg string, err error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return
@@ -349,6 +351,11 @@ func loadCertAndKey(certFile string, keyFile string) (pk libtrust.PublicKey, prk
 		return
 	}
 	prk, err = libtrust.FromCryptoPrivateKey(cert.PrivateKey)
+	_, sigAlg, errStr := prk.Sign(strings.NewReader("dummy"), 0)
+	if errStr != nil {
+		err = fmt.Errorf("failed to sign: %s", errStr)
+		return
+	}
 	return
 }
 
@@ -370,7 +377,7 @@ func LoadConfig(fileName string) (*Config, error) {
 		if c.Server.CertFile == "" || c.Server.KeyFile == "" {
 			return nil, fmt.Errorf("failed to load server cert and key: both were not provided")
 		}
-		c.Server.publicKey, c.Server.privateKey, err = loadCertAndKey(c.Server.CertFile, c.Server.KeyFile)
+		c.Server.publicKey, c.Server.privateKey, c.Server.sigAlg, err = loadCertAndKey(c.Server.CertFile, c.Server.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load server cert and key: %s", err)
 		}
@@ -382,7 +389,7 @@ func LoadConfig(fileName string) (*Config, error) {
 		if c.Token.CertFile == "" || c.Token.KeyFile == "" {
 			return nil, fmt.Errorf("failed to load token cert and key: both were not provided")
 		}
-		c.Token.publicKey, c.Token.privateKey, err = loadCertAndKey(c.Token.CertFile, c.Token.KeyFile)
+		c.Token.publicKey, c.Token.privateKey, c.Token.sigAlg, err = loadCertAndKey(c.Token.CertFile, c.Token.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load token cert and key: %s", err)
 		}
@@ -390,7 +397,7 @@ func LoadConfig(fileName string) (*Config, error) {
 	}
 
 	if serverConfigured && !tokenConfigured {
-		c.Token.publicKey, c.Token.privateKey = c.Server.publicKey, c.Server.privateKey
+		c.Token.publicKey, c.Token.privateKey, c.Token.sigAlg = c.Server.publicKey, c.Server.privateKey, c.Server.sigAlg
 		tokenConfigured = true
 	}
 

@@ -33,14 +33,14 @@ import (
 )
 
 type GoogleAuthConfig struct {
-	Domain           string            `yaml:"domain,omitempty"`
-	ClientId         string            `yaml:"client_id,omitempty"`
-	ClientSecret     string            `yaml:"client_secret,omitempty"`
-	ClientSecretFile string            `yaml:"client_secret_file,omitempty"`
-	TokenDB          string            `yaml:"token_db,omitempty"`
-	GCSTokenDB       *GCSStoreConfig   `yaml:"gcs_token_db,omitempty"`
-	RedisTokenDB     *RedisStoreConfig `yaml:"redis_token_db,omitempty"`
-	HTTPTimeout      time.Duration     `yaml:"http_timeout,omitempty"`
+	Domain           string              `yaml:"domain,omitempty"`
+	ClientId         string              `yaml:"client_id,omitempty"`
+	ClientSecret     string              `yaml:"client_secret,omitempty"`
+	ClientSecretFile string              `yaml:"client_secret_file,omitempty"`
+	LevelTokenDB     *LevelDBStoreConfig `yaml:"level_token_db,omitempty"`
+	GCSTokenDB       *GCSStoreConfig     `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB     *RedisStoreConfig   `yaml:"redis_token_db,omitempty"`
+	HTTPTimeout      time.Duration       `yaml:"http_timeout,omitempty"`
 }
 
 type GoogleAuthRequest struct {
@@ -131,17 +131,18 @@ type GoogleAuth struct {
 func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
 	var db TokenDB
 	var err error
-	dbName := c.TokenDB
+	var dbName string
 
 	switch {
 	case c.GCSTokenDB != nil:
-		db, err = NewGCSTokenDB(c.GCSTokenDB.Bucket, c.GCSTokenDB.ClientSecretFile)
+		db, err = NewGCSTokenDB(c.GCSTokenDB)
 		dbName = "GCS: " + c.GCSTokenDB.Bucket
 	case c.RedisTokenDB != nil:
 		db, err = NewRedisTokenDB(c.RedisTokenDB)
 		dbName = db.(*redisTokenDB).String()
 	default:
-		db, err = NewTokenDB(c.TokenDB)
+		db, err = NewTokenDB(c.LevelTokenDB)
+		dbName = c.LevelTokenDB.Path
 	}
 	if err != nil {
 		return nil, err

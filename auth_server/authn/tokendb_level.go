@@ -36,6 +36,11 @@ const (
 
 var ExpiredToken = errors.New("expired token")
 
+type LevelDBStoreConfig struct {
+	Path           string `yaml:"path,omitempty"`
+	TokenHashCost  int    `yaml:"token_hash_cost,omitempty"`
+}
+
 // TokenDB stores tokens using LevelDB
 type TokenDB interface {
 	// GetValue takes a username returns the corresponding token
@@ -75,8 +80,12 @@ type TokenDBValue struct {
 }
 
 // NewTokenDB returns a new TokenDB structure
-func NewTokenDB(file string) (TokenDB, error) {
-	db, err := leveldb.OpenFile(file, nil)
+func NewTokenDB(options *LevelDBStoreConfig) (TokenDB, error) {
+	db, err := leveldb.OpenFile(options.Path, nil)
+	tokenHashCost := options.TokenHashCost
+	if tokenHashCost <= 0 {
+		tokenHashCost = bcrypt.DefaultCost
+	}
 	return &TokenDBImpl{
 		DB: db,
 	}, err

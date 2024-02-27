@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -162,7 +162,7 @@ func (ga *GoogleAuth) DoGoogleAuth(rw http.ResponseWriter, req *http.Request) {
 		ga.doGoogleAuthPage(rw, req)
 		return
 	}
-	gauthRequest, _ := ioutil.ReadAll(req.Body)
+	gauthRequest, _ := io.ReadAll(req.Body)
 	glog.V(2).Infof("gauth request: %s", string(gauthRequest))
 	var gar GoogleAuthRequest
 	err := json.Unmarshal(gauthRequest, &gar)
@@ -203,7 +203,7 @@ func (ga *GoogleAuth) doGoogleAuthCreateToken(rw http.ResponseWriter, code strin
 		http.Error(rw, fmt.Sprintf("Error talking to Google auth backend: %s", err), http.StatusServiceUnavailable)
 		return
 	}
-	codeResp, _ := ioutil.ReadAll(resp.Body)
+	codeResp, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	glog.V(2).Infof("Code to token resp: %s", strings.Replace(string(codeResp), "\n", " ", -1))
 
@@ -262,7 +262,7 @@ func (ga *GoogleAuth) getIDTokenInfo(token string) (*GoogleTokenInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not verify token %s: %s", token, err)
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	var ti GoogleTokenInfo
@@ -317,7 +317,7 @@ func (ga *GoogleAuth) refreshAccessToken(refreshToken string) (rtr RefreshTokenR
 		err = fmt.Errorf("Error talking to Google auth backend: %s", err)
 		return
 	}
-	respStr, _ := ioutil.ReadAll(resp.Body)
+	respStr, _ := io.ReadAll(resp.Body)
 	glog.V(2).Infof("Refresh token resp: %s", strings.Replace(string(respStr), "\n", " ", -1))
 
 	err = json.Unmarshal(respStr, &rtr)
@@ -334,7 +334,7 @@ func (ga *GoogleAuth) validateAccessToken(toktype, token string) (user string, e
 	if err != nil {
 		return
 	}
-	respStr, _ := ioutil.ReadAll(resp.Body)
+	respStr, _ := io.ReadAll(resp.Body)
 	glog.V(2).Infof("Access token validation rrsponse: %s", strings.Replace(string(respStr), "\n", " ", -1))
 	var pr ProfileResponse
 	err = json.Unmarshal(respStr, &pr)

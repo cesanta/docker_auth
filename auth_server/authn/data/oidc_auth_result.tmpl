@@ -9,9 +9,11 @@
 <body>
   <p class="message">
     You are successfully authenticated for the Docker Registry.
-    Use the following username and password to login into the registry:
+    Log into the registry using one of these commands:
   </p>
   <hr>
   <pre class="command"><span>$ </span>docker login -u {{.Username}} -p {{.Password}} {{if .RegistryUrl}}{{.RegistryUrl}}{{else}}docker.example.com{{end}}</pre>
+  <pre class="command"><span>$ </span>podman login -u {{.Username}} -p {{.Password}} {{if .RegistryUrl}}{{.RegistryUrl}}{{else}}docker.example.com{{end}}</pre>
+  <pre class="command"><span>$ </span>nerdctl login -u {{.Username}} -p {{.Password}} {{if .RegistryUrl}}{{.RegistryUrl}}{{else}}docker.example.com{{end}}</pre>
 </body>
 </html>

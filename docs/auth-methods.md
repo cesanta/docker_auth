@@ -13,7 +13,8 @@ github_auth:
   organization: "my-org-name"
   client_id: "..."
   client_secret: "..." # or client_secret_file
-  token_db: /data/tokens.db
+  level_token_db:
+    path: /data/tokens.db
 ```
 
 Then specify what teams can do via acls

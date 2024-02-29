@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -40,29 +40,29 @@ import (
 type OIDCAuthConfig struct {
 	// --- necessary ---
 	// URL of the authentication provider. Must be able to serve the /.well-known/openid-configuration
-	Issuer           string            `yaml:"issuer,omitempty"`
+	Issuer string `yaml:"issuer,omitempty"`
 	// URL of the auth server. Has to end with /oidc_auth
-	RedirectURL      string            `yaml:"redirect_url,omitempty"`
+	RedirectURL string `yaml:"redirect_url,omitempty"`
 	// ID and secret, priovided by the OIDC provider after registration of the auth server
-	ClientId         string            `yaml:"client_id,omitempty"`
-	ClientSecret     string            `yaml:"client_secret,omitempty"`
-	ClientSecretFile string            `yaml:"client_secret_file,omitempty"`
+	ClientId         string `yaml:"client_id,omitempty"`
+	ClientSecret     string `yaml:"client_secret,omitempty"`
+	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
 	// path where the tokendb should be stored within the container
-	LevelTokenDB     *LevelDBStoreConfig `yaml:"level_token_db,omitempty"`
-	GCSTokenDB       *GCSStoreConfig     `yaml:"gcs_token_db,omitempty"`
-	RedisTokenDB     *RedisStoreConfig   `yaml:"redis_token_db,omitempty"`
+	LevelTokenDB *LevelDBStoreConfig `yaml:"level_token_db,omitempty"`
+	GCSTokenDB   *GCSStoreConfig     `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB *RedisStoreConfig   `yaml:"redis_token_db,omitempty"`
 	// --- optional ---
-	HTTPTimeout      time.Duration     `yaml:"http_timeout,omitempty"`
+	HTTPTimeout time.Duration `yaml:"http_timeout,omitempty"`
 	// the URL of the docker registry. Used to generate a full docker login command after authentication
-	RegistryURL      string            `yaml:"registry_url,omitempty"`
+	RegistryURL string `yaml:"registry_url,omitempty"`
 	// --- optional ---
 	// String claim to use for the username
-	UserClaim        string            `yaml:"user_claim,omitempty"`
+	UserClaim string `yaml:"user_claim,omitempty"`
 	// --- optional ---
 	// []string to add as labels.
-	LabelsClaims     []string          `yaml:"labels_claims,omitempty"`
+	LabelsClaims []string `yaml:"labels_claims,omitempty"`
 	// --- optional ---
-	Scopes           []string          `yaml:"scopes,omitempty"`
+	Scopes []string `yaml:"scopes,omitempty"`
 }
 
 // OIDCRefreshTokenResponse is sent by OIDC provider in response to the grant_type=refresh_token request.
@@ -274,7 +274,7 @@ func (ga *OIDCAuth) refreshAccessToken(refreshToken string) (rtr OIDCRefreshToke
 		err = fmt.Errorf("error talking to OIDC auth backend: %s", err)
 		return
 	}
-	respStr, _ := ioutil.ReadAll(resp.Body)
+	respStr, _ := io.ReadAll(resp.Body)
 	glog.V(2).Infof("Refresh token resp: %s", strings.Replace(string(respStr), "\n", " ", -1))
 
 	err = json.Unmarshal(respStr, &rtr)

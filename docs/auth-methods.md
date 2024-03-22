@@ -13,7 +13,10 @@ github_auth:
   organization: "my-org-name"
   client_id: "..."
   client_secret: "..." # or client_secret_file
-  token_db: /data/tokens.db
+  level_token_db:
+    path: /data/tokens.db
+    # Optional token hash cost for bcrypt hashing
+    # token_hash_cost: 5
 ```
 
 Then specify what teams can do via acls

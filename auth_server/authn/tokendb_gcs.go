@@ -31,18 +31,29 @@ import (
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
 
+type GCSStoreConfig struct {
+	Bucket           string `yaml:"bucket,omitempty"`
+	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
+	TokenHashCost    int    `yaml:"token_hash_cost,omitempty"`
+}
+
 // NewGCSTokenDB return a new TokenDB structure which uses Google Cloud Storage as backend. The
 // created DB uses file-per-user strategy and stores credentials independently for each user.
 //
 // Note: it's not recomanded bucket to be shared with other apps or services
-func NewGCSTokenDB(bucket, clientSecretFile string) (TokenDB, error) {
-	gcs, err := storage.NewClient(context.Background(), option.WithServiceAccountFile(clientSecretFile))
-	return &gcsTokenDB{gcs, bucket}, err
+func NewGCSTokenDB(options *GCSStoreConfig) (TokenDB, error) {
+	gcs, err := storage.NewClient(context.Background(), option.WithServiceAccountFile(options.ClientSecretFile))
+	tokenHashCost := options.TokenHashCost
+	if tokenHashCost <= 0 {
+		tokenHashCost = bcrypt.DefaultCost
+	}
+	return &gcsTokenDB{gcs, options.Bucket, tokenHashCost}, err
 }
 
 type gcsTokenDB struct {
 	gcs    *storage.Client
 	bucket string
+	tokenHashCost int
 }
 
 // GetValue gets token value associated with the provided user. Each user
@@ -72,7 +83,7 @@ func (db *gcsTokenDB) GetValue(user string) (*TokenDBValue, error) {
 func (db *gcsTokenDB) StoreToken(user string, v *TokenDBValue, updatePassword bool) (dp string, err error) {
 	if updatePassword {
 		dp = uniuri.New()
-		dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
+		dph, _ := bcrypt.GenerateFromPassword([]byte(dp), db.tokenHashCost)
 		v.DockerPassword = string(dph)
 	}
 

@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine3.17 as build
+FROM golang:1.21-alpine3.19 as build
 
 ARG VERSION
 ENV VERSION "${VERSION}"
@@ -12,7 +12,7 @@ COPY . /build
 WORKDIR /build
 RUN make build
 
-FROM alpine:3.17
+FROM alpine:3.19
 COPY --from=build /build/auth_server /docker_auth/
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 ENTRYPOINT ["/docker_auth/auth_server"]

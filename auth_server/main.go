@@ -66,9 +66,7 @@ func ServeOnce(c *server.Config, cf string) (*server.AuthServer, *http.Server) {
 		glog.Exitf("Failed to create auth server: %s", err)
 	}
 
-	tlsConfig := &tls.Config{
-		PreferServerCipherSuites: true,
-	}
+	tlsConfig := &tls.Config{}
 	if c.Server.HSTS {
 		glog.Info("HTTP Strict Transport Security enabled")
 	}
@@ -103,6 +101,10 @@ func ServeOnce(c *server.Config, cf string) (*server.AuthServer, *http.Server) {
 		}
 		tlsConfig.CipherSuites = values
 		glog.Infof("TLS CipherSuites: %s", c.Server.TLSCipherSuites)
+	} else {
+		for _, s := range tls.CipherSuites() {
+			tlsConfig.CipherSuites = append(tlsConfig.CipherSuites, s.ID)
+		}
 	}
 	if c.Server.ClientAuth != "" {
 		value, found := server.ClientAuthValues[c.Server.ClientAuth]

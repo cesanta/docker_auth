@@ -1,8 +1,8 @@
 apiVersion: v2
-appVersion: "1.8.0"
+appVersion: "1.11.0"
 description: Docker Registry V2 authentication server
 name: docker-auth
-version: 1.4.0
+version: 1.5.0
 keywords:
 - docker
 - registry

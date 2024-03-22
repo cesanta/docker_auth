@@ -33,12 +33,14 @@ import (
 )
 
 type GoogleAuthConfig struct {
-	Domain           string `yaml:"domain,omitempty"`
-	ClientId         string `yaml:"client_id,omitempty"`
-	ClientSecret     string `yaml:"client_secret,omitempty"`
-	ClientSecretFile string `yaml:"client_secret_file,omitempty"`
-	TokenDB          string `yaml:"token_db,omitempty"`
-	HTTPTimeout      int    `yaml:"http_timeout,omitempty"`
+	Domain           string              `yaml:"domain,omitempty"`
+	ClientId         string              `yaml:"client_id,omitempty"`
+	ClientSecret     string              `yaml:"client_secret,omitempty"`
+	ClientSecretFile string              `yaml:"client_secret_file,omitempty"`
+	LevelTokenDB     *LevelDBStoreConfig `yaml:"level_token_db,omitempty"`
+	GCSTokenDB       *GCSStoreConfig     `yaml:"gcs_token_db,omitempty"`
+	RedisTokenDB     *RedisStoreConfig   `yaml:"redis_token_db,omitempty"`
+	HTTPTimeout      time.Duration       `yaml:"http_timeout,omitempty"`
 }
 
 type GoogleAuthRequest struct {
@@ -127,16 +129,30 @@ type GoogleAuth struct {
 }
 
 func NewGoogleAuth(c *GoogleAuthConfig) (*GoogleAuth, error) {
-	db, err := NewTokenDB(c.TokenDB)
+	var db TokenDB
+	var err error
+	var dbName string
+
+	switch {
+	case c.GCSTokenDB != nil:
+		db, err = NewGCSTokenDB(c.GCSTokenDB)
+		dbName = "GCS: " + c.GCSTokenDB.Bucket
+	case c.RedisTokenDB != nil:
+		db, err = NewRedisTokenDB(c.RedisTokenDB)
+		dbName = db.(*redisTokenDB).String()
+	default:
+		db, err = NewTokenDB(c.LevelTokenDB)
+		dbName = c.LevelTokenDB.Path
+	}
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("Google auth token DB at %s", c.TokenDB)
+	glog.Infof("Google auth token DB at %s", dbName)
 	google_auth, _ := static.ReadFile("data/google_auth.tmpl")
 	return &GoogleAuth{
 		config: c,
 		db:     db,
-		client: &http.Client{Timeout: 10 * time.Second},
+		client: &http.Client{Timeout: c.HTTPTimeout},
 		tmpl:   template.Must(template.New("google_auth").Parse(string(google_auth))),
 	}, nil
 }

@@ -29,6 +29,12 @@ import (
 	"github.com/go-redis/redis"
 )
 
+type RedisStoreConfig struct {
+	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
+	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
+	TokenHashCost  int                   `yaml:"token_hash_cost,omitempty"`
+}
+
 type RedisClient interface {
 	Get(key string) *redis.StringCmd
 	Set(key string, value interface{}, expiration time.Duration) *redis.StatusCmd
@@ -37,7 +43,7 @@ type RedisClient interface {
 
 // NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
 //
-func NewRedisTokenDB(options *GitHubRedisStoreConfig) (TokenDB, error) {
+func NewRedisTokenDB(options *RedisStoreConfig) (TokenDB, error) {
 	var client RedisClient
 	if options.ClusterOptions != nil {
 		if options.ClientOptions != nil {
@@ -47,28 +53,17 @@ func NewRedisTokenDB(options *GitHubRedisStoreConfig) (TokenDB, error) {
 	} else {
 		client = redis.NewClient(options.ClientOptions)
 	}
-
-	return &redisTokenDB{client}, nil
-}
-
-// NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
-//
-func NewRedisGitlabTokenDB(options *GitlabRedisStoreConfig) (TokenDB, error) {
-	var client RedisClient
-	if options.ClusterOptions != nil {
-		if options.ClientOptions != nil {
-			glog.Infof("Both redis_token_db.configs and redis_token_db.cluster_configs have been set. Only the latter will be used")
-		}
-		client = redis.NewClusterClient(options.ClusterOptions)
-	} else {
-		client = redis.NewClient(options.ClientOptions)
+	tokenHashCost := options.TokenHashCost
+	if tokenHashCost <= 0 {
+		tokenHashCost = bcrypt.DefaultCost
 	}
 
-	return &redisTokenDB{client}, nil
+	return &redisTokenDB{client,tokenHashCost}, nil
 }
 
 type redisTokenDB struct {
 	client RedisClient
+	tokenHashCost int
 }
 
 func (db *redisTokenDB) String() string {
@@ -106,7 +101,7 @@ func (db *redisTokenDB) GetValue(user string) (*TokenDBValue, error) {
 func (db *redisTokenDB) StoreToken(user string, v *TokenDBValue, updatePassword bool) (dp string, err error) {
 	if updatePassword {
 		dp = uniuri.New()
-		dph, _ := bcrypt.GenerateFromPassword([]byte(dp), bcrypt.DefaultCost)
+		dph, _ := bcrypt.GenerateFromPassword([]byte(dp), db.tokenHashCost)
 		v.DockerPassword = string(dph)
 	}
 

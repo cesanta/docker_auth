@@ -43,7 +43,7 @@ type XormAuthzConfig struct {
 type XormACL []XormACLEntry
 
 type XormACLEntry struct {
-	ACLEntry `xorm:"'acl_entry'"`
+	ACLEntry `xorm:"'acl_entry' JSON"`
 	Seq      int64
 }
 
@@ -138,8 +138,10 @@ func (xa *aclXormAuthz) updateACLCache() error {
 	// Get ACL from Xorm.io database connection
 	var newACL []XormACLEntry
 
-	xa.engine.OrderBy("seq").Find(&newACL)
-
+	err := xa.engine.OrderBy("seq").Find(&newACL)
+	if err != nil {
+		return err
+	}
 	var retACL ACL
 	for _, e := range newACL {
 		retACL = append(retACL, e.ACLEntry)

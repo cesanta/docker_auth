@@ -15,6 +15,8 @@ github_auth:
   client_secret: "..." # or client_secret_file
   level_token_db:
     path: /data/tokens.db
+    # Optional token hash cost for bcrypt hashing
+    # token_hash_cost: 5
 ```
 
 Then specify what teams can do via acls

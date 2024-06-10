@@ -117,6 +117,8 @@ google_auth:
   # Where to store server tokens. Required.
   level_token_db:
     path: "/somewhere/to/put/google_tokens.ldb"
+    # Optional token hash cost for bcrypt hashing
+    # token_hash_cost: 5
   # How long to wait when talking to Google servers. Optional.
   http_timeout: "10s"
 
@@ -136,9 +138,11 @@ github_auth:
   # want to have sensitive information checked in.
   # client_secret: "verysecret"
   client_secret_file: "/path/to/client_secret.txt"
-  # Either token_db file for storing of server tokens.
+  # Either level_token_db file for storing of server tokens.
   level_token_db:
     path: "/somewhere/to/put/github_tokens.ldb"
+    # Optional token hash cost for bcrypt hashing
+    # token_hash_cost: 5
   # or google cloud storage for storing of the sensitive information,
   gcs_token_db:
     bucket: "tokenBucket"
@@ -185,6 +189,8 @@ oidc_auth:
   # a file in which the tokens should be stored. Does not have to exist, it will be generated in this case
   level_token_db:
     path: "/path/to/tokens.ldb"
+    # Optional token hash cost for bcrypt hashing
+    # token_hash_cost: 5
   # --- optional ---
   # How long to wait when talking to the OIDC provider.
   http_timeout: "10s"
@@ -213,9 +219,11 @@ gitlab_auth:
   # want to have sensitive information checked in.
   # client_secret: "verysecret"
   client_secret_file: "/path/to/client_secret.txt"
-  # Either token_db file for storing of server tokens.
+  # Either level_token_db file for storing of server tokens.
   level_token_db:
     path: "/somewhere/to/put/gitlab_tokens.ldb"
+    # Optional token hash cost for bcrypt hashing
+    # token_hash_cost: 5
   # or google cloud storage for storing of the sensitive information,
   gcs_token_db:
     bucket: "tokenBucket"

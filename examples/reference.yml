@@ -120,7 +120,7 @@ google_auth:
     # Optional token hash cost for bcrypt hashing
     # token_hash_cost: 5
   # How long to wait when talking to Google servers. Optional.
-  http_timeout: 10
+  http_timeout: "10s"
 
 # GitHub authentication.
 # ==! NB: DO NOT ENTER YOUR GITHUB PASSWORD AT "docker login". IT WILL NOT WORK.
@@ -139,7 +139,7 @@ github_auth:
   # client_secret: "verysecret"
   client_secret_file: "/path/to/client_secret.txt"
   # Either level_token_db file for storing of server tokens.
-  level_token_db: 
+  level_token_db:
     path: "/somewhere/to/put/github_tokens.ldb"
     # Optional token hash cost for bcrypt hashing
     # token_hash_cost: 5
@@ -187,13 +187,13 @@ oidc_auth:
   # client_secret_file: "/path/to/client_secret.txt"
   #
   # a file in which the tokens should be stored. Does not have to exist, it will be generated in this case
-  level_token_db: 
+  level_token_db:
     path: "/path/to/tokens.ldb"
     # Optional token hash cost for bcrypt hashing
     # token_hash_cost: 5
   # --- optional ---
   # How long to wait when talking to the OIDC provider.
-  http_timeout: 10
+  http_timeout: "10s"
   # the url of the registry where you want to login. Is used to present the full docker login command.
   registry_url: "url_of_my_beautiful_docker_registry"
   # The claim to use for the username.
@@ -220,7 +220,7 @@ gitlab_auth:
   # client_secret: "verysecret"
   client_secret_file: "/path/to/client_secret.txt"
   # Either level_token_db file for storing of server tokens.
-  level_token_db: 
+  level_token_db:
     path: "/somewhere/to/put/gitlab_tokens.ldb"
     # Optional token hash cost for bcrypt hashing
     # token_hash_cost: 5

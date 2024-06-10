@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -102,7 +102,6 @@ type GitlabAuth struct {
 	tmpl       *template.Template
 	tmplResult *template.Template
 }
-
 
 func NewGitlabAuth(c *GitlabAuthConfig) (*GitlabAuth, error) {
 	var db TokenDB
@@ -205,7 +204,7 @@ func (glab *GitlabAuth) doGitlabAuthCreateToken(rw http.ResponseWriter, code str
 		http.Error(rw, fmt.Sprintf("Error talking to GitLab auth backend: %s", err), http.StatusServiceUnavailable)
 		return
 	}
-	codeResp, _ := ioutil.ReadAll(resp.Body)
+	codeResp, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	glog.V(2).Infof("Code to token resp: %s", strings.Replace(string(codeResp), "\n", " ", -1))
 
@@ -230,7 +229,6 @@ func (glab *GitlabAuth) doGitlabAuthCreateToken(rw http.ResponseWriter, code str
 
 	glog.Infof("New GitLab auth token for %s", user)
 
-
 	v := &TokenDBValue{
 		TokenType:   c2t.TokenType,
 		AccessToken: c2t.AccessToken,
@@ -247,7 +245,7 @@ func (glab *GitlabAuth) doGitlabAuthCreateToken(rw http.ResponseWriter, code str
 
 func (glab *GitlabAuth) validateGitlabAccessToken(token string) (user string, err error) {
 	glog.Infof("Gitlab API: Fetching user info")
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", glab.getGitlabApiUri()),nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/user", glab.getGitlabApiUri()), nil)
 
 	if err != nil {
 		err = fmt.Errorf("could not create request to get information for token %s: %s", token, err)
@@ -261,7 +259,7 @@ func (glab *GitlabAuth) validateGitlabAccessToken(token string) (user string, er
 		err = fmt.Errorf("could not verify token %s: %s", token, err)
 		return
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	var ti GitlabTokenUser
 	err = json.Unmarshal(body, &ti)
@@ -301,7 +299,6 @@ func (glab *GitlabAuth) checkGitlabOrganization(token, user string) (err error) 
 
 	return fmt.Errorf("Unknown status for membership of organization %s: %s", glab.config.Organization, resp.Status)
 }
-
 
 func (glab *GitlabAuth) validateGitlabServerToken(user string) (*TokenDBValue, error) {
 	v, err := glab.db.GetValue(user)

@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -117,7 +117,6 @@ func execGHExperimentalApiRequest(url string, token string) (*http.Response, err
 }
 
 // removeSubstringsFromString removes all occurences of stringsToStrip from sourceStr
-//
 func removeSubstringsFromString(sourceStr string, stringsToStrip []string) string {
 	theNewString := sourceStr
 	for _, i := range stringsToStrip {
@@ -129,7 +128,6 @@ func removeSubstringsFromString(sourceStr string, stringsToStrip []string) strin
 // parseLinkHeader parses the HTTP headers from the Github API response
 //
 // https://developer.github.com/v3/guides/traversing-with-pagination/
-//
 func parseLinkHeader(linkLines []string) (linkHeader, error) {
 	var lH linkHeader
 	// URL in link is enclosed in < >
@@ -255,7 +253,7 @@ func (gha *GitHubAuth) doGitHubAuthCreateToken(rw http.ResponseWriter, code stri
 		http.Error(rw, fmt.Sprintf("Error talking to GitHub auth backend: %s", err), http.StatusServiceUnavailable)
 		return
 	}
-	codeResp, _ := ioutil.ReadAll(resp.Body)
+	codeResp, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	glog.V(2).Infof("Code to token resp: %s", strings.Replace(string(codeResp), "\n", " ", -1))
 
@@ -317,7 +315,7 @@ func (gha *GitHubAuth) validateAccessToken(token string) (user string, err error
 		err = fmt.Errorf("could not verify token %s: %s", token, err)
 		return
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	var ti GitHubTokenUser
@@ -386,7 +384,7 @@ func (gha *GitHubAuth) fetchTeams(token string) ([]string, error) {
 		}
 
 		respHeaders := resp.Header
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 
 		err = json.Unmarshal(body, &pagedTeams)

@@ -193,8 +193,8 @@ func validate(c *Config) error {
 			}
 			gac.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if gac.ClientId == "" || gac.ClientSecret == "" || (gac.LevelTokenDB == nil && (gac.GCSTokenDB == nil && gac.RedisTokenDB == nil)) {
-			return errors.New("google_auth.{client_id,client_secret,token_db} are required")
+		if gac.ClientId == "" || gac.ClientSecret == "" || (gac.LevelTokenDB != nil && gac.LevelTokenDB.Path == "") {
+			return errors.New("google_auth.{client_id,client_secret,level_token_db.path} are required")
 		}
 
 		if gac.ClientId == "" || gac.ClientSecret == "" || (gac.GCSTokenDB != nil && (gac.GCSTokenDB.Bucket == "" || gac.GCSTokenDB.ClientSecretFile == "")) {
@@ -217,8 +217,8 @@ func validate(c *Config) error {
 			}
 			ghac.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if ghac.ClientId == "" || ghac.ClientSecret == "" || (ghac.LevelTokenDB == nil && (ghac.GCSTokenDB == nil && ghac.RedisTokenDB == nil)) {
-			return errors.New("github_auth.{client_id,client_secret,token_db} are required")
+		if ghac.ClientId == "" || ghac.ClientSecret == "" || (ghac.LevelTokenDB != nil && ghac.LevelTokenDB.Path == "") {
+			return errors.New("github_auth.{client_id,client_secret,level_token_db.path} are required")
 		}
 
 		if ghac.ClientId == "" || ghac.ClientSecret == "" || (ghac.GCSTokenDB != nil && (ghac.GCSTokenDB.Bucket == "" || ghac.GCSTokenDB.ClientSecretFile == "")) {
@@ -245,8 +245,8 @@ func validate(c *Config) error {
 			}
 			oidc.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if oidc.ClientId == "" || oidc.ClientSecret == "" || oidc.Issuer == "" || oidc.RedirectURL == "" || (oidc.LevelTokenDB == nil && (oidc.GCSTokenDB == nil && oidc.RedisTokenDB == nil)) {
-			return errors.New("oidc_auth.{issuer,redirect_url,client_id,client_secret,token_db} are required")
+		if oidc.ClientId == "" || oidc.ClientSecret == "" || oidc.Issuer == "" || oidc.RedirectURL == "" || (oidc.LevelTokenDB != nil && oidc.LevelTokenDB.Path == "") {
+			return errors.New("oidc_auth.{issuer,redirect_url,client_id,client_secret,level_token_db.path} are required")
 		}
 
 		if oidc.ClientId == "" || oidc.ClientSecret == "" || (oidc.GCSTokenDB != nil && (oidc.GCSTokenDB.Bucket == "" || oidc.GCSTokenDB.ClientSecretFile == "")) {
@@ -275,8 +275,8 @@ func validate(c *Config) error {
 			}
 			glab.ClientSecret = strings.TrimSpace(string(contents))
 		}
-		if glab.ClientId == "" || glab.ClientSecret == "" || (glab.LevelTokenDB == nil && (glab.GCSTokenDB == nil && glab.RedisTokenDB == nil)) {
-			return errors.New("gitlab_auth.{client_id,client_secret,token_db} are required")
+		if glab.ClientId == "" || glab.ClientSecret == "" || (glab.LevelTokenDB != nil && glab.LevelTokenDB.Path == "") {
+			return errors.New("gitlab_auth.{client_id,client_secret,level_token_db.path} are required")
 		}
 
 		if glab.ClientId == "" || glab.ClientSecret == "" || (glab.GCSTokenDB != nil && (glab.GCSTokenDB.Bucket == "" || glab.GCSTokenDB.ClientSecretFile == "")) {

@@ -30,8 +30,7 @@ import (
 )
 
 type RedisStoreConfig struct {
-	ClientOptions  *redis.Options        `yaml:"redis_options,omitempty"`
-	ClusterOptions *redis.ClusterOptions `yaml:"redis_cluster_options,omitempty"`
+	ClientOptions  *redis.UniversalOptions `yaml:"redis_options,omitempty"`
 	TokenHashCost  int                   `yaml:"token_hash_cost,omitempty"`
 }
 
@@ -45,14 +44,7 @@ type RedisClient interface {
 //
 func NewRedisTokenDB(options *RedisStoreConfig) (TokenDB, error) {
 	var client RedisClient
-	if options.ClusterOptions != nil {
-		if options.ClientOptions != nil {
-			glog.Infof("Both redis_token_db.configs and redis_token_db.cluster_configs have been set. Only the latter will be used")
-		}
-		client = redis.NewClusterClient(options.ClusterOptions)
-	} else {
-		client = redis.NewClient(options.ClientOptions)
-	}
+	client = redis.NewUniversalClient(options.ClientOptions)
 	tokenHashCost := options.TokenHashCost
 	if tokenHashCost <= 0 {
 		tokenHashCost = bcrypt.DefaultCost

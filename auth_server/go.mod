@@ -9,7 +9,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.9.0
 	github.com/dchest/uniuri v0.0.0-20220929095258-3027df40b6ce
 	github.com/deckarep/golang-set v1.8.0
-	github.com/docker/distribution v2.8.1+incompatible
+	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-redis/redis v6.15.9+incompatible

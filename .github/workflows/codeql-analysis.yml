@@ -7,6 +7,8 @@ on:
     branches: [ main ]
   schedule:
     - cron: '32 3 * * 5'
+  workflow_dispatch:
+    
 
 jobs:
   analyze:

@@ -1,9 +1,9 @@
-FROM golang:1.23-alpine3.21 as build
+FROM golang:1.23-alpine3.21 AS build
 
 ARG VERSION
-ENV VERSION "${VERSION}"
+ENV VERSION="${VERSION}"
 ARG BUILD_ID
-ENV BUILD_ID "${BUILD_ID}"
+ENV BUILD_ID="${BUILD_ID}"
 ARG CGO_EXTRA_CFLAGS
 
 RUN apk add -U --no-cache ca-certificates make git gcc musl-dev binutils-gold

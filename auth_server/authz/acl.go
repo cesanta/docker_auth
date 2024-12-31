@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -11,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/cesanta/glog"
-	"github.com/schwarmco/go-cartesian-product"
 
 	"github.com/cesanta/docker_auth/auth_server/api"
 )
@@ -180,19 +180,61 @@ func matchStringWithLabelPermutations(pp *string, s string, vars []string, label
 			}
 		}
 		if len(labelSets) > 0 {
-			for permuation := range cartesian.Iter(labelSets...) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			for permuation := range IterWithContext(ctx, labelSets...) {
 				var labelVars []string
 				for _, val := range permuation {
 					labelVars = append(labelVars, val.([]string)...)
 				}
 				matched = matchString(pp, s, append(vars, labelVars...))
 				if matched {
-					break
+					return matched
 				}
 			}
 		}
 	}
 	return matched
+}
+
+func IterWithContext(ctx context.Context, params ...[]interface{}) <-chan []interface{} {
+	c := make(chan []interface{})
+
+	if len(params) == 0 {
+		close(c)
+		return c
+	}
+
+	go func() {
+		defer close(c) // Ensure the channel is closed when the goroutine exits
+
+		iterate(ctx, c, params[0], []interface{}{}, params[1:]...)
+	}()
+
+	return c
+}
+
+func iterate(ctx context.Context, channel chan []interface{}, topLevel, result []interface{}, needUnpacking ...[]interface{}) {
+	if len(needUnpacking) == 0 {
+		for _, p := range topLevel {
+			select {
+			case <-ctx.Done():
+				return // Exit if the context is canceled
+			case channel <- append(append([]interface{}{}, result...), p):
+			}
+		}
+		return
+	}
+
+	for _, p := range topLevel {
+		select {
+		case <-ctx.Done():
+			return // Exit if the context is canceled
+		default:
+			iterate(ctx, channel, needUnpacking[0], append(result, p), needUnpacking[1:]...)
+		}
+	}
 }
 
 func matchIP(ipp *string, ip net.IP) bool {

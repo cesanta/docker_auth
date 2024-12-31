@@ -201,7 +201,7 @@ func validate(c *Config) error {
 			return errors.New("google_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
 		}
 
-		if gac.ClientId == "" || gac.ClientSecret == "" || (gac.RedisTokenDB != nil && gac.RedisTokenDB.ClientOptions == nil && gac.RedisTokenDB.ClusterOptions == nil) {
+		if gac.ClientId == "" || gac.ClientSecret == "" || (gac.RedisTokenDB != nil && gac.RedisTokenDB.ClientOptions == nil) {
 			return errors.New("google_auth.{client_id,client_secret,redis_token_db.{redis_options,redis_cluster_options}} are required")
 		}
 
@@ -225,7 +225,7 @@ func validate(c *Config) error {
 			return errors.New("github_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
 		}
 
-		if ghac.ClientId == "" || ghac.ClientSecret == "" || (ghac.RedisTokenDB != nil && ghac.RedisTokenDB.ClientOptions == nil && ghac.RedisTokenDB.ClusterOptions == nil) {
+		if ghac.ClientId == "" || ghac.ClientSecret == "" || (ghac.RedisTokenDB != nil && ghac.RedisTokenDB.ClientOptions == nil) {
 			return errors.New("github_auth.{client_id,client_secret,redis_token_db.{redis_options,redis_cluster_options}} are required")
 		}
 
@@ -253,7 +253,7 @@ func validate(c *Config) error {
 			return errors.New("oidc_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
 		}
 
-		if oidc.ClientId == "" || oidc.ClientSecret == "" || (oidc.RedisTokenDB != nil && oidc.RedisTokenDB.ClientOptions == nil && oidc.RedisTokenDB.ClusterOptions == nil) {
+		if oidc.ClientId == "" || oidc.ClientSecret == "" || (oidc.RedisTokenDB != nil && oidc.RedisTokenDB.ClientOptions == nil) {
 			return errors.New("oidc_auth.{client_id,client_secret,redis_token_db.{redis_options,redis_cluster_options}} are required")
 		}
 
@@ -283,7 +283,7 @@ func validate(c *Config) error {
 			return errors.New("gitlab_auth.{client_id,client_secret,gcs_token_db{bucket,client_secret_file}} are required")
 		}
 
-		if glab.ClientId == "" || glab.ClientSecret == "" || (glab.RedisTokenDB != nil && glab.RedisTokenDB.ClientOptions == nil && glab.RedisTokenDB.ClusterOptions == nil) {
+		if glab.ClientId == "" || glab.ClientSecret == "" || (glab.RedisTokenDB != nil && glab.RedisTokenDB.ClientOptions == nil) {
 			return errors.New("gitlab_auth.{client_id,client_secret,redis_token_db.{redis_options,redis_cluster_options}} are required")
 		}
 

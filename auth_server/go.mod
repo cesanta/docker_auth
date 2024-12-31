@@ -16,7 +16,6 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/lib/pq v1.10.7
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/schwarmco/go-cartesian-product v0.0.0-20180515110546-d5ee747a6dc9
 	github.com/syndtr/goleveldb v1.0.0
 	go.mongodb.org/mongo-driver v1.10.2
 	golang.org/x/crypto v0.31.0

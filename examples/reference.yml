@@ -84,6 +84,11 @@ token:  # Settings for the tokens.
   # If not specified, server's TLS certificate and key are used.
   # certificate: "..."
   # key: "..."
+  # Whether the legacy libtrust key ID should be embedded in the `kid` header of the token.
+  # Set this to true if you are using registry v3, and to false if you are using registry v2.
+  # If set to true, the JWK thumbprint (see https://www.rfc-editor.org/rfc/rfc7638.html) of the certificate will be embedded instead.
+  # Defaults to false.
+  # disable_legacy_key_id: false
 
 # Authentication methods. All are tried, any one returning success is sufficient.
 # At least one must be configured. If you want an unauthenticated public setup,

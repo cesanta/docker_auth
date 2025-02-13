@@ -15,6 +15,8 @@ server:
 token:
   issuer: "Acme auth server"  # Must match issuer in the Registry config.
   expiration: 900
+  # Uncomment the following line if you are using registry v3, leave it commented if you are using registry v2
+  # disable_legacy_key_id: true
 
 users:
   # Password is specified as a BCrypt hash. Use `htpasswd -nB USERNAME` to generate.

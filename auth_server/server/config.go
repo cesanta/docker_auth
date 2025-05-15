@@ -17,11 +17,17 @@
 package server
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -80,14 +86,16 @@ type LetsEncryptConfig struct {
 }
 
 type TokenConfig struct {
-	Issuer     string `yaml:"issuer,omitempty"`
-	CertFile   string `yaml:"certificate,omitempty"`
-	KeyFile    string `yaml:"key,omitempty"`
-	Expiration int64  `yaml:"expiration,omitempty"`
+	Issuer             string `yaml:"issuer,omitempty"`
+	CertFile           string `yaml:"certificate,omitempty"`
+	KeyFile            string `yaml:"key,omitempty"`
+	Expiration         int64  `yaml:"expiration,omitempty"`
+	DisableLegacyKeyID bool   `yaml:"disable_legacy_key_id,omitempty"`
 
 	publicKey  libtrust.PublicKey
 	privateKey libtrust.PrivateKey
 	sigAlg     string
+	keyID      string
 }
 
 // TLSCipherSuitesValues maps CipherSuite names as strings to the actual values
@@ -405,6 +413,12 @@ func LoadConfig(fileName string) (*Config, error) {
 		return nil, fmt.Errorf("failed to load token cert and key: none provided")
 	}
 
+	if c.Token.DisableLegacyKeyID {
+		c.Token.keyID = getRFC7638Thumbprint(c.Token.publicKey.CryptoPublicKey())
+	} else {
+		c.Token.keyID = c.Token.publicKey.KeyID()
+	}
+
 	if !serverConfigured && c.Server.LetsEncrypt.Email != "" {
 		if c.Server.LetsEncrypt.CacheDir == "" {
 			return nil, fmt.Errorf("server.letsencrypt.cache_dir is required")
@@ -418,4 +432,33 @@ func LoadConfig(fileName string) (*Config, error) {
 	}
 
 	return c, nil
+}
+
+// getRFC7638Thumbprint will generate the JWK thumbprint (https://www.rfc-editor.org/rfc/rfc7638.html) for a crypto.PublicKey.
+//
+// Copied from https://github.com/distribution/distribution/blob/51bdcb7bac069f263ce238db6bd0610759c2635f/registry/auth/token/util.go#L63
+func getRFC7638Thumbprint(publickey crypto.PublicKey) string {
+	var payload string
+
+	switch pubkey := publickey.(type) {
+	case *rsa.PublicKey:
+		e_big := big.NewInt(int64(pubkey.E)).Bytes()
+
+		e := base64.RawURLEncoding.EncodeToString(e_big)
+		n := base64.RawURLEncoding.EncodeToString(pubkey.N.Bytes())
+
+		payload = fmt.Sprintf(`{"e":"%s","kty":"RSA","n":"%s"}`, e, n)
+	case *ecdsa.PublicKey:
+		params := pubkey.Params()
+		crv := params.Name
+		x := base64.RawURLEncoding.EncodeToString(params.Gx.Bytes())
+		y := base64.RawURLEncoding.EncodeToString(params.Gy.Bytes())
+
+		payload = fmt.Sprintf(`{"crv":"%s","kty":"EC","x":"%s","y":"%s"}`, crv, x, y)
+	default:
+		return ""
+	}
+
+	shasum := sha256.Sum256([]byte(payload))
+	return base64.RawURLEncoding.EncodeToString(shasum[:])
 }

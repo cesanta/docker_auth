@@ -1,6 +1,6 @@
 module github.com/cesanta/docker_auth/auth_server
 
-go 1.23
+go 1.23.0
 
 require (
 	cloud.google.com/go/storage v1.29.0
@@ -18,7 +18,7 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/syndtr/goleveldb v1.0.0
 	go.mongodb.org/mongo-driver v1.10.2
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.35.0
 	golang.org/x/net v0.33.0
 	golang.org/x/oauth2 v0.13.0
 	google.golang.org/api v0.126.0
@@ -60,9 +60,9 @@ require (
 	github.com/xdg-go/stringprep v1.0.3 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20230530153820-e85fd2cbaebc // indirect

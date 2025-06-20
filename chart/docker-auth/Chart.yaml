@@ -3,6 +3,7 @@ appVersion: "1.14.0"
 description: Docker Registry V2 authentication server
 name: docker-auth
 version: 1.14.0
+kubeVersion: ">=1.25"
 keywords:
 - docker
 - registry

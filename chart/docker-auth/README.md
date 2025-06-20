@@ -1,63 +1,131 @@
-Helm Chart for docker_auth
-=======================
+# Helm Chart for docker_auth
 
-## Introduction
+A Helm chart for deploying a [private Docker Registry](https://github.com/cesanta/docker_auth).
 
-This [Helm](https://github.com/kubernetes/helm) chart installs a private Docker registry with token based authentication and support for authorization in a Kubernetes cluster. 
+## Overview
 
-Is uses
-- [docker-registry](https://github.com/helm/charts/tree/master/stable/docker-registry) for running a Docker registry
-- [docker_auth](https://github.com/cesanta/docker_auth) for providing token based authentication
+This chart deploys docker_auth, which provides token-based authentication and authorization for Docker Registry v2. It implements the Docker Registry authentication protocol and supports various authentication backends.
+
+## Prerequisites
+
+- Kubernetes 1.25+
+- Helm 3.0+
 
 ## Installation
 
-Install the docker-auth helm chart:
-
-Add repository to helm
+### Add Helm Repository
 
 ```bash
 helm repo add cesanta https://cesanta.github.io/docker_auth/
 helm repo update
 ```
 
-Installation: 
+### Basic Installation
 
 ```bash
-helm dependency update
-helm install --name=docker-auth cesanta/docker-auth
+helm install my-docker-auth cesanta/docker-auth
 ```
 
-To delete the `my-release` deployment, run:
+### Installation with Custom Values
 
 ```bash
-helm delete --purge docker-auth
+helm install docker-auth cesanta/docker-auth -f values.yaml
+```
+
+### Uninstall
+
+```bash
+helm uninstall docker-auth
 ```
 
 ## Configuration
 
-The following table lists the configurable parameters of the docker-auth chart and the default values.
+### Values
 
-| Parameter                         | Description                                                                                                                                                                                                                                            | Default                |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
-| **Secret**                        |
-| `secret.data.server.certificate`  | Content of server.pem  (mutually exclusive with secretName, keyName, certificateName)                                                                                                                                                                  |                        |
-| `secret.data.server.key`          | Content of server.key  (mutually exclusive with secretName, keyName, certificateName)                                                                                                                                                                  |                        |
-| `secret.secretName`               | The name of the secret containing server key and certificate (mutually exclusive with secret.data.server.key/certificate)                                                                                                                              |                        |
-| `secret.certificateFileName`      | The name of the server certificate file (mutually exclusive with secret.data.server.key/certificate)                                                                                                                                                   | tls.crt                |
-| `secret.keyFileName`              | The name of the server key file (mutually exclusive with secret.data.server.key/certificate)                                                                                                                                                           | tls.key                |
-| **Configmap**                     |
-| `configmap.data.token.issuer`     | Must match issuer in the Registry config                                                                                                                                                                                                               | `Acme auth server`     |
-| `configmap.data.token.expiration` | Token Expiration                                                                                                                                                                                                                                       | `900`                  |
-| `configmap.data.users`            | Static user map                                                                                                                                                                                                                                        |                        |
-| `configmap.data.acl`              | ACL specifies who can do what. If the match section of an entry matches the request, the set of allowed actions will be applied to the token request and a ticket will be issued only for those of the requested actions that are allowed by the rule. |                        |
-| **ingress**                       |
-| `ingress.hosts.host`              | Domain to your `docker_auth` installation                                                                                                                                                                                                              | `docker-auth.test.com` |
-| **High Available**                |
-| `replicaCount`                    | Replica count for High Available                                                                                                                                                                                                                       | `1`                    |
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| **Image** | | |
+| `image.repository` | Docker image repository | `cesanta/docker_auth` |
+| `image.tag` | Docker image tag | `1.14.0` |
+| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
+| **Deployment** | | |
+| `replicaCount` | Number of replicas | `1` |
+| `nameOverride` | Override name of the chart | `""` |
+| `fullnameOverride` | Override full name of the chart | `""` |
+| **Logging** | | |
+| `logging.level` | Log verbosity level (0-10). Passed as `--v=X` flag to docker_auth binary. Higher numbers = more verbose logging. | `2` |
+| **Authentication** | | |
+| `configmap.data.token.issuer` | Token issuer name (must match registry config) | `"Acme auth server"` |
+| `configmap.data.token.expiration` | Token expiration time in seconds | `900` |
+| `configmap.data.users` | Static user definitions | See values.yaml |
+| `configmap.data.acl` | Access control list rules | See values.yaml |
+| **TLS/Certificates** | | |
+| `secret.data.server.certificate` | Server certificate content (PEM format, base64 encoded) | `""` |
+| `secret.data.server.key` | Server private key content (PEM format, base64 encoded) | `""` |
+| `secret.secretName` | External secret name for certificates (alternative to inline cert/key) | `""` |
+| **Service** | | |
+| `service.type` | Kubernetes service type | `ClusterIP` |
+| `service.port` | Service port | `5001` |
+| `service.targetPort` | Container port | `5001` |
+| **Ingress** | | |
+| `ingress.enabled` | Enable ingress | `true` |
+| `ingress.className` | Ingress class name | `""` |
+| `ingress.annotations` | Ingress annotations | `{}` |
+| `ingress.labels` | Ingress labels | `{}` |
+| `ingress.hosts` | Ingress hosts configuration | See values.yaml |
+| `ingress.tls` | Ingress TLS configuration | `[]` |
+| **Resources** | | |
+| `resources` | CPU/Memory resource requests/limits | `{}` |
+| `nodeSelector` | Node selector | `{}` |
+| `tolerations` | Tolerations | `[]` |
+| `affinity` | Affinity rules | `{}` |
+| **Security** | | |
+| `podSecurityContext` | Pod security context | `{}` |
+| `containerSecurityContext` | Container security context | `{}` |
+| `podAnnotations` | Pod annotations | `{}` |
+| **Registry Integration** | | |
+| `registry.enabled` | Enable integrated docker-registry | `false` |
 
-## Generate certificates
+### Quick Start Example
 
-Replace the parameter to `-subj` with sensible values for your deployment. The value of `CN=` must be supplied to `docker-registry.configData.auth.token.issuer` (see below).
+```yaml
+# values.yaml
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+    - host: docker-auth.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: docker-auth-tls
+      hosts:
+        - docker-auth.example.com
+
+configmap:
+  data:
+    token:
+      issuer: "docker-auth-prod"
+      expiration: 900
+    users:
+      "admin":
+        password: "$2y$05$..." # Generate with htpasswd -Bbn admin password
+    acl:
+      - match: {account: "admin"}
+        actions: ["*"]
+        comment: "Admin has full access"
+      - match: {account: ""}
+        actions: ["pull"]
+        comment: "Anonymous users can pull"
+```
+
+## Certificate Management
+
+### Generate Self-Signed Certificates
 
 ```bash
 openssl req -new -newkey rsa:4096 -days 5000 -nodes -x509 \
@@ -69,32 +137,9 @@ CERT_PEM_BASE64=`cat generated-docker-auth-server.pem | base64`
 CERT_KEY_BASE64=`cat generated-docker-auth-server.key | base64`
 ```
 
-## Users
+## Access Control Lists (ACL)
 
-Generate a password for your user using `htpasswd`
-```bash
-PWGEN_USER="admin"
-PWGEN=`pwgen -N 1 -B 10 | tr -d '\n'`
-PWGEN_HTPASSWD_LINE=`htpasswd -Bbn $PWGEN_USER $PWGEN | tr -d '\n'`
-PWGEN_HTPASSWD_PASSWD_ONLY=`echo $PWGEN_HTPASSWD_LINE | awk '{ sub(/^$PWGEN_USER\:/, ""); print }'`
-```
-
-Replace `$PWGEN_HTPASSWD_PASSWD_ONLY` in the following YAML snippet with actual value:
-
-```yaml
-configmap:
-  data:
-    users:
-      "admin":
-         password: "$PWGEN_HTPASSWD_PASSWD_ONLY"
-      "": {}  # Allow anonymous (no "docker login") access.
-```
-
-## ACLs
-
-If the match section of an entry matches the request, the set of allowed actions will be applied to the token request and a ticket will be issued only for those of the requested actions that are allowed by the rule.
-
-Example:
+### ACL Configuration
 
 ```yaml
 configmap:
@@ -108,148 +153,63 @@ configmap:
         comment: "Anonymous users can pull"
 ```
 
-# Working Example
+## Monitoring and Logging
 
-## Generate password hashes for user `admin`
+### Increase Log Verbosity
 
-```bash
-PWGEN=`pwgen -N 1 -B 10 | tr -d '\n'`
-htpasswd -Bbn admin $PWGEN > generated-registry-htpasswd
-PWGEN_HTPASSWD_LINE=`cat generated-registry-htpasswd | tr -d '\n'`
-PWGEN_HTPASSWD_PASSWD_ONLY=`echo $PWGEN_HTPASSWD_LINE | awk '{ sub(/^admin\:/, ""); print }'`
-echo "Docker registry admin password is: $PWGEN"
-```
-
-## Generate a self-signed certificate
-
-```bash
-openssl req -new -newkey rsa:4096 -days 5000 -nodes -x509 \
-        -subj "/C=DE/ST=BW/L=Mannheim/O=DHBW/CN=docker-auth" \
-        -keyout generated-docker-auth-server.key  \
-        -out generated-docker-auth-server.pem
-
-CERT_PEM_BASE64=`cat generated-docker-auth-server.pem | base64`
-CERT_KEY_BASE64=`cat generated-docker-auth-server.key | base64`
-```
-
-## Create a k8s secret with the certificate
-
-Save this to `my-secret.yaml` (and replace `$CERT_PEM_BASE64` with the actual value):
-
-```bash
-apiVersion: v1
-kind: Secret
-type: Opaque
-metadata:
-  namespace: "your-namespace"
-  name: "your-docker-registry-cert"
-data:
-  tokenAuthRootCertBundle: "$CERT_PEM_BASE64"
-```
-
-Run `kubectl apply -f my-secret.yaml`
-
-## Generate the configuration file for Helm
-
-```bash
-DOCKER_REG_HOSTNAME="docker-registry.example.com"
-DOCKER_AUTH_HOSTNAME="docker-registry-auth.example.com"
-
-cat <<EOF > generated-docker-auth-values.yaml
-configmap:
-  data:
-    token:
-      issuer: "docker-auth"
-      expiration: 900
-    users:
-      "admin":
-         password: "$PWGEN_HTPASSWD_PASSWD_ONLY"
-      "": {}  # Allow anonymous (no "docker login") access.
-    acl: 
-      - match: { account: "admin" }
-        actions: ["*"]
-        comment: "Admin has full access to everything."
-      - match: { account: "" }
-        actions: ["pull"]
-        comment: "Anonymous users can pull"
-secret:
-  data:
-    server:
-      certificate: "$CERT_PEM_BASE64"
-      key: "$CERT_KEY_BASE64"
-
-registry:
-  enabled: true
-
+```yaml
 logging:
-  level: 5
-
-docker-registry:
-  configData:
-    log:
-      level: debug
-      accesslog:
-        disabled: false
-    auth:
-      token:
-        autoredirect: false
-        issuer: "docker-auth"
-        realm: "https://$DOCKER_AUTH_HOSTNAME/auth"
-        service: "token-service"
-
-  ingress:
-    enabled: true
-    hosts:
-      - $DOCKER_REG_HOSTNAME
-    annotations:
-      external-dns.alpha.kubernetes.io/hostname: $DOCKER_REG_HOSTNAME
-      kubernetes.io/ingress.class: "nginx"
-      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-      nginx.ingress.kubernetes.io/proxy-body-size: "0"
-    path: /
-    tls:
-      - hosts:
-          - $DOCKER_REG_HOSTNAME
-
-  extraVolumeMounts:
-    - name: token-auth-root-cert-bundle
-      mountPath: /tokenAuthRootCertBundle
-      readOnly: true
-
-  extraVolumes:
-    - name: token-auth-root-cert-bundle
-      secret:
-        secretName: "your-docker-registry-cert"
-        items:
-          - key: tokenAuthRootCertBundle
-            path: cert.pem
-
-ingress:
-  enabled: true
-  path: /
-  hosts:
-    - $DOCKER_AUTH_HOSTNAME
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: $DOCKER_AUTH_HOSTNAME
-    kubernetes.io/ingress.class: "nginx"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-  tls:
-    - hosts:
-        - $DOCKER_AUTH_HOSTNAME
-
-EOF
+  level: 5  # Higher values = more verbose (0-10)
 ```
 
-## Install the chart
+## Troubleshooting
+
+### Debug Commands
 
 ```bash
-helm install ./docker_auth \
-            --name=docker-auth \
-            --namespace=$HUB_NAMESPACE \
-            -f generated-docker-auth-values.yaml
+# Check pod logs
+kubectl logs -l app.kubernetes.io/name=docker-auth
+
+# Check configuration
+kubectl get configmap docker-auth -o yaml
+
+# Test authentication endpoint
+curl -k https://docker-auth.example.com/auth
+
+# Verify certificate
+openssl x509 -in certificate.pem -text -noout
 ```
 
-# Development: Upload a new version of the chart
+## Integration with Docker Registry
+
+To use with Docker Registry, configure the registry with:
+
+```yaml
+# Registry configuration
+auth:
+  token:
+    realm: https://docker-auth.example.com/auth
+    service: token-service
+    issuer: docker-auth-prod  # Must match configmap.data.token.issuer
+    rootcertbundle: /path/to/docker-auth.crt
+```
+
+## Development
+
+### Chart Development
+
+```bash
+# Lint the chart
+helm lint chart/docker-auth
+
+# Test template rendering
+helm template test-release chart/docker-auth
+
+# Package the chart
+helm package chart/docker-auth
+```
+
+### Update Repository
 
 ```bash
 cd chart/docker-auth
@@ -258,6 +218,6 @@ helm package .
 mv docker-auth-*.tgz ../../docs/
 helm repo index ../../docs/ --url https://cesanta.github.io/docker_auth/
 git add ../../docs/
-git commit -a -m "Updated helm repository"
+git commit -m "Updated helm repository"
 git push origin main
 ```

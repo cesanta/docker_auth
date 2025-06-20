@@ -1,7 +1,9 @@
 1. Get the application URL by running these commands:
 {{- if .Values.ingress.enabled }}
 {{- range .Values.ingress.hosts }}
-  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ . }}{{ $.Values.ingress.path }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $.host }}{{ .path }}
+  {{- end }}
 {{- end }}
 {{- else if contains "NodePort" .Values.service.type }}
   export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "docker-auth.fullname" . }})
@@ -25,10 +27,12 @@ auth:
     autoredirect: false
 {{- if .Values.ingress.enabled }}
 {{- range .Values.ingress.hosts }}
-    realm: http{{ if $.Values.ingress.tls }}s{{ end }}://{{ . }}{{ $.Values.ingress.path }}
+  {{- range .paths }}
+    realm: http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $.host }}{{ .path }}
+  {{- end }}
 {{- end }}
 {{- end }}
     service: token-service
-    issuer: Acme auth server
-    rootcertbundle: /path/to/server.pem
+    issuer: {{ .Values.configmap.data.token.issuer }}
+    rootcertbundle: /config/certs/{{ .Values.secret.certificateFileName }}
 {{- end }}

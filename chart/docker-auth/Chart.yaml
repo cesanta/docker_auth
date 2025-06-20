@@ -1,8 +1,8 @@
 apiVersion: v2
-appVersion: "1.11.0"
+appVersion: "1.14.0"
 description: Docker Registry V2 authentication server
 name: docker-auth
-version: 1.5.0
+version: 1.14.0
 keywords:
 - docker
 - registry
@@ -17,4 +17,6 @@ maintainers:
   email: 1294057873@qq.com
 - name: pfisterer
   email: github@farberg.de
+- name: techknowlogick
+  email: hello@techknowlogick.com
 engine: gotpl

@@ -57,6 +57,7 @@ helm uninstall docker-auth
 | **Authentication** | | |
 | `configmap.data.token.issuer` | Token issuer name (must match registry config) | `"Acme auth server"` |
 | `configmap.data.token.expiration` | Token expiration time in seconds | `900` |
+| `configmap.data.token.disableLegacyKeyId` | Disables legacy key IDs for registry v3 | `false` |
 | `configmap.data.users` | Static user definitions | See values.yaml |
 | `configmap.data.acl` | Access control list rules | See values.yaml |
 | **TLS/Certificates** | | |

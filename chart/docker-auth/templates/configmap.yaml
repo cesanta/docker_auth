@@ -16,6 +16,9 @@ data:
       certificate: "/config/certs/server.pem"
       key: "/config/certs/server.key"
 {{- end }}
+{{- if .Values.configmap.data.token.disableLegacyKeyId }}
+      disable_legacy_key_id: {{ .Values.configmap.data.token.disableLegacyKeyId }}
+{{- end }}
     users:
       {{ .Values.configmap.data.users | toYaml | nindent 6 }}
     acl:

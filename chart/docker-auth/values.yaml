@@ -25,6 +25,7 @@ configmap:
     token:
       issuer: "Acme auth server"
       expiration: 900
+      disableLegacyKeyId: false
     users:
       "admin":
         password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC"  # password: badmin

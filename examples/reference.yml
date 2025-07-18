@@ -26,6 +26,11 @@ server:  # Server settings.
   # Use specific certificate and key.
   certificate: "/path/to/server.pem"
   key: "/path/to/server.key"
+  # Optional CA file for client certificate verification.
+  client_ca: /path/to/ca.crt
+  # Optional. Defaults to NoClientCert.
+  # Values can be found at https://pkg.go.dev/crypto/tls#ClientAuthType
+  client_auth_type: NoClientCert
   #
   # The following optional settings will fine tune TLS configuration to improve security.
   # Leaving them unset should be just fine for most installations.
@@ -476,3 +481,30 @@ ext_authz:
 plugin_authz:
   plugin_path: ""
 
+# If not empty, and a client certificate is present, the following
+# lables prefixed with the given value, will be added:
+#   - <prefix>_O = <certificate O(s)>
+#   - <prefix>_OU = <certificate OU(s)>
+#   - <prefix>_DNS_NAMES = <certificate DNS SAN(s)>
+client_cert_labels: TLS
+
+# Populate the username/password from the HTTP request
+alternate_credentials:
+  # If not empty, a label with the given name and single value "true" or "false" is added
+  # indicating whether or not alternate credentials was used.
+  label: ALTERNATE_CREDENTIALS
+  username:
+    # Required
+    # Choices:
+    #   cn - Client certificate CN.
+    #   header - The value of the header specified in `value`.
+    #   static - The static value in `value`.
+    source: header
+    # Required if `source`` is static or header.
+    value: X-Forwarded-User
+  # See above for configuration values.
+  password:
+    # Required
+    source:
+    # Required
+    value:

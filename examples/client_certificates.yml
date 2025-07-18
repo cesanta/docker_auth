@@ -1,0 +1,43 @@
+---
+server:
+  addr: :5001
+  certificate: /path/to/server.pem
+  key: /path/to/server.key
+  client_ca: /path/to/ca.crt
+  client_auth_type: RequireAndVerifyClientCert
+
+alternate_credentials:
+  # Add a label indicating if alternate credentials were used.
+  label: ALTERNATE_CREDENTIALS
+  username:
+    source: cn
+  password:
+    source: static
+    # a "sentinel value for use with static auth
+    value: secret
+
+users:
+  user1:
+    # the hash of "secret"
+    password: $2y$05$hS3s0Fbh5EMclimhNeCyEeH9VIynngvgDmGO6MbooXxle7S0D5boK
+
+# Add TLS_* labels
+client_cert_labels: TLS
+
+acl:
+  - match: {account: "user1"}
+    actions: ["*"]
+    comment: User 1 has full access
+  # We can also require that alternate credentials be used through a label match:
+  - match: {account: "user1", labels: {ALTERNATE_CREDENTIALS: "true"}}
+    actions: ["*"]
+    comment: User 1 has full access
+  - match: {labels: {TLS_OU: developers}}
+    actions: ["pull"]
+    comment: Users whose certificate has the OU "developers" can pull
+
+# To login with a client certificate:
+#
+# 1. Configure Docker to use the certificate: https://docs.docker.com/engine/security/certificates/
+# 2. Run docker login. The username must be the same as the certificate CN (or header).
+#    The password can be anything.

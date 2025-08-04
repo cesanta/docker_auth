@@ -155,11 +155,13 @@ github_auth:
   # or Redis,
   redis_token_db:
     redis_options:
-        # with a single instance,
-        addr: localhost:6379
-    redis_cluster_options:
-        # or in the cluster mode.
-        addrs: ["localhost:7000"]
+      # with a single instance,
+      addrs: ["localhost:6379"]
+      # or in the cluster mode.
+      addrs: ["localhost:7000", "localhost:7001"]
+      # or in the failover mode with redis sentinel.
+      mastername: redis-ha
+      addrs: ["redis-sentinel:26379"]
   # How long to wait when talking to GitHub servers. Optional.
   http_timeout: "10s"
   # How long to wait before revalidating the GitHub token. Optional.
@@ -237,10 +239,12 @@ gitlab_auth:
   redis_token_db:
     redis_options:
       # with a single instance,
-      addr: localhost:6379
-    redis_cluster_options:
+      addrs: ["localhost:6379"]
       # or in the cluster mode.
-      addrs: ["localhost:7000"]
+      addrs: ["localhost:7000", "localhost:7001"]
+      # or in the failover mode with redis sentinel.
+      mastername: redis-ha
+      addrs: ["redis-sentinel:26379"]
   # How long to wait when talking to GitLab servers. Optional.
   http_timeout: "10s"
   # How long to wait before revalidating the Gitlab token. Optional.

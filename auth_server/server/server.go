@@ -263,6 +263,24 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 			ar.Password = api.PasswordString(password)
 		}
 	}
+
+	if as.config.AlternateCredentials != nil {
+		var altCredsSuccess bool
+		username := alternateCredentials(req, as.config.AlternateCredentials.Username)
+		password := alternateCredentials(req, as.config.AlternateCredentials.Password)
+		if username != "" && password != "" && username == ar.User {
+			ar.User = username
+			ar.Password = api.PasswordString(password)
+			altCredsSuccess = true
+		}
+		if altCredsSuccess && as.config.AlternateCredentials.Label != "" {
+			if ar.Labels == nil {
+				ar.Labels = make(api.Labels, 1)
+			}
+			ar.Labels[as.config.AlternateCredentials.Label] = []string{fmt.Sprint(altCredsSuccess)}
+		}
+	}
+
 	ar.Account = req.FormValue("account")
 	if ar.Account == "" {
 		ar.Account = ar.User
@@ -272,6 +290,16 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	ar.Service = req.FormValue("service")
 	if err := req.ParseForm(); err != nil {
 		return nil, fmt.Errorf("invalid form value")
+	}
+
+	if as.config.ClientCertLabels != "" && req.TLS != nil && len(req.TLS.PeerCertificates) > 0 {
+		if ar.Labels == nil {
+			ar.Labels = make(api.Labels, 3)
+		}
+		clientCert := req.TLS.PeerCertificates[0]
+		ar.Labels[as.config.ClientCertLabels+"_O"] = clientCert.Subject.Organization
+		ar.Labels[as.config.ClientCertLabels+"_OU"] = clientCert.Subject.OrganizationalUnit
+		ar.Labels[as.config.ClientCertLabels+"_DNS_NAMES"] = clientCert.DNSNames
 	}
 	// https://github.com/docker/distribution/blob/1b9ab303a477ded9bdd3fc97e9119fa8f9e58fca/docs/spec/auth/scope.md#resource-scope-grammar
 	if req.FormValue("scope") != "" {
@@ -311,6 +339,19 @@ func (as *AuthServer) ParseRequest(req *http.Request) (*authRequest, error) {
 	return ar, nil
 }
 
+func alternateCredentials(r *http.Request, config *CredentialSourceConfig) string {
+	switch config.Source {
+	case sourceHeader:
+		return r.Header.Get(config.Value)
+	case sourceStatic:
+		return config.Value
+	case sourceCN:
+		if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+			return r.TLS.PeerCertificates[0].Subject.CommonName
+		}
+	}
+	return ""
+}
 func (as *AuthServer) Authenticate(ar *authRequest) (bool, api.Labels, error) {
 	for i, a := range as.authenticators {
 		result, labels, err := a.Authenticate(ar.Account, ar.Password)
@@ -495,7 +536,7 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 			http.Error(rw, "Auth failed.", http.StatusUnauthorized)
 			return
 		}
-		ar.Labels = labels
+		ar.Labels = mergeLabels(ar.Labels, labels)
 	}
 	if len(ar.Scopes) > 0 {
 		ares, err = as.Authorize(ar)
@@ -521,6 +562,18 @@ func (as *AuthServer) doAuth(rw http.ResponseWriter, req *http.Request) {
 	glog.V(3).Infof("%s", result)
 	rw.Header().Set("Content-Type", "application/json")
 	rw.Write(result)
+}
+
+func mergeLabels(dest api.Labels, src api.Labels) api.Labels {
+	if dest == nil {
+		return src
+	} else if src == nil {
+		return dest
+	}
+	for k, v := range src {
+		dest[k] = v
+	}
+	return dest
 }
 
 func (as *AuthServer) Stop() {

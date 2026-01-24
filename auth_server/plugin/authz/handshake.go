@@ -1,8 +1,5 @@
-//go:build sqlite
-// +build sqlite
-
 /*
-   Copyright 2020 Cesanta Software Ltd.
+   Copyright 2019 Cesanta Software Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,9 +17,22 @@
 package authz
 
 import (
-	_ "github.com/mattn/go-sqlite3"
+	plugin "github.com/hashicorp/go-plugin"
 )
 
-func init() {
-	EnableSQLite3 = true
+const (
+	// PluginNetRPC is the plugin identifier for the net/rpc implementation
+	PluginNetRPC = "authorizer"
+)
+
+// PluginMap is the map of plugins we can dispense.
+var PluginMap = map[string]plugin.Plugin{
+	PluginNetRPC: &RPCPlugin{},
+}
+
+// Handshake is the plugin contract between the host and its plugins.
+var Handshake = plugin.HandshakeConfig{
+	ProtocolVersion:  1,
+	MagicCookieKey:   "AUTHZ_PLUGIN",
+	MagicCookieValue: "docker_auth",
 }

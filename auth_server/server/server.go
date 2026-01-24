@@ -82,11 +82,25 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 		extAuthorizer := authz.NewExtAuthzAuthorizer(c.ExtAuthz)
 		as.authorizers = append(as.authorizers, extAuthorizer)
 	}
+	if c.RPCAuthz != nil {
+		ra, err := authz.NewRPCAuthz(c.RPCAuthz)
+		if err != nil {
+			return nil, err
+		}
+		as.authorizers = append(as.authorizers, ra)
+	}
 	if c.Users != nil {
 		as.authenticators = append(as.authenticators, authn.NewStaticUserAuth(c.Users))
 	}
 	if c.ExtAuth != nil {
 		as.authenticators = append(as.authenticators, authn.NewExtAuth(c.ExtAuth))
+	}
+	if c.RPCAuthn != nil {
+		ra, err := authn.NewRPCAuthn(c.RPCAuthn)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, ra)
 	}
 	if c.GoogleAuth != nil {
 		ga, err := authn.NewGoogleAuth(c.GoogleAuth)
@@ -437,7 +451,7 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	case req.URL.Path == path_prefix+"/auth":
 		as.doAuth(rw, req)
 	case req.URL.Path == path_prefix+"/auth/token":
-		as.doAuth(rw, req) 
+		as.doAuth(rw, req)
 	case req.URL.Path == path_prefix+"/google_auth" && as.ga != nil:
 		as.ga.DoGoogleAuth(rw, req)
 	case req.URL.Path == path_prefix+"/github_auth" && as.gha != nil:

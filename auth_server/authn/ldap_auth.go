@@ -61,7 +61,7 @@ func NewLDAPAuth(c *LDAPAuthConfig) (*LDAPAuth, error) {
 	}, nil
 }
 
-//How to authenticate user, please refer to https://github.com/go-ldap/ldap/blob/master/example_test.go#L166
+// How to authenticate user, please refer to https://github.com/go-ldap/ldap/blob/master/example_test.go#L166
 func (la *LDAPAuth) Authenticate(account string, password api.PasswordString) (bool, api.Labels, error) {
 	if account == "" || password == "" {
 		return false, nil, api.NoMatch
@@ -160,10 +160,10 @@ func (la *LDAPAuth) bindInitialAsUser(l *ldap.Conn, account string, password api
 	return nil
 }
 
-//To prevent LDAP injection, some characters must be escaped for searching
-//e.g. char '\' will be replaced by hex '\5c'
-//Filter meta chars are choosen based on filter complier code
-//https://github.com/go-ldap/ldap/blob/master/filter.go#L159
+// To prevent LDAP injection, some characters must be escaped for searching
+// e.g. char '\' will be replaced by hex '\5c'
+// Filter meta chars are choosen based on filter complier code
+// https://github.com/go-ldap/ldap/blob/master/filter.go#L159
 func (la *LDAPAuth) escapeAccountInput(account string) string {
 	r := strings.NewReplacer(
 		`\`, `\5c`,
@@ -229,8 +229,8 @@ func (la *LDAPAuth) getFilter(account string) string {
 	return filter
 }
 
-//ldap search and return required attributes' value from searched entries
-//default return entry's DN value if you leave attrs array empty
+// ldap search and return required attributes' value from searched entries
+// default return entry's DN value if you leave attrs array empty
 func (la *LDAPAuth) ldapSearch(l *ldap.Conn, baseDN *string, filter *string, attrs *[]string) (string, map[string][]string, error) {
 	if l == nil {
 		return "", nil, fmt.Errorf("No ldap connection!")

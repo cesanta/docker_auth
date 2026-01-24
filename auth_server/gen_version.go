@@ -1,4 +1,5 @@
-//+build ignore
+//go:build ignore
+// +build ignore
 
 /*
    Copyright 2021 Cesanta Software Ltd.

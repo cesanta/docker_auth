@@ -42,7 +42,6 @@ type RedisClient interface {
 }
 
 // NewRedisTokenDB returns a new TokenDB structure which uses Redis as the storage backend.
-//
 func NewRedisTokenDB(options *RedisStoreConfig) (TokenDB, error) {
 	var client RedisClient
 	if options.ClusterOptions != nil {
@@ -58,11 +57,11 @@ func NewRedisTokenDB(options *RedisStoreConfig) (TokenDB, error) {
 		tokenHashCost = bcrypt.DefaultCost
 	}
 
-	return &redisTokenDB{client,tokenHashCost}, nil
+	return &redisTokenDB{client, tokenHashCost}, nil
 }
 
 type redisTokenDB struct {
-	client RedisClient
+	client        RedisClient
 	tokenHashCost int
 }
 

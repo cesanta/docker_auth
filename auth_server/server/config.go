@@ -51,11 +51,13 @@ type Config struct {
 	MongoAuth   *authn.MongoAuthConfig         `yaml:"mongo_auth,omitempty"`
 	XormAuthn   *authn.XormAuthnConfig         `yaml:"xorm_auth,omitempty"`
 	ExtAuth     *authn.ExtAuthConfig           `yaml:"ext_auth,omitempty"`
+	RPCAuthn    *authn.RPCAuthnConfig          `yaml:"rpc_authn,omitempty"`
 	PluginAuthn *authn.PluginAuthnConfig       `yaml:"plugin_authn,omitempty"`
 	ACL         authz.ACL                      `yaml:"acl,omitempty"`
 	ACLMongo    *authz.ACLMongoConfig          `yaml:"acl_mongo,omitempty"`
 	ACLXorm     *authz.XormAuthzConfig         `yaml:"acl_xorm,omitempty"`
 	ExtAuthz    *authz.ExtAuthzConfig          `yaml:"ext_authz,omitempty"`
+	RPCAuthz    *authz.RPCAuthzConfig          `yaml:"rpc_authz,omitempty"`
 	PluginAuthz *authz.PluginAuthzConfig       `yaml:"plugin_authz,omitempty"`
 	CasbinAuthz *authz.CasbinAuthzConfig       `yaml:"casbin_authz,omitempty"`
 }
@@ -180,7 +182,7 @@ func validate(c *Config) error {
 	if c.Token.Expiration <= 0 {
 		return fmt.Errorf("expiration must be positive, got %d", c.Token.Expiration)
 	}
-	if c.Users == nil && c.ExtAuth == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.GitlabAuth == nil && c.OIDCAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.XormAuthn == nil && c.PluginAuthn == nil {
+	if c.Users == nil && c.ExtAuth == nil && c.RPCAuthn == nil && c.GoogleAuth == nil && c.GitHubAuth == nil && c.GitlabAuth == nil && c.OIDCAuth == nil && c.LDAPAuth == nil && c.MongoAuth == nil && c.XormAuthn == nil && c.PluginAuthn == nil {
 		return errors.New("no auth methods are configured, this is probably a mistake. Use an empty user map if you really want to deny everyone")
 	}
 	if c.MongoAuth != nil {
@@ -308,7 +310,12 @@ func validate(c *Config) error {
 			return fmt.Errorf("bad ext_auth config: %s", err)
 		}
 	}
-	if c.ACL == nil && c.ACLXorm == nil && c.ACLMongo == nil && c.ExtAuthz == nil && c.PluginAuthz == nil {
+	if c.RPCAuthn != nil {
+		if err := c.RPCAuthn.Validate(); err != nil {
+			return fmt.Errorf("bad rpc_authn config: %s", err)
+		}
+	}
+	if c.ACL == nil && c.ACLXorm == nil && c.ACLMongo == nil && c.ExtAuthz == nil && c.RPCAuthz == nil && c.PluginAuthz == nil {
 		return errors.New("ACL is empty, this is probably a mistake. Use an empty list if you really want to deny all actions")
 	}
 
@@ -330,6 +337,11 @@ func validate(c *Config) error {
 	if c.ExtAuthz != nil {
 		if err := c.ExtAuthz.Validate(); err != nil {
 			return err
+		}
+	}
+	if c.RPCAuthz != nil {
+		if err := c.RPCAuthz.Validate(); err != nil {
+			return fmt.Errorf("bad rpc_authz config: %w", err)
 		}
 	}
 	if c.PluginAuthn != nil {

@@ -1,4 +1,5 @@
-//+build sqlite
+//go:build sqlite
+// +build sqlite
 
 /*
    Copyright 2020 Cesanta Software Ltd.

@@ -10,7 +10,7 @@
 #      autoredirect: false
 #      rootcertbundle: "/path/to/server.pem"
 
-server:  # Server settings.
+server: # Server settings.
   # Address to listen on.
   # Can be HOST:PORT for TCP or file path (e.g. /run/docker_auth.sock) for Unix socket.
   addr: ":5001"
@@ -76,8 +76,8 @@ server:  # Server settings.
   # end of addresses.
   # real_ip_pos: -2
 
-token:  # Settings for the tokens.
-  issuer: "Acme auth server"  # Must match issuer in the Registry config.
+token: # Settings for the tokens.
+  issuer: "Acme auth server" # Must match issuer in the Registry config.
   expiration: 900
   # Token must be signed by a certificate that registry trusts, i.e. by a certificate to which a trust chain
   # can be constructed from one of the certificates in registry's auth.token.rootcertbundle.
@@ -98,10 +98,10 @@ token:  # Settings for the tokens.
 users:
   # Password is specified as a BCrypt hash. Use `htpasswd -nB USERNAME` to generate.
   "admin":
-    password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC"  # badmin
+    password: "$2y$05$LO.vzwpWC5LZGqThvEfznu8qhb5SGqvBSWY1J3yZ4AxtMRZ3kN5jC" # badmin
   "test":
-    password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya"  # 123
-  "": {}  # Allow anonymous (no "docker login") access.
+    password: "$2y$05$WuwBasGDAgr.QCbGIjKJaep4dhxeai9gNZdmBnQXqpKly57oNutya" # 123
+  "": {} # Allow anonymous (no "docker login") access.
 
 # Google authentication.
 # ==! NB: DO NOT ENTER YOUR GOOGLE PASSWORD AT "docker login". IT WILL NOT WORK.
@@ -109,7 +109,7 @@ users:
 # Go to the server's port as HTTPS with your browser and follow the "Login with Google account" link.
 # Once signed in, you will get a throw-away password which you can use for Docker login.
 google_auth:
-  domain: "example.com"  # Optional. If set, only logins from this domain are accepted.
+  domain: "example.com" # Optional. If set, only logins from this domain are accepted.
   # client_id and client_secret for API access. Required.
   # Follow instructions here: https://developers.google.com/identity/sign-in/web/devconsole-project
   # NB: Make sure JavaScript origins are configured correctly, and that third-party
@@ -133,7 +133,7 @@ google_auth:
 # Go to the server's port as HTTPS with your browser and follow the "Login with GitHub account" link.
 # Once signed in, you will get a throw-away password which you can use for Docker login.
 github_auth:
-  organization: "acme"   # Optional. If set, only logins from this organization are accepted.
+  organization: "acme" # Optional. If set, only logins from this organization are accepted.
   # client_id and client_secret for API access. Required.
   # You can register a new application here: https://github.com/settings/developers
   # NB: Make sure JavaScript origins are configured correctly, and that third-party
@@ -155,11 +155,11 @@ github_auth:
   # or Redis,
   redis_token_db:
     redis_options:
-        # with a single instance,
-        addr: localhost:6379
+      # with a single instance,
+      addr: localhost:6379
     redis_cluster_options:
-        # or in the cluster mode.
-        addrs: ["localhost:7000"]
+      # or in the cluster mode.
+      addrs: ["localhost:7000"]
   # How long to wait when talking to GitHub servers. Optional.
   http_timeout: "10s"
   # How long to wait before revalidating the GitHub token. Optional.
@@ -211,7 +211,6 @@ oidc_auth:
   scopes:
     - openid
     - email
-
 
 # Gitlab authentication.
 # ==! NB: DO NOT ENTER YOUR Gitlab PASSWORD AT "docker login". IT WILL NOT WORK.
@@ -327,8 +326,16 @@ xorm_auth:
 # The "labels" key may contain labels to be passed down to authz, where they can
 # be used in matching. See ext_auth.sh for an example.
 ext_auth:
-  command: "/usr/local/bin/my_auth"  # Can be a relative path too; $PATH works.
+  command: "/usr/local/bin/my_auth" # Can be a relative path too; $PATH works.
   args: ["--flag", "--more", "--flags"]
+
+# External authentication via RPC calls. Plugins are started alongside the server and
+# are queried via RPC calls. Only a single method must be implemented which responds
+# with either a map of labels to further process during the authorization phase or an
+# error.
+rpc_authn:
+  command: "/usr/local/libexec/docker_auth/my_authn"
+  args: ["--log.level", "info"]
 
 # User written authentication plugin - call a user written program to authenticate user.
 # Username of type string and password of authn.PasswordString is passed to the plugin
@@ -369,58 +376,58 @@ plugin_authn:
 #  * ${name} - the name of the repository (i.e. image), e.g. centos.
 #  * ${labels:<LABEL>} - tests all values in the list of lables:<LABEL> for the user. Refer to the labels doc for details
 acl:
-  - match: {ip: "127.0.0.0/8"}
+  - match: { ip: "127.0.0.0/8" }
     actions: ["*"]
     comment: "Allow everything from localhost (IPv4)"
-  - match: {ip: "::1"}
+  - match: { ip: "::1" }
     actions: ["*"]
     comment: "Allow everything from localhost (IPv6)"
-  - match: {ip: "172.17.0.1"}
+  - match: { ip: "172.17.0.1" }
     actions: ["*"]
     comment: "Allow everything from the local Docker bridge address"
-  - match: {account: "admin"}
+  - match: { account: "admin" }
     actions: ["*"]
     comment: "Admin has full access to everything."
-  - match: {account: "test", name: "test-*"}
+  - match: { account: "test", name: "test-*" }
     actions: ["*"]
-    comment: "User \"test\" has full access to test-* images but nothing else. (1)"
-  - match: {account: "test"}
+    comment: 'User "test" has full access to test-* images but nothing else. (1)'
+  - match: { account: "test" }
     actions: []
-    comment: "User \"test\" has full access to test-* images but nothing else. (2)"
-  - match: {account: "/.+/", name: "${account}/*"}
+    comment: 'User "test" has full access to test-* images but nothing else. (2)'
+  - match: { account: "/.+/", name: "${account}/*" }
     actions: ["*"]
     comment: "Logged in users have full access to images that are in their 'namespace'"
-  - match: {account: "/.+/", type: "registry", name: "catalog"}
+  - match: { account: "/.+/", type: "registry", name: "catalog" }
     actions: ["*"]
     comment: "Logged in users can query the catalog."
-  - match: {account: "/.+/"}
+  - match: { account: "/.+/" }
     actions: ["pull"]
     comment: "Logged in users can pull all images."
-  - match: {account: "", name: "hello-world"}
+  - match: { account: "", name: "hello-world" }
     actions: ["pull"]
-    comment: "Anonymous users can pull \"hello-world\"."
-  - match: {account: "/^(.+)@test.com$/", name: "${account:1}/*"}
+    comment: 'Anonymous users can pull "hello-world".'
+  - match: { account: "/^(.+)@test.com$/", name: "${account:1}/*" }
     actions: []
     comment: "Emit domain part of account to make it a correct repo name"
-  - match: {labels: {"group": "VIP"}}
+  - match: { labels: { "group": "VIP" } }
     actions: ["push"]
     comment: "Users assigned to group 'VIP' is able to push"
-  - match: {labels: {"group": "/trainee|dev/"}}
+  - match: { labels: { "group": "/trainee|dev/" } }
     actions: ["push", "pull"]
     comment: "Users assigned to group 'trainee' and 'dev' is able to push and pull"
-  - match: {name: "${labels:group}-shared/*"}
+  - match: { name: "${labels:group}-shared/*" }
     actions: ["push", "pull"]
     comment: "Users can push to the shared namespace of any group they are in"
-  - match: {name: "${labels:project}/*"}
+  - match: { name: "${labels:project}/*" }
     actions: ["push", "pull"]
     comment: "Users can push to any project they are assigned to"
-  - match: {name: "${labels:project}-{labels:tier}/*"}
+  - match: { name: "${labels:project}-{labels:tier}/*" }
     actions: ["push", "pull"]
     comment: "Users can push to a project-tier/* that they are assigned to"
-  - match: {labels: {"title": "Developer"}}
+  - match: { labels: { "title": "Developer" } }
     actions: ["*"]
     comment: "If you call yourself a developer you can do anything (this ACL is an example for LDAP labels as defined above)"
-  - match: {labels: {"groups": "Admin"}}
+  - match: { labels: { "groups": "Admin" } }
     actions: ["push"]
     comment: "If you are part of the admin group you can push. (this ACL is an example for LDAP labels as defined above)"
   # Access is denied by default.
@@ -467,12 +474,18 @@ casbin_authz:
 # JSON of authz.AuthRequestInfo is passed to command's stdin and exit code is examined.
 # 0 - allow, 1 - deny, other - error.
 ext_authz:
-  command: "/usr/local/bin/my_authz"  # Can be a relative path too; $PATH works.
+  command: "/usr/local/bin/my_authz" # Can be a relative path too; $PATH works.
   args: ["--flag", "--more", "--flags"]
+
+# External authorization via RPC calls. Plugins are started alongside the server and
+# are queried via RPC calls. Only a single method must be implemented which responds
+# with the authorized scope actions.
+rpc_authz:
+  command: "/usr/local/libexec/docker_auth/my_authz"
+  args: ["--log.level", "info"]
 
 # User written authorization plugin - call a user written program to authorize user.
 # *authz.AuthRequestInfo is passed to the plugin and expects an authorized set of actions or an error.
 # return the set of authorized actions is the user is authorized. Otherwise return nil
 plugin_authz:
   plugin_path: ""
-

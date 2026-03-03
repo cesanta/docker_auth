@@ -20,7 +20,7 @@ require (
 	go.mongodb.org/mongo-driver v1.10.2
 	golang.org/x/crypto v0.45.0
 	golang.org/x/net v0.47.0
-	golang.org/x/oauth2 v0.13.0
+	golang.org/x/oauth2 v0.27.0
 	google.golang.org/api v0.126.0
 	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22
@@ -30,8 +30,7 @@ require (
 
 require (
 	cloud.google.com/go v0.110.2 // indirect
-	cloud.google.com/go/compute v1.20.1 // indirect
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/iam v0.13.0 // indirect
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect

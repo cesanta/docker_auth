@@ -1,0 +1,19 @@
+---
+server:
+  addr: ":5001"
+
+token:
+  issuer: "Plugin Registry Auth"
+  expiration: 180
+  certificate: "target/issuer.crt.pem"
+  key: "target/issuer.key.pem"
+
+rpc_authn:
+  command: "target/authn"
+  args:
+    - "--log.level=info"
+
+rpc_authz:
+  command: "target/authz"
+  args:
+    - "--log.level=info"

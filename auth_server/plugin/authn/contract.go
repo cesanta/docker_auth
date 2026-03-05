@@ -1,0 +1,35 @@
+/*
+   Copyright 2019 Cesanta Software Ltd.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package authn
+
+// AuthenticateResponse contains information associated with
+// the authenticated principal.
+type AuthenticateResponse map[string][]string
+
+// AuthenticateRequest represents the input query for authentication requests.
+type AuthenticateRequest struct {
+	// Username is the authentication principal
+	Username string
+	// Password is the authentication secret
+	Password string
+}
+
+// Authenticator is the contract plugin implementations must fulfill
+// in order to be used for authentication purposes.
+type Authenticator interface {
+	Authenticate(*AuthenticateRequest) (AuthenticateResponse, error)
+}

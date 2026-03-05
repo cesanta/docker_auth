@@ -1,8 +1,5 @@
-//go:build sqlite
-// +build sqlite
-
 /*
-   Copyright 2020 Cesanta Software Ltd.
+   Copyright 2019 Cesanta Software Ltd.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,12 +14,6 @@
    limitations under the License.
 */
 
-package authz
-
-import (
-	_ "github.com/mattn/go-sqlite3"
-)
-
-func init() {
-	EnableSQLite3 = true
-}
+// Shared constants, interfaces and other parts for implementing
+// authentication/authorization plugins via RPC
+package plugin

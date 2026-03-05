@@ -51,8 +51,8 @@ func NewGCSTokenDB(options *GCSStoreConfig) (TokenDB, error) {
 }
 
 type gcsTokenDB struct {
-	gcs    *storage.Client
-	bucket string
+	gcs           *storage.Client
+	bucket        string
 	tokenHashCost int
 }
 

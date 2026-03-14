@@ -158,7 +158,7 @@ func ServeOnce(c *server.Config, cf string) (*server.AuthServer, *http.Server) {
 	}
 
 	go func() {
-		if c.Server.CertFile == "" && c.Server.KeyFile == "" {
+		if tlsConfig == nil {
 			if err := hs.Serve(listener); err != nil {
 				if err == http.ErrServerClosed {
 					return

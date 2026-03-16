@@ -451,8 +451,8 @@ func getRFC7638Thumbprint(publickey crypto.PublicKey) string {
 	case *ecdsa.PublicKey:
 		params := pubkey.Params()
 		crv := params.Name
-		x := base64.RawURLEncoding.EncodeToString(params.Gx.Bytes())
-		y := base64.RawURLEncoding.EncodeToString(params.Gy.Bytes())
+		x := base64.RawURLEncoding.EncodeToString(pubkey.X.Bytes())
+		y := base64.RawURLEncoding.EncodeToString(pubkey.Y.Bytes())
 
 		payload = fmt.Sprintf(`{"crv":"%s","kty":"EC","x":"%s","y":"%s"}`, crv, x, y)
 	default:

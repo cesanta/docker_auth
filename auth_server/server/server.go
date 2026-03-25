@@ -88,6 +88,13 @@ func NewAuthServer(c *Config) (*AuthServer, error) {
 	if c.ExtAuth != nil {
 		as.authenticators = append(as.authenticators, authn.NewExtAuth(c.ExtAuth))
 	}
+	if c.HttpAuth != nil {
+		ha, err := authn.NewHttpAuth(c.HttpAuth)
+		if err != nil {
+			return nil, err
+		}
+		as.authenticators = append(as.authenticators, ha)
+	}
 	if c.GoogleAuth != nil {
 		ga, err := authn.NewGoogleAuth(c.GoogleAuth)
 		if err != nil {
@@ -437,7 +444,7 @@ func (as *AuthServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	case req.URL.Path == path_prefix+"/auth":
 		as.doAuth(rw, req)
 	case req.URL.Path == path_prefix+"/auth/token":
-		as.doAuth(rw, req) 
+		as.doAuth(rw, req)
 	case req.URL.Path == path_prefix+"/google_auth" && as.ga != nil:
 		as.ga.DoGoogleAuth(rw, req)
 	case req.URL.Path == path_prefix+"/github_auth" && as.gha != nil:

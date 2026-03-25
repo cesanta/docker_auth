@@ -338,6 +338,37 @@ ext_auth:
 plugin_authn:
   plugin_path: ""
 
+# HTTP authentication – Authenticate a user via an HTTPS server.
+# Authentication is performed by sending a POST request to an HTTPS server.
+# The username and password are included as a JSON payload in the request body:
+# {"user": "foo", "password": "bar"}
+# The server responds with status code 200 and a JSON object indicating the authentication result:
+# Allow:    { "result": "allow" }
+# Deny:     { "result": "deny" }
+# Failed:   { "result": "failed" }
+# No match: { "result": "no_match" }
+# The optional "labels" field may contain labels to be passed down to authz, where they can
+# be used in matching:
+# { "result": "allow", "labels": {"groups": ["admin","trainee"], "project": ["hello-world"]} }
+# In case of an error the server should return a non-200 status code and may include 
+# an error message in the response body.
+http_auth:
+  # The the http server URL
+  http_url: "https://example.com"
+  # Set to true to allow insecure tls Optional.
+  insecure_tls_skip_verify: false
+  # How long to wait when talking to the http server. Optional.
+  http_timeout: "10s"
+  # If true, disables HTTP keep-alives and will only use the connection to the server for a single HTTP request. Optional.
+  http_disable_keepalives: false
+  # Additional HTTP Headers. Optional.
+  http_headers:
+    Authorization:
+      - Bearer xyz123
+    Cache-Control:
+      - no-cache
+      - no-store
+
 # Authorization methods. All are tried, any one returning success is sufficient.
 # At least one must be configured.
 

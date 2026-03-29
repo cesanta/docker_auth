@@ -373,7 +373,9 @@ func (as *AuthServer) Authorize(ar *authRequest) ([]authzResult, error) {
 	return ares, nil
 }
 
-// https://github.com/docker/distribution/blob/master/docs/spec/auth/token.md#example
+// CreateToken implements the CNCF Token Authentication Specification
+//
+// See: https://distribution.github.io/distribution/spec/auth/token/
 func (as *AuthServer) CreateToken(ar *authRequest, ares []authzResult) (string, error) {
 	now := time.Now().Unix()
 	tc := &as.config.Token

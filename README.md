@@ -8,7 +8,7 @@ While performing simple user authentication is pretty straightforward, performin
 Docker Registry 2.0 introduced a new, token-based authentication and authorization protocol, but the server to generate them was not released.
 Thus, most guides found on the internet still describe a set up with a reverse proxy performing access control.
 
-This server fills the gap and implements the protocol described [here](https://github.com/docker/distribution/blob/main/docs/spec/auth/token.md).
+This server fills the gap and implements the protocol described [here](https://distribution.github.io/distribution/spec/auth/token/).
 
 Supported authentication methods:
  * Static list of users
